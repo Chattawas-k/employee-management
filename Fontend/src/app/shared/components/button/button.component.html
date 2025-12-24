@@ -1,0 +1,11 @@
+<button
+  [class]="getButtonClasses()"
+  [disabled]="disabled"
+  [title]="title"
+      (click)="onClick.emit($event)">
+  @if (icon) {
+    <app-icon [name]="icon" className="w-4 h-4 mr-2"></app-icon>
+  }
+  <ng-content></ng-content>
+</button>
+

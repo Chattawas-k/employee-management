@@ -1,0 +1,78 @@
+<div class="space-y-6">
+  <div class="flex justify-between items-center">
+    <h2 class="text-2xl font-bold text-slate-800">หมวดหมู่สินค้า (Product Categories)</h2>
+    <app-button variant="primary" icon="plus" (onClick)="handleAddClick()">เพิ่มหมวดหมู่</app-button>
+  </div>
+  
+  <app-table
+    [columns]="tableColumns()"
+    [data]="categories()"
+    emptyMessage="ยังไม่มีข้อมูลหมวดหมู่สินค้า"
+    [trackByFn]="trackByCategoryId">
+    
+    <!-- Custom template for status column -->
+    <ng-template #statusTemplate let-cat>
+      <span class="px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+            [ngClass]="cat.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'">
+        {{ cat.status === 'Active' ? 'ใช้งานอยู่' : 'ไม่ได้ใช้งาน' }}
+      </span>
+    </ng-template>
+
+    <!-- Custom template for actions column -->
+    <ng-template #actionsTemplate let-cat>
+      <div class="flex items-center justify-end gap-2">
+        <app-action-button variant="edit" title="แก้ไขชื่อ" (onClick)="handleEditClick(cat)"></app-action-button>
+        <button 
+          (click)="toggleCategoryStatus(cat.id)" 
+          class="p-2 rounded-full transition-colors"
+          [ngClass]="cat.status === 'Active' ? 'text-green-600 hover:bg-green-50' : 'text-slate-400 hover:bg-slate-100'"
+          [title]="cat.status === 'Active' ? 'ปิดการใช้งาน' : 'เปิดการใช้งาน'"
+        >
+          <app-icon [name]="cat.status === 'Active' ? 'power' : 'power-off'" className="w-4 h-4"></app-icon>
+        </button>
+        <app-action-button variant="delete" title="ลบ" (onClick)="confirmDelete(cat.id)"></app-action-button>
+      </div>
+    </ng-template>
+  </app-table>
+
+  <!-- Add/Edit Modal -->
+  <app-modal 
+    [isOpen]="isModalOpen()" 
+    (onClose)="isModalOpen.set(false)" 
+    [title]="editingCategory() ? 'แก้ไขหมวดหมู่สินค้า' : 'เพิ่มหมวดหมู่สินค้าใหม่'"
+  >
+    <form class="space-y-4" (ngSubmit)="handleSave(); $event.preventDefault()">
+      @if (errorMessage()) {
+        <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-600">
+          {{ errorMessage() }}
+        </div>
+      }
+      <app-input
+        type="text"
+        label="ชื่อหมวดหมู่"
+        placeholder="ตัวอย่าง: เครื่องใช้ไฟฟ้า"
+        [(ngModel)]="formData.name"
+        name="categoryName"
+        [error]="fieldErrors()['name']"
+        [required]="true"
+        autofocus>
+      </app-input>
+      <div class="flex justify-end gap-2 pt-4">
+        <app-button variant="secondary" (onClick)="isModalOpen.set(false)">ยกเลิก</app-button>
+        <app-button variant="primary" (onClick)="handleSave()">{{ editingCategory() ? 'บันทึกการแก้ไข' : 'เพิ่มหมวดหมู่' }}</app-button>
+      </div>
+    </form>
+  </app-modal>
+
+  <!-- Delete Confirm Modal -->
+  <app-confirm-modal
+    [isOpen]="isConfirmModalOpen()"
+    title="ยืนยันการลบ"
+    [message]="confirmMessage()"
+    confirmText="ยืนยันลบ"
+    cancelText="ยกเลิก"
+    variant="danger"
+    (onConfirm)="handleConfirmDelete()"
+    (onCancel)="handleCancelDelete()">
+  </app-confirm-modal>
+</div>

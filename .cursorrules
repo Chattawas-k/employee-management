@@ -1,0 +1,163 @@
+# Cursor IDE Rules for Employee Management System
+
+## Project Overview
+This is an employee management system with:
+- **Backend**: .NET 8 / C# (Clean Architecture with MediatR, AutoMapper, EF Core)
+- **Frontend**: Angular with TypeScript
+- **Architecture**: Clean Architecture (Domain, Application, Persistence, WebAPI layers)
+
+## General Principles
+- Follow SOLID principles
+- Write clean, maintainable, and testable code
+- Use meaningful names for variables, methods, and classes
+- Add comments for complex business logic
+- Keep methods focused and single-purpose
+- Prefer composition over inheritance
+- Handle errors gracefully with proper exception handling
+
+## Backend (.NET/C#) Rules
+
+### Architecture & Structure
+- Follow Clean Architecture layers: Domain → Application → Persistence → WebAPI
+- Use CQRS pattern with MediatR (Queries and Commands)
+- Keep domain entities in `employee_management.Domain`
+- Business logic in `employee_management.Application`
+- Data access in `employee_management.Persistence`
+- Controllers in `employee_management.WebAPI`
+
+### Naming Conventions
+- **Classes**: PascalCase (e.g., `EmployeeRepository`, `GetHandler`)
+- **Methods**: PascalCase (e.g., `GetEmployee`, `CreateEmployee`)
+- **Properties**: PascalCase (e.g., `EmployeeId`, `Name`)
+- **Private fields**: camelCase with underscore prefix (e.g., `_context`, `_mapper`)
+- **Interfaces**: Prefix with `I` (e.g., `IEmployeeRepository`)
+- **DTOs/Requests/Responses**: Use descriptive names (e.g., `GetResponse`, `EmployeeAddRequest`)
+
+### Code Style
+- Use `sealed` classes for handlers and mappers when inheritance is not needed
+- Use nullable reference types appropriately (e.g., `string?` for optional properties)
+- Initialize properties with default values (e.g., `= string.Empty`, `= EmployeeStatus.Active`)
+- Use AutoMapper for entity-to-DTO mapping
+- Use constructor injection for dependencies
+- Keep controllers thin - delegate to MediatR handlers
+
+### Repository Pattern
+- Implement `IBaseRepository<T>` for common CRUD operations
+- Use `IUnitOfWork` for transaction management
+- Keep repositories in `employee_management.Persistence/Repository`
+- Use async/await for all database operations
+
+### Error Handling
+- Use custom exceptions in `Common/Exceptions`
+- Return appropriate HTTP status codes from controllers
+- Validate input using FluentValidation or Data Annotations
+- Handle null checks before accessing properties
+
+### Entity Framework
+- Use `ApplicationDbContext` for database operations
+- Configure entities in `OnModelCreating` or use Fluent API
+- Use migrations for schema changes
+- Include related entities using `.Include()` when needed
+
+### API Endpoints
+- Use RESTful conventions (GET, POST, PUT, DELETE)
+- Version APIs (e.g., `/api/v1/employee`)
+- Return appropriate DTOs, not domain entities
+- Use pagination for list endpoints
+- Support filtering, sorting, and searching
+
+## Frontend (Angular/TypeScript) Rules
+
+### Project Structure
+- Organize by features (e.g., `features/employees/`)
+- Keep services in `app/services/`
+- Keep models/interfaces in `app/models/`
+- Use feature modules for larger features
+
+### Naming Conventions
+- **Components**: PascalCase with `.component.ts` suffix (e.g., `EmployeesComponent`)
+- **Services**: PascalCase with `.service.ts` suffix (e.g., `EmployeeService`)
+- **Models/Interfaces**: PascalCase (e.g., `Employee`, `EmployeeSearchRequest`)
+- **Variables/Methods**: camelCase (e.g., `getEmployees`, `employeeList`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `API_BASE_URL`)
+
+### Code Style
+- Use dependency injection for services
+- Use RxJS Observables for async operations
+- Implement proper error handling with catchError
+- Use TypeScript strict mode
+- Define interfaces for all data models
+- Use environment variables for API URLs
+
+### Services
+- Create one service per feature/entity
+- Use `HttpClient` for API calls
+- Include authentication headers when needed
+- Return typed Observables
+- Handle HTTP errors appropriately
+
+### Components
+- Keep components focused on presentation
+- Use OnPush change detection when possible
+- Unsubscribe from observables to prevent memory leaks
+- Use reactive forms for complex forms
+- Validate user input
+
+### HTTP Requests
+- Use environment configuration for API base URL
+- Include JWT token in Authorization header when authenticated
+- Use HttpParams for query parameters
+- Handle loading states and errors in UI
+
+### Styling
+- Use Tailwind CSS for styling (project uses Tailwind)
+- Keep component styles in `.scss` files
+- Use CSS variables for theming if needed
+
+## Common Patterns
+
+### Error Handling
+- Backend: Use try-catch blocks, return appropriate error responses
+- Frontend: Use RxJS `catchError` operator, display user-friendly error messages
+
+### Validation
+- Backend: Validate in handlers or use FluentValidation
+- Frontend: Validate in forms using Angular validators
+
+### Logging
+- Backend: Use ILogger for logging
+- Frontend: Use console for development, consider a logging service for production
+
+### Testing
+- Write unit tests for business logic
+- Write integration tests for API endpoints
+- Test services and components in isolation
+
+## Code Generation Guidelines
+- When creating new features, follow the existing module structure
+- Use the `generate_module.ps1` script if available for scaffolding
+- Maintain consistency with existing code patterns
+- Add appropriate error handling and validation
+- Include necessary mappings (AutoMapper for backend)
+- Update related services and components
+
+## File Organization
+- Group related files together (e.g., handler, mapper, validator in same folder)
+- Use feature folders for related functionality
+- Keep shared/common code in appropriate common folders
+- Maintain separation of concerns
+
+## Security
+- Never expose sensitive data in frontend code
+- Use environment variables for configuration
+- Validate and sanitize all user inputs
+- Use proper authentication and authorization
+- Follow OWASP security best practices
+
+## Performance
+- Use pagination for large datasets
+- Implement lazy loading where appropriate
+- Optimize database queries (avoid N+1 problems)
+- Use OnPush change detection in Angular components
+- Cache frequently accessed data when appropriate
+

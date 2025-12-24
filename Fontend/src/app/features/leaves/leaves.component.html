@@ -1,0 +1,288 @@
+@if (selectedEmpId() === null) {
+  <!-- OVERVIEW MODE -->
+  <div class="space-y-6">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-slate-800">วันหยุดพนักงาน (Employee Leave)</h2>
+        <p class="text-slate-500 text-sm">ภาพรวมวันลาของพนักงานแต่ละคน</p>
+      </div>
+      <div class="flex gap-2 w-full md:w-auto flex-wrap">
+        <div class="flex gap-2">
+          <select 
+            class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            [value]="filterMonth()"
+            (change)="filterMonth.set($any($event.target).value)"
+          >
+            <option value="All">ทุกเดือน</option>
+            @for (month of months; track $index) {
+              <option [value]="$index">{{ month }}</option>
+            }
+          </select>
+          <select 
+            class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            [value]="filterYear()"
+            (change)="filterYear.set(+$any($event.target).value)"
+          >
+            @for (year of years; track year) {
+              <option [value]="year">{{ year + 543 }}</option>
+            }
+          </select>
+        </div>
+        <app-button variant="primary" icon="plus" (onClick)="handleAddClick()">บันทึกการลา</app-button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      @for (emp of employees(); track emp.id) {
+        <div 
+          class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          (click)="selectedEmpId.set(emp.id)"
+        >
+          <div class="flex items-center gap-4 mb-4">
+            <app-avatar [src]="emp.avatar" [alt]="emp.name" size="lg"></app-avatar>
+            <div>
+              <h3 class="font-bold text-slate-800 text-lg">{{ emp.name }}</h3>
+              <p class="text-sm text-slate-500">{{ emp.positionName || '-' }} • {{ emp.departmentName || '-' }}</p>
+            </div>
+          </div>
+          <div class="flex justify-between items-center pt-4 border-t border-slate-100">
+            <span class="text-sm text-slate-500">วันลา (ตามที่เลือก)</span>
+            <span class="text-lg font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg">
+              {{ getLeaveCount(emp.id) }} วัน
+            </span>
+          </div>
+        </div>
+      }
+    </div>
+    
+    <!-- Add Modal (Global) -->
+    <app-modal [isOpen]="isModalOpen()" (onClose)="isModalOpen.set(false)" title="บันทึกการลาพนักงาน">
+      <div class="space-y-4">
+        @if (errorMessage()) {
+          <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-600">
+            {{ errorMessage() }}
+          </div>
+        }
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">พนักงาน <span class="text-red-500">*</span></label>
+          <select 
+            [class]="'w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none ' + (fieldErrors()['empId'] ? 'border-red-300 focus:ring-red-500' : 'border-slate-300')"
+            [(ngModel)]="formData.empId"
+            name="employeeId"
+            required>
+            @for (emp of employees(); track emp.id) {
+              <option [value]="emp.id">{{ emp.name }}</option>
+            }
+          </select>
+          @if (fieldErrors()['empId']) {
+            <p class="mt-1 text-xs text-red-600">{{ fieldErrors()['empId'] }}</p>
+          }
+        </div>
+        <app-input
+          type="date"
+          label="วันที่ลา"
+          [(ngModel)]="formData.date"
+          name="leaveDate"
+          [error]="fieldErrors()['date']"
+          [required]="true">
+        </app-input>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">ประเภทการลา</label>
+          <select 
+            class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none"
+            [(ngModel)]="formData.type"
+            name="leaveType"
+          >
+            <option>ลาป่วย</option>
+            <option>ลากิจ</option>
+            <option>ลาพักร้อน</option>
+            <option>อื่นๆ</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">เหตุผล <span class="text-red-500">*</span></label>
+          <textarea 
+            [class]="'w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none h-24 resize-none ' + (fieldErrors()['reason'] ? 'border-red-300 focus:ring-red-500' : 'border-slate-300')"
+            placeholder="ระบุสาเหตุการลา..."
+            [(ngModel)]="formData.reason"
+            name="leaveReason"
+            required></textarea>
+          @if (fieldErrors()['reason']) {
+            <p class="mt-1 text-xs text-red-600">{{ fieldErrors()['reason'] }}</p>
+          }
+        </div>
+        <div class="flex justify-end gap-2 pt-4">
+          <app-button variant="secondary" (onClick)="isModalOpen.set(false)">ยกเลิก</app-button>
+          <app-button variant="primary" (onClick)="handleSave()">บันทึก</app-button>
+        </div>
+      </div>
+    </app-modal>
+    
+    <!-- Confirm Delete Modal -->
+    <app-confirm-modal
+      [isOpen]="isConfirmModalOpen()"
+      title="ยืนยันการลบ"
+      [message]="confirmMessage()"
+      confirmText="ยืนยันลบ"
+      cancelText="ยกเลิก"
+      variant="danger"
+      (onConfirm)="handleConfirmDelete()"
+      (onCancel)="handleCancelDelete()">
+    </app-confirm-modal>
+  </div>
+} @else {
+  <!-- DETAIL MODE -->
+  <div class="space-y-6">
+    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="flex items-center gap-4 w-full md:w-auto">
+        <button 
+          (click)="selectedEmpId.set(null)"
+          class="p-2 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-colors"
+        >
+          <app-icon name="arrow-left" className="w-5 h-5 text-slate-600"></app-icon>
+        </button>
+        <div>
+          <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <app-avatar [src]="selectedEmployee()?.avatar" [alt]="selectedEmployee()?.name || ''" size="sm"></app-avatar>
+            ประวัติการลา: {{ selectedEmployee()?.name }}
+          </h2>
+          <p class="text-slate-500 text-sm">รายการวันหยุดทั้งหมดของพนักงาน</p>
+        </div>
+      </div>
+      <div class="flex gap-2 w-full md:w-auto flex-wrap justify-end">
+        <div class="flex gap-2">
+          <select 
+            class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            [value]="filterMonth()"
+            (change)="filterMonth.set($any($event.target).value)"
+          >
+            <option value="All">ทุกเดือน</option>
+            @for (month of months; track $index) {
+              <option [value]="$index">{{ month }}</option>
+            }
+          </select>
+          <select 
+            class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            [value]="filterYear()"
+            (change)="filterYear.set(+$any($event.target).value)"
+          >
+            @for (year of years; track year) {
+              <option [value]="year">{{ year + 543 }}</option>
+            }
+          </select>
+        </div>
+        <app-button variant="primary" icon="plus" (onClick)="handleAddClick()">เพิ่มวันลา</app-button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200">
+              <th class="p-4 text-sm font-semibold text-slate-600">วันที่</th>
+              <th class="p-4 text-sm font-semibold text-slate-600">ประเภท</th>
+              <th class="p-4 text-sm font-semibold text-slate-600">เหตุผล</th>
+              <th class="p-4 text-sm font-semibold text-slate-600 text-right">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (leave of employeeLeaves(); track leave.id) {
+              <tr class="border-b border-slate-100 hover:bg-slate-50">
+                <td class="p-4 text-slate-600 font-medium">
+                  <div class="flex items-center gap-2">
+                    <app-icon name="calendar-days" className="w-4 h-4 text-indigo-500"></app-icon>
+                    {{ formatDateThaiFull(leave.date) }}
+                  </div>
+                </td>
+                <td class="p-4">
+                  <span class="px-2 py-1 rounded text-xs font-bold"
+                        [ngClass]="{
+                          'bg-red-100 text-red-700': leave.type === 'ลาป่วย',
+                          'bg-orange-100 text-orange-700': leave.type === 'ลากิจ',
+                          'bg-blue-100 text-blue-700': leave.type !== 'ลาป่วย' && leave.type !== 'ลากิจ'
+                        }">
+                    {{ leave.type }}
+                  </span>
+                </td>
+                <td class="p-4 text-slate-600">{{ leave.reason }}</td>
+                <td class="p-4 text-right">
+                  <app-action-button variant="delete" title="ลบ" (onClick)="handleDelete(leave.id)"></app-action-button>
+                </td>
+              </tr>
+            }
+            @if (employeeLeaves().length === 0) {
+              <tr>
+                <td colspan="4" class="p-12 text-center text-slate-400 italic">ไม่พบข้อมูลการลาตามเงื่อนไขที่เลือก</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Add Modal (Scoped to current employee) -->
+    <app-modal 
+      [isOpen]="isModalOpen()" 
+      (onClose)="isModalOpen.set(false)" 
+      [title]="'บันทึกการลา: ' + (selectedEmployee()?.name || '')"
+    >
+      <div class="space-y-4">
+        @if (errorMessage()) {
+          <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-600">
+            {{ errorMessage() }}
+          </div>
+        }
+        <app-input
+          type="date"
+          label="วันที่ลา"
+          [(ngModel)]="formData.date"
+          name="leaveDate"
+          [error]="fieldErrors()['date']"
+          [required]="true">
+        </app-input>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">ประเภทการลา</label>
+          <select 
+            class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none"
+            [(ngModel)]="formData.type"
+            name="leaveType"
+          >
+            <option>ลาป่วย</option>
+            <option>ลากิจ</option>
+            <option>ลาพักร้อน</option>
+            <option>อื่นๆ</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">เหตุผล <span class="text-red-500">*</span></label>
+          <textarea 
+            [class]="'w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none h-24 resize-none ' + (fieldErrors()['reason'] ? 'border-red-300 focus:ring-red-500' : 'border-slate-300')"
+            placeholder="ระบุสาเหตุการลา..."
+            [(ngModel)]="formData.reason"
+            name="leaveReason"
+            required></textarea>
+          @if (fieldErrors()['reason']) {
+            <p class="mt-1 text-xs text-red-600">{{ fieldErrors()['reason'] }}</p>
+          }
+        </div>
+        <div class="flex justify-end gap-2 pt-4">
+          <app-button variant="secondary" (onClick)="isModalOpen.set(false)">ยกเลิก</app-button>
+          <app-button variant="primary" (onClick)="handleSave()">บันทึก</app-button>
+        </div>
+      </div>
+    </app-modal>
+    
+    <!-- Confirm Delete Modal -->
+    <app-confirm-modal
+      [isOpen]="isConfirmModalOpen()"
+      title="ยืนยันการลบ"
+      [message]="confirmMessage()"
+      confirmText="ยืนยันลบ"
+      cancelText="ยกเลิก"
+      variant="danger"
+      (onConfirm)="handleConfirmDelete()"
+      (onCancel)="handleCancelDelete()">
+    </app-confirm-modal>
+  </div>
+}

@@ -1,0 +1,10 @@
+<button
+  [class]="buttonClass"
+  [title]="title || defaultTitle"
+  [disabled]="disabled"
+  (click)="handleClick($event)"
+  [attr.aria-label]="title || defaultTitle"
+  type="button">
+  <app-icon [name]="icon" className="w-4 h-4"></app-icon>
+</button>
+
