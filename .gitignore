@@ -228,8 +228,9 @@ lerna-debug.log*
 .DS_Store
 .AppleDouble
 .LSOverride
-Icon
+Icon?
 ._*
+!**/icon/
 .DocumentRevisions-V100
 .fseventsd
 .Spotlight-V100
