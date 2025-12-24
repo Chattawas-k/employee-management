@@ -20,15 +20,11 @@ namespace employee_management.Application.Features.Jobs.Queries.GetMyTasks
 
         public async Task<GetMyTasksResponse> Handle(GetMyTasksRequest request, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Retrieving tasks for employee with Id: {EmployeeId}", request.EmployeeId);
-
             try
             {
                 var jobs = await _jobRepository.GetMyTasksAsync(request.EmployeeId, cancellationToken);
                 
                 var jobDtos = _mapper.Map<List<JobDto>>(jobs);
-
-                _logger.LogInformation("Retrieved {Count} tasks for employee with Id: {EmployeeId}", jobDtos.Count, request.EmployeeId);
 
                 return new GetMyTasksResponse(jobDtos);
             }

@@ -37,12 +37,6 @@ export class JobService {
   getMyTasks(employeeId: string): Observable<Job[]> {
     return this.http.get<GetMyTasksResponse>(`${this.apiUrl}/my-tasks/${employeeId}`).pipe(
       map(response => {
-        console.log('🔍 Raw API response:', response);
-        console.log('🔍 Raw jobs:', response.jobs);
-        if (response.jobs.length > 0) {
-          console.log('🔍 First job raw:', response.jobs[0]);
-          console.log('🔍 First job status:', response.jobs[0].status, 'type:', typeof response.jobs[0].status);
-        }
         return this.mapJobs(response.jobs);
       })
     );
@@ -79,20 +73,12 @@ export class JobService {
       ...(report && { report })
     };
 
-    console.log('📤 Sending status update:', { 
-      id, 
-      frontendStatus: status, 
-      backendStatus,
-      request 
-    });
-
     return this.http.put<Job>(`${this.apiUrl}/${id}/status`, request).pipe(
       map(job => {
-        console.log('✅ Status update response:', job);
         return this.mapJob(job);
       }),
       catchError(err => {
-        console.error('❌ Status update error:', err);
+        console.error('Status update error:', err);
         return throwError(() => err);
       })
     );
@@ -131,12 +117,6 @@ export class JobService {
 
     const originalStatus = String(job.status);
     const mappedStatus = statusMap[originalStatus] || statusMap[originalStatus.toLowerCase()] || job.status as any;
-    
-    console.log('🔄 Mapping job:', {
-      originalStatus: job.status,
-      statusType: typeof job.status,
-      mappedStatus: mappedStatus
-    });
 
     return {
       ...job,

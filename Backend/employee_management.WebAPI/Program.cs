@@ -34,10 +34,20 @@ builder.Services.AddAuthentication(options =>
         ClockSkew = TimeSpan.FromMinutes(5) // Allow 5 minutes clock skew tolerance
     };
     
+    // Enable JWT authentication for SignalR
     options.Events = new JwtBearerEvents
     {
         OnMessageReceived = context =>
         {
+            // Read token from query string for SignalR
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
             var authHeader = context.Request.Headers["Authorization"].ToString();
             
@@ -148,6 +158,17 @@ builder.Services.AddHealthChecks()
 
 builder.Services.ConfigurePersistence(builder.Configuration);
 builder.Services.ConfigureApplication();
+
+// Add SignalR
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+});
+
+// Register NotificationService
+builder.Services.AddScoped<employee_management.Application.Common.Services.INotificationService, employee_management.WebAPI.Services.NotificationService>();
 
 // Override Identity's default authentication scheme to use JWT Bearer instead of Cookies
 builder.Services.Configure<Microsoft.AspNetCore.Authentication.AuthenticationOptions>(options =>
@@ -357,4 +378,8 @@ app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.Health
 });
 
 app.MapControllers();
+
+// Map SignalR Hub
+app.MapHub<employee_management.WebAPI.Hubs.NotificationHub>("/hubs/notification");
+
 app.Run();

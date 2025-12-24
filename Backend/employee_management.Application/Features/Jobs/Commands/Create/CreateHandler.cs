@@ -1,6 +1,7 @@
 using AutoMapper;
 using MediatR;
 using employee_management.Application.Common.Exceptions;
+using employee_management.Application.Common.Services;
 using employee_management.Application.Repository;
 using employee_management.Application.Repository.EmployeesRepository;
 using employee_management.Application.Repository.JobsRepository;
@@ -17,25 +18,26 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
         private readonly IEmployeeRepository _employeeRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<CreateHandler> _logger;
+        private readonly INotificationService _notificationService;
 
         public CreateHandler(
             IUnitOfWork unitOfWork,
             IJobRepository jobRepository,
             IEmployeeRepository employeeRepository,
             IMapper mapper,
-            ILogger<CreateHandler> logger)
+            ILogger<CreateHandler> logger,
+            INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _jobRepository = jobRepository;
             _employeeRepository = employeeRepository;
             _mapper = mapper;
             _logger = logger;
+            _notificationService = notificationService;
         }
 
         public async Task<CreateResponse> Handle(CreateRequest request, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Creating new job with Title: {Title} for AssigneeId: {AssigneeId}", request.Title, request.AssigneeId);
-
             try
             {
                 // Validate that the assignee exists
@@ -76,7 +78,21 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
                     throw new Exception("Failed to retrieve created job.");
                 }
 
-                _logger.LogInformation("Job created successfully with Id: {JobId}", createdJob.Id);
+                // ส่ง notification ไปยัง employee ที่ถูก assign งาน
+                try
+                {
+                    await _notificationService.SendJobAssignedNotificationAsync(
+                        createdJob.AssigneeId.ToString(),
+                        createdJob.Id.ToString(),
+                        createdJob.Title,
+                        createdJob.Customer
+                    );
+                }
+                catch (Exception notifEx)
+                {
+                    // Log but don't fail the request if notification fails
+                    _logger.LogWarning(notifEx, "Failed to send notification for Job: {JobId}", createdJob.Id);
+                }
 
                 return _mapper.Map<CreateResponse>(createdJob);
             }

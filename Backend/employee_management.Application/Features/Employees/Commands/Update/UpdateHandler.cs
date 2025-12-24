@@ -24,8 +24,6 @@ namespace employee_management.Application.Features.Employees.Commands.Update
 
         public async Task<UpdateResponse> Handle(UpdateRequest request, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Updating employee with Id: {EmployeeId}", request.Id);
-
             try
             {
                 var employee = await _employeeRepository.Get(request.Id, cancellationToken);
@@ -38,8 +36,6 @@ namespace employee_management.Application.Features.Employees.Commands.Update
                 _mapper.Map(request, employee);
                 _employeeRepository.Update(employee);
                 await _unitOfWork.Save(cancellationToken);
-
-                _logger.LogInformation("Employee with Id: {EmployeeId} updated successfully", request.Id);
 
                 return _mapper.Map<UpdateResponse>(employee);
             }

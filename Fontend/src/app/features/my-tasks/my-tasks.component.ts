@@ -1,9 +1,11 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { JobService } from '../../services/job.service';
 import { EmployeeService } from '../../services/employee.service';
 import { AuthService } from '../../services/auth.service';
+import { NotificationService } from '../../services/notification.service';
+import { ToastService } from '../../services/toast.service';
 import { Employee, EmployeeDropdownItem } from '../../models/employee.model';
 import { Job } from '../../models/job.model';
 import { Category } from '../../models/category.model';
@@ -14,6 +16,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
 import { LoadingOverlayComponent } from '../../shared/components/loading-overlay/loading-overlay.component';
 import { ErrorAlertComponent } from '../../shared/components/error-alert/error-alert.component';
 import { formatDateThai, getDurationText } from '../../utils/date.utils';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-my-tasks',
@@ -31,7 +34,8 @@ import { formatDateThai, getDurationText } from '../../utils/date.utils';
   templateUrl: './my-tasks.component.html',
   styleUrls: ['./my-tasks.component.scss']
 })
-export class MyTasksComponent implements OnInit {
+export class MyTasksComponent implements OnInit, OnDestroy {
+  private notificationSubscription?: Subscription;
   currentEmployeeId = signal<string>('');
   loggedInEmployeeId = signal<string>(''); // Employee ID ของผู้ที่ login
   isAdmin = signal<boolean>(false); // ตรวจสอบว่าเป็น admin หรือไม่
@@ -68,11 +72,9 @@ export class MyTasksComponent implements OnInit {
     const employeeId = this.currentEmployeeId();
     const allJobs = this.jobs();
     if (!employeeId) {
-      console.log('⚠️ No currentEmployeeId');
       return [];
     }
     const filtered = allJobs.filter(j => j.assigneeId === employeeId);
-    console.log(`👤 My jobs for employee ${employeeId}:`, filtered.length, 'out of', allJobs.length);
     return filtered;
   });
 
@@ -104,29 +106,22 @@ export class MyTasksComponent implements OnInit {
       const isJobToday = jobDate && this.isToday(jobDate);
       return isJobToday;
     });
-    console.log('📅 Today jobs:', filtered.length, 'out of', this.myJobs().length);
     return filtered;
   });
 
   todoJobs = computed(() => {
     const allToday = this.todayJobs();
     const jobs = allToday.filter(j => j.status === 'Pending');
-    console.log('📋 Todo jobs:', jobs.length);
-    if (allToday.length > 0 && jobs.length === 0) {
-      console.log('⚠️ Today jobs statuses:', allToday.map(j => ({ id: j.id, status: j.status })));
-    }
     return jobs;
   });
   
   inProgressJobs = computed(() => {
     const jobs = this.todayJobs().filter(j => j.status === 'In Progress' || j.status === 'InProgress');
-    console.log('⏳ In Progress jobs:', jobs.length);
     return jobs;
   });
   
   doneJobs = computed(() => {
     const jobs = this.todayJobs().filter(j => ['Done', 'Rejected'].includes(j.status));
-    console.log('✅ Done jobs:', jobs.length);
     return jobs;
   });
 
@@ -136,13 +131,42 @@ export class MyTasksComponent implements OnInit {
   constructor(
     private jobService: JobService,
     private employeeService: EmployeeService,
-    private authService: AuthService
+    private authService: AuthService,
+    private notificationService: NotificationService,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
     // Get current user's employeeId from token and load their tasks
     // Employee list will be loaded inside based on role
     this.loadCurrentUserTasks();
+    
+    // เริ่ม SignalR connection
+    this.notificationService.startConnection();
+    
+    // Subscribe to notifications
+    this.notificationSubscription = this.notificationService.notifications$.subscribe(notifications => {
+      const latestNotification = notifications[0];
+      if (latestNotification && !latestNotification.read) {
+        // Reload tasks ถ้าเป็น job notification
+        if (latestNotification.type === 'job_assigned') {
+          const currentEmployeeId = this.currentEmployeeId();
+          if (currentEmployeeId) {
+            this.loadMyTasks(currentEmployeeId);
+          }
+        }
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    // ยกเลิก subscription
+    if (this.notificationSubscription) {
+      this.notificationSubscription.unsubscribe();
+    }
+    
+    // ปิด SignalR connection
+    this.notificationService.stopConnection();
   }
 
   loadCurrentUserTasks(): void {
@@ -161,13 +185,6 @@ export class MyTasksComponent implements OnInit {
     this.loggedInEmployeeId.set(employeeId);
     this.currentEmployeeId.set(employeeId);
     this.isAdmin.set(isAdminUser);
-
-    console.log('🔐 User info:', { 
-      employeeId, 
-      employeeIdType: typeof employeeId,
-      roles: userRoles, 
-      isAdmin: isAdminUser 
-    });
 
     // โหลดรายชื่อ employee ครั้งเดียว ใช้ทั้ง Admin Dropdown และ Add Task Modal
     this.loadEmployeeDropdownList();
@@ -224,14 +241,11 @@ export class MyTasksComponent implements OnInit {
     
     this.jobService.getMyTasks(employeeId).subscribe({
       next: (jobs) => {
-        console.log('✅ Jobs loaded:', jobs);
-        console.log('📊 Jobs count:', jobs.length);
-        console.log('📅 Sample job:', jobs[0]);
         this.jobs.set(jobs);
         this.loading.set(false);
       },
       error: (err) => {
-        console.error('❌ Error loading tasks:', err);
+        console.error('Error loading tasks:', err);
         this.error.set('ไม่สามารถโหลดข้อมูลงานได้ กรุณาลองอีกครั้ง');
         this.loading.set(false);
       }
@@ -239,27 +253,21 @@ export class MyTasksComponent implements OnInit {
   }
 
   handleStartClick(job: Job, event?: Event): void {
-    console.log('🚀 Start button clicked for job:', job.id);
     if (event) {
       event.stopPropagation();
     }
     this.actionModal.set({ isOpen: true, job, step: 'choice', reason: '' });
-    console.log('✅ Action modal opened:', this.actionModal());
   }
 
   handleConfirmStart(): void {
-    console.log('✅ Confirm start clicked');
     const job = this.actionModal().job;
     if (!job) {
-      console.log('❌ No job found in actionModal');
       return;
     }
     
-    console.log('📤 Updating status to InProgress for job:', job.id);
     this.loading.set(true);
     this.jobService.updateStatus(job.id, 'InProgress').subscribe({
       next: (updatedJob) => {
-        console.log('✅ Job updated successfully:', updatedJob);
         // Update the job in the list
         this.jobs.update(jobs => 
           jobs.map(j => j.id === updatedJob.id ? updatedJob : j)
@@ -268,8 +276,7 @@ export class MyTasksComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        console.error('❌ Error updating job status:', err);
-        console.error('Error details:', err.error);
+        console.error('Error updating job status:', err);
         alert('Failed to update job status. Please try again.');
         this.loading.set(false);
       }
@@ -465,7 +472,7 @@ export class MyTasksComponent implements OnInit {
       next: (newJob) => {
         // ถ้างานที่สร้างเป็นของ employee ที่กำลังดูอยู่ ให้เพิ่มเข้าไปใน list
         if (newJob.assigneeId === this.currentEmployeeId()) {
-          this.jobs.update(jobs => [...jobs, newJob]);
+        this.jobs.update(jobs => [...jobs, newJob]);
         }
         
         // Close modal and reset form

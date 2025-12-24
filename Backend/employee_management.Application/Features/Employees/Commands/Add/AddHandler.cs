@@ -26,16 +26,11 @@ namespace employee_management.Application.Features.Employees.Commands.Add
         public async Task<AddResponse> Handle(AddRequest request,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Creating new employee with name: {EmployeeName}, PositionId: {PositionId}", 
-                request.Name, request.PositionId);
-
             try
             {
                 var employee = _mapper.Map<Employee>(request);
                 _employeeRepository.Create(employee);
                 await _unitOfWork.Save(cancellationToken);
-
-                _logger.LogInformation("Employee created successfully with Id: {EmployeeId}", employee.Id);
 
                 return _mapper.Map<AddResponse>(employee);
             }

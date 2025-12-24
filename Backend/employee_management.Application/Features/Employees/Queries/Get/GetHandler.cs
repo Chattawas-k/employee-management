@@ -21,8 +21,6 @@ namespace employee_management.Application.Features.Employees.Queries.Get
 
         public async Task<EmployeeGetResponse> Handle(GetRequest request, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Retrieving employee with Id: {EmployeeId}", request.Id);
-
             try
             {
                 var employee = await _employeeRepository.Get(request.Id, cancellationToken);
@@ -31,8 +29,6 @@ namespace employee_management.Application.Features.Employees.Queries.Get
                     _logger.LogWarning("Employee with Id: {EmployeeId} not found", request.Id);
                     throw new NoDataFoundException($"Employee with Id {request.Id} not found.");
                 }
-
-                _logger.LogInformation("Employee with Id: {EmployeeId} retrieved successfully", request.Id);
 
                 return _mapper.Map<EmployeeGetResponse>(employee);
             }

@@ -13,4 +13,6 @@ export { ActionButtonComponent } from './action-button/action-button.component';
 export { FilterPanelComponent } from './filter-panel/filter-panel.component';
 export { SearchBarComponent } from './search-bar/search-bar.component';
 export { TableComponent } from './table/table.component';
+export { ToastComponent, Toast } from './toast/toast.component';
+export { ToastContainerComponent } from './toast/toast-container.component';
 

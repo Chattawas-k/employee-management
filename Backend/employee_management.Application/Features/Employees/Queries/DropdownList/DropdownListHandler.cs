@@ -24,9 +24,6 @@ namespace employee_management.Application.Features.Employees.Queries.DropdownLis
 
         public async Task<List<DropdownListResponse>> Handle(DropdownListRequest request, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Getting employee dropdown list with Status: {Status}, DepartmentId: {DepartmentId}, PositionId: {PositionId}",
-                request.Status, request.DepartmentId, request.PositionId);
-
             try
             {
                 // Use SearchAsync with large pageSize to get all matching employees
@@ -42,8 +39,6 @@ namespace employee_management.Application.Features.Employees.Queries.DropdownLis
                     cancellationToken);
 
                 var response = _mapper.Map<List<DropdownListResponse>>(result.Items);
-
-                _logger.LogInformation("Employee dropdown list retrieved. Found {Count} employees", response.Count);
 
                 return response;
             }

@@ -26,8 +26,6 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
 
         public async Task<UpdateStatusResponse> Handle(UpdateStatusRequest request, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Updating status for job with Id: {JobId} to {Status}", request.Id, request.Status);
-
             try
             {
                 var job = await _jobRepository.Get(request.Id, cancellationToken);
@@ -70,8 +68,6 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
 
                 _jobRepository.Update(job);
                 await _unitOfWork.Save(cancellationToken);
-
-                _logger.LogInformation("Job with Id: {JobId} status updated successfully to {Status}", request.Id, request.Status);
 
                 return _mapper.Map<UpdateStatusResponse>(job);
             }

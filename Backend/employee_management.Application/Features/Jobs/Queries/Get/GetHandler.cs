@@ -21,8 +21,6 @@ namespace employee_management.Application.Features.Jobs.Queries.Get
 
         public async Task<JobGetResponse> Handle(GetRequest request, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Retrieving job with Id: {JobId}", request.Id);
-
             try
             {
                 var job = await _jobRepository.Get(request.Id, cancellationToken);
@@ -31,8 +29,6 @@ namespace employee_management.Application.Features.Jobs.Queries.Get
                     _logger.LogWarning("Job with Id: {JobId} not found", request.Id);
                     throw new NoDataFoundException($"Job with Id {request.Id} not found.");
                 }
-
-                _logger.LogInformation("Job with Id: {JobId} retrieved successfully", request.Id);
 
                 return _mapper.Map<JobGetResponse>(job);
             }

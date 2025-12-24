@@ -4,6 +4,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/rou
 import { LucideAngularModule } from 'lucide-angular';
 import { IconComponent } from './shared/components/icon/icon.component';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
+import { ToastContainerComponent } from './shared/components/toast/toast-container.component';
 import { AuthService } from './services/auth.service';
 
 @Component({
@@ -16,7 +17,8 @@ import { AuthService } from './services/auth.service';
     RouterLinkActive,
     LucideAngularModule,
     IconComponent,
-    DashboardComponent
+    DashboardComponent,
+    ToastContainerComponent
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']

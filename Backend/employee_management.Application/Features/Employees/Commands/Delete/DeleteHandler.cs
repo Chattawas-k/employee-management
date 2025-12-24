@@ -21,8 +21,6 @@ namespace employee_management.Application.Features.Employees.Commands.Delete
 
         public async Task<Unit> Handle(DeleteRequest request, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Deleting employee with Id: {EmployeeId}", request.Id);
-
             try
             {
                 var employee = await _employeeRepository.Get(request.Id, cancellationToken);
@@ -34,8 +32,6 @@ namespace employee_management.Application.Features.Employees.Commands.Delete
 
                 _employeeRepository.Delete(employee);
                 await _unitOfWork.Save(cancellationToken);
-
-                _logger.LogInformation("Employee with Id: {EmployeeId} deleted successfully", request.Id);
 
                 return Unit.Value;
             }

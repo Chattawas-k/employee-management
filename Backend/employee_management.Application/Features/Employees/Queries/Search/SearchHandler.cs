@@ -37,9 +37,6 @@ namespace employee_management.Application.Features.Employees.Queries.Search
 
         public async Task<PaginatedList<SearchResponse>> Handle(SearchRequest request, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Searching employees with keyword: {Keyword}, PageNumber: {PageNumber}, PageSize: {PageSize}", 
-                request.Keyword, request.PageNumber, request.PageSize);
-
             try
             {
                 // Map frontend sort field names to entity property paths and validate
@@ -57,9 +54,6 @@ namespace employee_management.Application.Features.Employees.Queries.Search
                     cancellationToken);
 
                 var employeeResponses = _mapper.Map<List<SearchResponse>>(employees.Items);
-                
-                _logger.LogInformation("Employee search completed. Found {Count} employees out of {TotalCount}", 
-                    employees.Items.Count, employees.TotalCount);
 
                 return new PaginatedList<SearchResponse>(
                     employeeResponses,
