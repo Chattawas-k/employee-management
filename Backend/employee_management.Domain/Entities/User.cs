@@ -5,5 +5,9 @@ namespace employee_management.Domain.Entities
     {
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
+        
+        // Link to Employee
+        public Guid? EmployeeId { get; set; }
+        public Employee? Employee { get; set; }
     }
 }

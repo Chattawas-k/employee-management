@@ -6,7 +6,9 @@ using employee_management.Application.Features.Employees.Commands.Delete;
 using employee_management.Application.Features.Employees.Commands.Update;
 using employee_management.Application.Features.Employees.Queries.Get;
 using employee_management.Application.Features.Employees.Queries.Search;
+using employee_management.Application.Features.Employees.Queries.DropdownList;
 using employee_management.WebAPI.Controllers.Base;
+using employee_management.Domain.Enums;
 
 namespace employee_management.WebAPI.Controllers
 {
@@ -20,7 +22,7 @@ namespace employee_management.WebAPI.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<GetResponse>> Get(Guid id, CancellationToken cancellationToken)
+        public async Task<ActionResult<EmployeeGetResponse>> Get(Guid id, CancellationToken cancellationToken)
         {
             var response = await _mediator.Send(new GetRequest(id), cancellationToken);
             return Ok(response);
@@ -54,6 +56,18 @@ namespace employee_management.WebAPI.Controllers
         [HttpGet("search")]
         public async Task<ActionResult<PaginatedList<SearchResponse>>> Search([FromQuery] SearchRequest request, CancellationToken cancellationToken)
         {
+            var response = await _mediator.Send(request, cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpGet("dropdown-list")]
+        public async Task<ActionResult<List<DropdownListResponse>>> GetDropdownList(
+            [FromQuery] EmployeeStatus? status = null,
+            [FromQuery] Guid? departmentId = null,
+            [FromQuery] Guid? positionId = null,
+            CancellationToken cancellationToken = default)
+        {
+            var request = new DropdownListRequest(status, departmentId, positionId);
             var response = await _mediator.Send(request, cancellationToken);
             return Ok(response);
         }

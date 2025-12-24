@@ -128,11 +128,11 @@ export class DashboardComponent implements OnInit {
     this.rejectReasonValue = '';
   }
 
-  startJob(jobId: number): void {
+  startJob(jobId: string): void {
     this.dataService.updateJobStatus(jobId, 'In Progress');
   }
 
-  finishJob(jobId: number): void {
+  finishJob(jobId: string): void {
     this.dataService.updateJobStatus(jobId, 'Done');
   }
 

@@ -1,12 +1,16 @@
 export interface Job {
-  id: number;
+  id: string;
   title: string;
   customer: string;
   description: string;
-  assignee: string;
-  status: 'Pending' | 'In Progress' | 'Done' | 'Rejected';
+  assigneeId: string;
+  assigneeName?: string;
+  assignee?: string;
+  status: 'Pending' | 'In Progress' | 'Done' | 'Rejected' | 'InProgress';
   priority: 'Low' | 'Normal' | 'High' | 'Urgent';
-  createdAt: string;
+  createdDate: string;
+  updatedDate?: string;
+  createdAt?: string;
   updatedAt?: string;
   statusLogs?: StatusLog[];
   report?: JobReport;

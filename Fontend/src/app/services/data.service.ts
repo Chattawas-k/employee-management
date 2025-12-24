@@ -74,13 +74,16 @@ export class DataService {
     if (!employee) return;
 
     const newJob: Job = {
-      id: Date.now(),
+      id: Date.now().toString(),
       title: jobData.title || 'Walk-in Customer',
       customer: jobData.customer || 'ลูกค้าทั่วไป',
       description: jobData.description || 'ลูกค้าสนใจดูเฟอร์นิเจอร์',
+      assigneeId: employeeId,
       assignee: employee.name,
+      assigneeName: employee.name,
       status: 'Pending',
       priority: (jobData.priority as any) || 'Normal',
+      createdDate: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       statusLogs: [{ status: 'Pending', timestamp: new Date().toISOString() }]
     };
@@ -102,7 +105,7 @@ export class DataService {
     // this.reorderQueue(employeeId);
   }
 
-  updateJobStatus(jobId: number, status: Job['status'], data?: any): void {
+  updateJobStatus(jobId: string, status: Job['status'], data?: any): void {
     const current = this.jobsSubject.value;
     this.jobsSubject.next(
       current.map(job => {

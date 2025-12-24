@@ -30,7 +30,86 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        ClockSkew = TimeSpan.FromMinutes(5) // Allow 5 minutes clock skew tolerance
+    };
+    
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            var authHeader = context.Request.Headers["Authorization"].ToString();
+            
+            if (string.IsNullOrEmpty(authHeader))
+            {
+                logger.LogWarning($"⚠️ No Authorization header received for {context.Request.Path}");
+            }
+            else if (!authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                logger.LogWarning($"⚠️ Authorization header doesn't start with 'Bearer ': {authHeader}");
+            }
+            else
+            {
+                logger.LogInformation($"📨 Authorization header received for {context.Request.Path}");
+            }
+            
+            return Task.CompletedTask;
+        },
+        OnAuthenticationFailed = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogError($"🔴 JWT Authentication Failed for {context.Request.Path}: {context.Exception.Message}");
+            logger.LogError($"   Exception Type: {context.Exception.GetType().Name}");
+            
+            if (context.Exception is SecurityTokenExpiredException expiredException)
+            {
+                logger.LogError($"   Token expired at: {expiredException.Expires}");
+                logger.LogError($"   Server time (UTC): {DateTime.UtcNow}");
+                logger.LogError($"   Server time (Local): {DateTime.Now}");
+            }
+            else if (context.Exception is SecurityTokenInvalidSignatureException)
+            {
+                logger.LogError($"   ❌ Invalid token signature - check JWT Key configuration");
+            }
+            else if (context.Exception is SecurityTokenInvalidIssuerException)
+            {
+                logger.LogError($"   ❌ Invalid token issuer");
+            }
+            else if (context.Exception is SecurityTokenInvalidAudienceException)
+            {
+                logger.LogError($"   ❌ Invalid token audience");
+            }
+            
+            logger.LogError($"   Stack trace: {context.Exception.StackTrace}");
+            return Task.CompletedTask;
+        },
+        OnTokenValidated = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation($"✅ JWT Token Validated Successfully for {context.Request.Path}");
+            
+            var expClaim = context.Principal?.FindFirst("exp")?.Value;
+            if (expClaim != null && long.TryParse(expClaim, out var exp))
+            {
+                var expDate = DateTimeOffset.FromUnixTimeSeconds(exp);
+                var timeUntilExp = expDate.UtcDateTime - DateTime.UtcNow;
+                logger.LogInformation($"   Token expires at: {expDate.UtcDateTime} UTC");
+                logger.LogInformation($"   Server time (UTC): {DateTime.UtcNow}");
+                logger.LogInformation($"   Time until expiration: {timeUntilExp.TotalMinutes:F1} minutes");
+            }
+            
+            return Task.CompletedTask;
+        },
+        OnChallenge = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning($"⚠️ JWT Challenge issued for {context.Request.Path}");
+            logger.LogWarning($"   Error: {context.Error}");
+            logger.LogWarning($"   Error Description: {context.ErrorDescription}");
+            
+            return Task.CompletedTask;
+        }
     };
 })
 .AddJwtBearer("AzureAd", options =>
@@ -69,6 +148,14 @@ builder.Services.AddHealthChecks()
 
 builder.Services.ConfigurePersistence(builder.Configuration);
 builder.Services.ConfigureApplication();
+
+// Override Identity's default authentication scheme to use JWT Bearer instead of Cookies
+builder.Services.Configure<Microsoft.AspNetCore.Authentication.AuthenticationOptions>(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+});
 
 // Configure Authorization
 builder.Services.AddAuthorization(options =>
@@ -202,14 +289,15 @@ using (var scope = app.Services.CreateScope())
         var userManager = services.GetRequiredService<UserManager<User>>();
         var roleManager = services.GetRequiredService<RoleManager<Role>>();
 
+        // Seed in correct order: Departments → Positions → Employees → Roles → Users
+        await DefaultDepartments.SeedAsync(dbContext);
+        await DefaultPositions.SeedAsync(dbContext);
+        await DefaultEmployees.SeedAsync(dbContext);
+        
         await DefaultRoles.SeedAsync(userManager, roleManager);
         await DefaultSuperAdmin.SeedAsync(userManager, roleManager);
         await DefaultAdmin.SeedAsync(userManager, roleManager);
         await DefaultBasicUser.SeedAsync(userManager, roleManager);
-        
-        // Seed Departments and Positions
-        await DefaultDepartments.SeedAsync(dbContext);
-        await DefaultPositions.SeedAsync(dbContext);
         
         logger.LogInformation("Database seeding completed successfully.");
     }
@@ -232,6 +320,30 @@ app.UseSwaggerUI(c =>
             $"Employee Management API {description.GroupName.ToUpperInvariant()}");
     }
 });
+
+// Add request logging middleware
+app.Use(async (context, next) =>
+{
+    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    var authHeader = context.Request.Headers["Authorization"].ToString();
+    
+    logger.LogInformation($"📥 Incoming Request: {context.Request.Method} {context.Request.Path}{context.Request.QueryString}");
+    logger.LogInformation($"   Origin: {context.Request.Headers["Origin"]}");
+    
+    if (!string.IsNullOrEmpty(authHeader))
+    {
+        logger.LogInformation($"   Authorization: {authHeader.Substring(0, Math.Min(50, authHeader.Length))}...");
+    }
+    else
+    {
+        logger.LogWarning($"   ⚠️ No Authorization header present");
+    }
+    
+    await next();
+    
+    logger.LogInformation($"📤 Response: {context.Response.StatusCode} for {context.Request.Method} {context.Request.Path}");
+});
+
 app.UseErrorHandler();
 app.UseCors();
 app.UseAuthentication();

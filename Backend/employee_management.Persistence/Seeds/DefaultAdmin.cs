@@ -20,7 +20,8 @@ namespace employee_management.Persistence.Seeds
                 FirstName = "Admin",
                 LastName = "User",
                 EmailConfirmed = true,
-                PhoneNumberConfirmed = true
+                PhoneNumberConfirmed = true,
+                EmployeeId = new Guid("11111111-1111-1111-1111-111111111111") // Link to "สมหมาย ขายเก่ง"
             };
             if (userManager.Users.All(u => u.Id != defaultUser.Id))
             {

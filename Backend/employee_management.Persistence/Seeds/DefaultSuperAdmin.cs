@@ -21,7 +21,8 @@ namespace employee_management.Persistence.Seeds
                 FirstName = "Super",
                 LastName = "Admin",
                 EmailConfirmed = true,
-                PhoneNumberConfirmed = true
+                PhoneNumberConfirmed = true,
+                EmployeeId = new Guid("22222222-2222-2222-2222-222222222222") // Link to "ประเสริฐ ขายเยี่ยม"
             };
             if (userManager.Users.All(u => u.Id != defaultUser.Id))
             {

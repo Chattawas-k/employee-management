@@ -196,6 +196,71 @@ namespace employee_management.Persistence.Migrations
                     b.ToTable("Employees");
                 });
 
+            modelBuilder.Entity("employee_management.Domain.Entities.Job", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssigneeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Customer")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("DeletedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReportJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("Report");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StatusLogsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("StatusLogs");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssigneeId");
+
+                    b.HasIndex("CreatedDate");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("Jobs", (string)null);
+                });
+
             modelBuilder.Entity("employee_management.Domain.Entities.Position", b =>
                 {
                     b.Property<Guid>("Id")
@@ -402,6 +467,9 @@ namespace employee_management.Persistence.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid?>("EmployeeId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("FirstName")
                         .HasColumnType("text");
 
@@ -442,6 +510,8 @@ namespace employee_management.Persistence.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -515,6 +585,17 @@ namespace employee_management.Persistence.Migrations
                     b.Navigation("Position");
                 });
 
+            modelBuilder.Entity("employee_management.Domain.Entities.Job", b =>
+                {
+                    b.HasOne("employee_management.Domain.Entities.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("AssigneeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
             modelBuilder.Entity("employee_management.Domain.Entities.Position", b =>
                 {
                     b.HasOne("employee_management.Domain.Entities.Department", "Department")
@@ -546,6 +627,16 @@ namespace employee_management.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("employee_management.Domain.Entities.User", b =>
+                {
+                    b.HasOne("employee_management.Domain.Entities.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Employee");
                 });
 
             modelBuilder.Entity("employee_management.Domain.Entities.UserRole", b =>

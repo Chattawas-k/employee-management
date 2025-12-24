@@ -49,3 +49,16 @@ export interface EmployeeUpdateRequest {
   positionId: string;
   avatar?: string;
 }
+
+export interface EmployeeDropdownItem {
+  id: string;
+  name: string;
+  positionName?: string;
+  departmentName?: string;
+}
+
+export interface EmployeeDropdownRequest {
+  status?: EmployeeStatus;
+  departmentId?: string;
+  positionId?: string;
+}

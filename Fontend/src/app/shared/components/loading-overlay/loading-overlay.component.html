@@ -1,0 +1,21 @@
+@if (isLoading) {
+  @if (variant === 'fullscreen') {
+    <!-- Fullscreen Loading Overlay -->
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
+      <div class="bg-white rounded-xl shadow-2xl p-8 flex flex-col items-center gap-4 max-w-sm mx-4">
+        <div class="relative">
+          <div class="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+          <app-icon name="loader" className="w-8 h-8 text-indigo-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></app-icon>
+        </div>
+        <p class="text-slate-700 font-medium text-center">{{ message }}</p>
+      </div>
+    </div>
+  } @else {
+    <!-- Inline Loading Message -->
+    <div class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg flex items-center gap-2">
+      <app-icon name="loader" className="w-5 h-5 animate-spin"></app-icon>
+      <span>{{ message }}</span>
+    </div>
+  }
+}
+

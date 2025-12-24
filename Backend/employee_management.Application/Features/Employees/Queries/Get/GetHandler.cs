@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace employee_management.Application.Features.Employees.Queries.Get
 {
-    public sealed class GetHandler : IRequestHandler<GetRequest, GetResponse>
+    public sealed class GetHandler : IRequestHandler<GetRequest, EmployeeGetResponse>
     {
         private readonly IEmployeeRepository _employeeRepository;
         private readonly IMapper _mapper;
@@ -19,7 +19,7 @@ namespace employee_management.Application.Features.Employees.Queries.Get
             _logger = logger;
         }
 
-        public async Task<GetResponse> Handle(GetRequest request, CancellationToken cancellationToken)
+        public async Task<EmployeeGetResponse> Handle(GetRequest request, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Retrieving employee with Id: {EmployeeId}", request.Id);
 
@@ -34,7 +34,7 @@ namespace employee_management.Application.Features.Employees.Queries.Get
 
                 _logger.LogInformation("Employee with Id: {EmployeeId} retrieved successfully", request.Id);
 
-                return _mapper.Map<GetResponse>(employee);
+                return _mapper.Map<EmployeeGetResponse>(employee);
             }
             catch (NoDataFoundException)
             {

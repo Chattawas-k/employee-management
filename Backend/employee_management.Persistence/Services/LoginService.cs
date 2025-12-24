@@ -69,9 +69,13 @@ namespace employee_management.Persistence.Services
 
         public async Task<RefreshTokenResponse> RefreshTokenAsync(RefreshTokenRequest request)
         {
+            // Note: Cannot use IsActive computed property in EF Core query
+            // Must check the actual database columns: Revoked == null && DateTime.UtcNow < Expires
             var refreshTokenEntity = await _dbContext.RefreshTokens
                 .Include(rt => rt.User)
-                .FirstOrDefaultAsync(rt => rt.Token == request.RefreshToken && rt.IsActive);
+                .FirstOrDefaultAsync(rt => rt.Token == request.RefreshToken 
+                                        && rt.Revoked == null 
+                                        && rt.Expires > DateTime.UtcNow);
 
             if (refreshTokenEntity == null || refreshTokenEntity.User == null)
                 throw new InvalidOperationException("Invalid refresh token.");
@@ -151,6 +155,12 @@ namespace employee_management.Persistence.Services
                 new Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
                 new Claim(ClaimTypes.Name, user.UserName ?? "")
             };
+
+            // Add EmployeeId to claims if user is linked to an employee
+            if (user.EmployeeId.HasValue)
+            {
+                claims.Add(new Claim("EmployeeId", user.EmployeeId.Value.ToString()));
+            }
 
             foreach (var role in roles)
             {
