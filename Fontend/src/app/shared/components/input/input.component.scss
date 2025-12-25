@@ -1,9 +1,0 @@
-.form-field {
-  display: flex;
-  flex-direction: column;
-}
-
-input:disabled {
-  @apply bg-slate-100 cursor-not-allowed;
-}
-

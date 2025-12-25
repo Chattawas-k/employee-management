@@ -1,493 +1,140 @@
-<div class="space-y-6">
-  <!-- Error Message -->
-  <app-error-alert 
-    [message]="error()" 
-    variant="error"
-    [dismissible]="true"
-    (onDismiss)="error.set(null)">
-  </app-error-alert>
-
-  <!-- Loading Message -->
-  <app-loading-overlay 
-    [isLoading]="loading()" 
-    message="กำลังโหลดข้อมูล..."
-    variant="inline">
-  </app-loading-overlay>
-
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-6">
-    <div>
-      <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
-        <app-icon name="clipboard-list" className="w-7 h-7 text-indigo-600"></app-icon>
-        @if (isViewingSelf() || !isAdmin()) {
-        งานของฉัน (My Tasks)
-        } @else {
-          งานของ {{ currentEmployeeName() }}
-        }
-      </h2>
-      <p class="text-slate-500 text-sm">
-        @if (isAdmin() && !isViewingSelf()) {
-          ดูงานที่ได้รับมอบหมายและสถานะของพนักงาน
-        } @else {
-          จัดการงานที่ได้รับมอบหมายและอัปเดตสถานะ
-        }
-      </p>
-      <div class="mt-2 flex items-center gap-2">
-        <app-icon name="calendar" className="w-4 h-4 text-amber-600"></app-icon>
-        <span class="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
-          แสดงเฉพาะงานของวันนี้
-        </span>
+<div class="flex flex-col min-h-screen bg-slate-50">
+  <header class="bg-white px-4 sm:px-8 pt-4 sm:pt-8">
+    <div class="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center pb-6">
+      <div class="flex items-center gap-4">
+        <h1 class="text-2xl font-medium text-gray-900">งานของฉัน</h1>
       </div>
     </div>
-    <div class="flex items-center gap-3">
-      <!-- Admin: Employee Selector -->
-      @if (isAdmin()) {
-      <div class="flex items-center gap-2 bg-indigo-50 p-2 rounded-lg border border-indigo-100">
-          <span class="text-xs font-bold text-indigo-800 uppercase tracking-wide">ดูงานของ:</span>
-        <select 
-            class="bg-white border border-indigo-200 text-sm rounded px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]" 
-            [value]="currentEmployeeId()" 
-          (change)="onEmployeeSelected($any($event.target).value)">
-          @for (emp of employees(); track emp.id) {
-              <option [value]="emp.id">
-                {{ emp.name }}
-                @if (emp.positionName) {
-                  ({{ emp.positionName }})
-                }
-              </option>
-          }
-        </select>
+  </header>
+
+  <div class="bg-white px-4 sm:px-8 py-6">
+    @if (statusBannerInfo(); as banner) {
+      <div class="p-4 bg-white border-l-4 rounded-r-lg flex items-center gap-4 shadow-sm mb-6" [class]="banner.borderColor">
+        <div class="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center border-2" [class]="[banner.iconContainerBg, banner.iconBorder]">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" [class]="banner.iconColor" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-xl font-medium text-gray-800">{{ banner.title }}</h2>
+          <p class="text-base text-gray-700">{{ banner.subtitle }}</p>
+        </div>
       </div>
+    }
+
+    @if (isAvailable()) {
+      @if (isMyTurn()) {
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div class="w-full md:flex-1 p-4 bg-green-50/80 border-l-4 border-green-400 rounded-r-lg flex items-center gap-4">
+            <div class="flex-shrink-0 w-12 h-12 bg-white rounded-full flex items-center justify-center border-2 border-green-200">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-xl font-medium text-green-800">ถึงคิวคุณแล้ว เชิญรับลูกค้าได้เลย!</h2>
+              <p class="text-base text-green-700">มีลูกค้ากำลังรอรับบริการอยู่ที่หน้าร้าน</p>
+            </div>
+          </div>
+          <button (click)="acceptCustomer()" class="w-full md:w-auto flex-shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 bg-green-600 text-white font-medium rounded-lg shadow-sm hover:bg-green-700 transition-colors duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+            <span>รับลูกค้า</span>
+          </button>
+        </div>
+      } @else {
+        <div class="p-4 bg-white shadow-sm rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-xl font-medium text-gray-800">
+                รออีก <span class="text-indigo-600">{{ queuesRemaining() }}</span> คิว (ลำดับที่ #{{ myQueuePosition() }})
+              </h2>
+              <p class="text-base text-gray-500">โปรดเตรียมความพร้อมสำหรับการรับงานต่อไป</p>
+            </div>
+          </div>
+          <div class="mt-4 sm:mt-0 sm:ml-6 flex items-center gap-3 flex-shrink-0">
+            <div class="text-right">
+              <p class="text-base text-gray-500">คิวปัจจุบัน (#{{ currentlyServing().queuePosition }})</p>
+              <p class="font-medium text-gray-800">{{ currentlyServing().name }}</p>
+            </div>
+            <img [src]="currentlyServing().avatarUrl" alt="Current staff" class="w-12 h-12 rounded-full object-cover">
+          </div>
+        </div>
       }
-      
-      <app-button 
-        variant="primary" 
-        className="flex items-center gap-2"
-        (onClick)="handleAddTask()" 
-        icon="plus">
-        เพิ่มงาน
-      </app-button>
-    </div>
+    }
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 h-full min-h-[500px]">
-    <!-- To Do -->
-    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-      <h3 class="font-bold text-slate-700 mb-4 flex items-center justify-between">
-        <span>งานที่ต้องทำ (รอดำเนินการ)</span>
-        <span class="bg-slate-200 text-slate-600 text-xs px-2 py-0.5 rounded-full">{{ todoJobs().length }}</span>
-      </h3>
-      <div class="space-y-3">
-        @for (job of todoJobs(); track job.id) {
-          <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer group" (click)="handleViewDetails(job)">
-            <div class="flex justify-between items-start mb-2">
-              <span class="text-xs font-bold text-slate-400 group-hover:text-indigo-500 transition-colors">#{{ job.id }}</span>
-              <app-badge [status]="job.priority"></app-badge>
-            </div>
-            <h4 class="font-bold text-slate-800 mb-1">{{ job.title }}</h4>
-            <p class="text-sm text-slate-600 mb-3">{{ job.customer }}</p>
-            <div class="flex flex-col gap-1 mb-4">
-              <div class="flex items-center gap-2 text-xs text-slate-400">
-                <app-icon name="clock" className="w-3 h-3"></app-icon>
-                สร้างเมื่อ: {{ formatDateThai(job.createdAt || job.createdDate) }}
-              </div>
-            </div>
-            <div class="flex gap-2 mt-auto">
-              <app-button variant="primary" className="w-full text-xs py-1.5" (onClick)="handleStartClick(job, $event)" icon="play">เริ่มงาน</app-button>
-            </div>
-          </div>
-        }
-        @if (todoJobs().length === 0) {
-          <div class="text-center text-slate-400 text-sm py-8">ไม่มีงานค้าง</div>
-        }
-      </div>
+  <main class="px-4 sm:px-8 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <app-task-column 
+        title="งานที่ต้องทำ (รอดำเนินการ)" 
+        [count]="todoTasks().length" 
+        [tasks]="todoTasks()"
+        (taskAction)="handleTaskAction($event)"
+        (taskDetailClick)="showTaskDetails($event)">
+      </app-task-column>
+      <app-task-column 
+        title="กำลังดำเนินการ" 
+        [count]="inProgressTasks().length" 
+        [tasks]="inProgressTasks()"
+        (taskAction)="handleTaskAction($event)"
+        (taskDetailClick)="showTaskDetails($event)">
+      </app-task-column>
+      <app-task-column 
+        title="ประวัติ (เสร็จสิ้น)" 
+        [count]="completedTasks().length" 
+        [tasks]="completedTasks()"
+        [isCollapsible]="true"
+        (taskAction)="handleTaskAction($event)"
+        (taskDetailClick)="showTaskDetails($event)">
+      </app-task-column>
     </div>
+  </main>
 
-    <!-- In Progress -->
-    <div class="bg-indigo-50/50 rounded-xl p-4 border border-indigo-100">
-      <h3 class="font-bold text-indigo-700 mb-4 flex items-center justify-between">
-        <span>กำลังดำเนินการ</span>
-        <span class="bg-indigo-200 text-indigo-700 text-xs px-2 py-0.5 rounded-full">{{ inProgressJobs().length }}</span>
-      </h3>
-      <div class="space-y-3">
-        @for (job of inProgressJobs(); track job.id) {
-          <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer group" (click)="handleViewDetails(job)">
-            <div class="flex justify-between items-start mb-2">
-              <span class="text-xs font-bold text-slate-400 group-hover:text-indigo-500 transition-colors">#{{ job.id }}</span>
-              <app-badge [status]="job.priority"></app-badge>
-            </div>
-            <h4 class="font-bold text-slate-800 mb-1">{{ job.title }}</h4>
-            <p class="text-sm text-slate-600 mb-3">{{ job.customer }}</p>
-            <div class="flex flex-col gap-1 mb-4">
-              <div class="flex items-center gap-2 text-xs font-semibold text-indigo-600">
-                <app-icon name="timer" className="w-3 h-3"></app-icon>
-                ทำมาแล้ว: {{ getJobDuration(job) }}
-              </div>
-            </div>
-            <div class="flex gap-2 mt-auto">
-              <app-button variant="primary" className="w-full text-xs py-1.5" (onClick)="handleFinishClick(job, $event)" icon="check-circle">ปิดงาน</app-button>
-            </div>
-          </div>
-        }
-        @if (inProgressJobs().length === 0) {
-          <div class="text-center text-indigo-300 text-sm py-8">ไม่มีงานที่กำลังทำ</div>
-        }
-      </div>
-    </div>
+  @if (showStartDialog() && selectedTask()) {
+    <app-confirmation-dialog 
+      [task]="selectedTask()!"
+      (confirm)="handleStartTaskConfirmation()"
+      (reject)="handleRejectTask()"
+      (close)="closeStartDialog()">
+    </app-confirmation-dialog>
+  }
 
-    <!-- Done -->
-    <div class="bg-green-50/30 rounded-xl p-4 border border-green-100">
-      <h3 class="font-bold text-green-700 mb-4 flex items-center justify-between">
-        <span>ประวัติ (เสร็จสิ้น)</span>
-        <span class="bg-green-200 text-green-700 text-xs px-2 py-0.5 rounded-full">{{ doneJobs().length }}</span>
-      </h3>
-      <div class="space-y-3">
-        @for (job of doneJobs(); track job.id) {
-          <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer group" (click)="handleViewDetails(job)">
-            <div class="flex justify-between items-start mb-2">
-              <span class="text-xs font-bold text-slate-400 group-hover:text-indigo-500 transition-colors">#{{ job.id }}</span>
-              <app-badge [status]="job.priority"></app-badge>
-            </div>
-            <h4 class="font-bold text-slate-800 mb-1">{{ job.title }}</h4>
-            <p class="text-sm text-slate-600 mb-3">{{ job.customer }}</p>
-            <div class="flex flex-col gap-1 mb-4">
-              @if (getTotalDuration(job)) {
-                <div class="flex items-center gap-2 text-xs font-semibold text-green-600">
-                  <app-icon name="timer" className="w-3 h-3"></app-icon>
-                  ใช้เวลาทั้งหมด: {{ getTotalDuration(job) }}
-                </div>
-              }
-            </div>
-            <div class="flex gap-2 mt-auto">
-              @if (job.status === 'Done') {
-                <div class="w-full text-center text-xs font-bold text-green-600 py-1.5 bg-green-50 rounded">เสร็จสิ้น</div>
-              }
-              @if (job.status === 'Rejected') {
-                <div class="w-full text-center text-xs font-bold text-red-600 py-1.5 bg-red-50 rounded">ถูกปฏิเสธ</div>
-              }
-            </div>
-          </div>
-        }
-        @if (doneJobs().length === 0) {
-          <div class="text-center text-slate-400 text-sm py-8">ไม่มีงานที่เสร็จสิ้น</div>
-        }
-      </div>
-    </div>
-  </div>
+  @if (showRejectDialog() && selectedTask()) {
+    <app-reject-task-dialog
+      [task]="selectedTask()!"
+      (close)="closeRejectDialog()"
+      (confirm)="confirmRejectTask($event)">
+    </app-reject-task-dialog>
+  }
 
-  <!-- Action Modal (Start/Reject) -->
-  <app-modal 
-    [isOpen]="actionModal().isOpen" 
-    [title]="actionModal().step === 'choice' ? 'เลือกการดำเนินการ' : 'ปฏิเสธงาน'"
-    [size]="'md'"
-    (onClose)="closeActionModal()">
-    @if (actionModal().step === 'choice') {
-      <div class="space-y-4">
-        <p class="text-sm text-slate-600">คุณต้องการดำเนินการอย่างไรกับงานนี้?</p>
-        <div class="flex gap-3">
-          <app-button 
-            variant="primary" 
-            className="flex-1"
-            (onClick)="handleConfirmStart()" 
-            icon="play">
-            เริ่มงาน
-          </app-button>
-          <app-button 
-            variant="danger" 
-            className="flex-1"
-            (onClick)="setActionModalToReject()" 
-            icon="x">
-            ปฏิเสธ
-          </app-button>
-        </div>
-      </div>
-    }
-    @if (actionModal().step === 'reject') {
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-bold text-slate-700 mb-1">
-            เหตุผลในการปฏิเสธ <span class="text-red-500">*</span>
-          </label>
-          <textarea
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm resize-none"
-            rows="3"
-            placeholder="ระบุเหตุผล..."
-            [value]="actionModal().reason"
-            (input)="updateActionModalReason($any($event.target).value)"
-          ></textarea>
-        </div>
-        <div class="flex justify-end gap-2">
-          <app-button 
-            variant="secondary" 
-            (onClick)="resetActionModalToChoice()">
-            ย้อนกลับ
-          </app-button>
-          <app-button 
-            variant="danger" 
-            (onClick)="handleConfirmReject()">
-            ยืนยันปฏิเสธ
-          </app-button>
-        </div>
-      </div>
-    }
-  </app-modal>
+  @if (showSalesReportDialog() && selectedTask()) {
+    <app-sales-report-dialog
+      [task]="selectedTask()!"
+      (save)="confirmCompleteTask($event)"
+      (close)="closeSalesReportDialog()">
+    </app-sales-report-dialog>
+  }
 
-  <!-- View Job Details Modal -->
-  <app-modal 
-    [isOpen]="viewJobModal() !== null" 
-    [title]="'รายละเอียดงาน #' + (viewJobModal() ? viewJobModal()!.id : '')"
-    [size]="'lg'"
-    (onClose)="viewJobModal.set(null)">
-    @if (viewJobModal()) {
-      <div class="space-y-6">
-        <div class="flex flex-col sm:flex-row justify-between items-start border-b border-slate-100 pb-4">
-          <div>
-            <h3 class="text-xl font-bold text-slate-800">{{ viewJobModal() ? viewJobModal()!.title : '' }}</h3>
-            <div class="flex items-center gap-3 mt-1 text-sm text-slate-500">
-              <span class="flex items-center gap-1">
-                <app-icon name="user" className="w-4 h-4"></app-icon>
-                {{ viewJobModal() ? viewJobModal()!.customer : '' }}
-              </span>
-              <span>•</span>
-              <span class="flex items-center gap-1">
-                <app-icon name="clock" className="w-4 h-4"></app-icon>
-                {{ viewJobModal() ? formatDateThai(viewJobModal()!.createdAt || viewJobModal()!.createdDate) : '' }}
-              </span>
-            </div>
-          </div>
-          <div class="mt-2 sm:mt-0 flex gap-2">
-            <app-badge [status]="viewJobModal() ? viewJobModal()!.status : ''"></app-badge>
-            <app-badge [status]="viewJobModal() ? viewJobModal()!.priority : ''"></app-badge>
-          </div>
-        </div>
-        <div>
-          <h4 class="text-sm font-bold text-slate-700 mb-2">รายละเอียดงาน (Description)</h4>
-          <p class="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100">
-            {{ viewJobModal() ? (viewJobModal()!.description || "ไม่มีรายละเอียดเพิ่มเติม") : "ไม่มีรายละเอียดเพิ่มเติม" }}
-          </p>
-        </div>
-        <div class="flex justify-end pt-4">
-          <app-button variant="secondary" (onClick)="viewJobModal.set(null)">ปิด</app-button>
-        </div>
-      </div>
-    }
-  </app-modal>
+  @if (showTaskDetailDialog() && selectedTask()) {
+    <app-task-detail-dialog
+      [task]="selectedTask()!"
+      (close)="closeTaskDetailDialog()">
+    </app-task-detail-dialog>
+  }
 
-  <!-- Finish Job Modal (Report) -->
-  <app-modal 
-    [isOpen]="finishModal().isOpen" 
-    [title]="'บันทึกผลการทำงาน'"
-    [size]="'lg'"
-    (onClose)="closeFinishModal()">
-    @if (finishModal().isOpen) {
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-bold text-slate-700 mb-1">
-            ชื่อลูกค้า <span class="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-            [value]="finishModal().report.customerName"
-            (input)="handleReportChange('customerName', $any($event.target).value)"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-bold text-slate-700 mb-1">
-            เบอร์ติดต่อลูกค้า
-          </label>
-          <input
-            type="text"
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-            [value]="finishModal().report.customerContact"
-            (input)="handleReportChange('customerContact', $any($event.target).value)"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-bold text-slate-700 mb-1">
-            สถานะการขาย
-          </label>
-          <select
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white"
-            [value]="finishModal().report.salesStatus"
-            (change)="handleReportChange('salesStatus', $any($event.target).value)"
-          >
-            <option value="success">สำเร็จ</option>
-            <option value="failed">ไม่สำเร็จ</option>
-            <option value="pending">รอตัดสินใจ</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-sm font-bold text-slate-700 mb-2">
-            เหตุผล/สาเหตุ
-          </label>
-          <div class="flex flex-wrap gap-2">
-            @for (reason of getReasonOptions(finishModal().report.salesStatus); track reason) {
-              <button
-                type="button"
-                class="px-3 py-1.5 text-xs rounded-full border transition-colors"
-                [class.bg-indigo-100]="finishModal().report.reasons.includes(reason)"
-                [class.border-indigo-300]="finishModal().report.reasons.includes(reason)"
-                [class.text-indigo-700]="finishModal().report.reasons.includes(reason)"
-                [class.bg-slate-50]="!finishModal().report.reasons.includes(reason)"
-                [class.border-slate-200]="!finishModal().report.reasons.includes(reason)"
-                [class.text-slate-600]="!finishModal().report.reasons.includes(reason)"
-                (click)="toggleReason(reason)"
-              >
-                {{ reason }}
-              </button>
-            }
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-sm font-bold text-slate-700 mb-1">
-            หมวดหมู่สินค้า
-          </label>
-          <input
-            type="text"
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-            [value]="finishModal().report.productCategory"
-            (input)="handleReportChange('productCategory', $any($event.target).value)"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-bold text-slate-700 mb-1">
-            หมายเหตุเพิ่มเติม
-          </label>
-          <textarea
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm resize-none"
-            rows="3"
-            [value]="finishModal().report.description"
-            (input)="handleReportChange('description', $any($event.target).value)"
-          ></textarea>
-        </div>
-
-        <div class="flex justify-end gap-2 pt-4 border-t border-slate-200">
-          <app-button 
-            variant="secondary" 
-            (onClick)="closeFinishModal()">
-            ยกเลิก
-          </app-button>
-          <app-button 
-            variant="primary" 
-            (onClick)="handleSaveReport()" 
-            [disabled]="loading()">
-            บันทึกและปิดงาน
-          </app-button>
-        </div>
-      </div>
-    }
-  </app-modal>
-
-  <!-- Add Task Modal -->
-  <app-modal 
-    [isOpen]="addTaskModal().isOpen" 
-    [title]="'เพิ่มงานใหม่'"
-    [size]="'lg'"
-    (onClose)="handleCloseAddTaskModal()">
-    <div class="space-y-4">
-      <div>
-        <label class="block text-sm font-bold text-slate-700 mb-1">
-          ชื่องาน <span class="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-          placeholder="ระบุชื่องาน"
-          [value]="addTaskModal().form.title"
-          (input)="updateAddTaskForm('title', $any($event.target).value)"
-        />
-      </div>
-
-      <div>
-        <label class="block text-sm font-bold text-slate-700 mb-1">
-          ชื่อลูกค้า <span class="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-          placeholder="ระบุชื่อลูกค้า"
-          [value]="addTaskModal().form.customer"
-          (input)="updateAddTaskForm('customer', $any($event.target).value)"
-        />
-      </div>
-
-      <div>
-        <label class="block text-sm font-bold text-slate-700 mb-1">
-          รายละเอียด
-        </label>
-        <textarea
-          class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm resize-none"
-          rows="3"
-          placeholder="ระบุรายละเอียดงาน (ถ้ามี)"
-          [value]="addTaskModal().form.description"
-          (input)="updateAddTaskForm('description', $any($event.target).value)"
-        ></textarea>
-      </div>
-
-      <div>
-        <label class="block text-sm font-bold text-slate-700 mb-1">
-          ผู้รับผิดชอบ <span class="text-red-500">*</span>
-        </label>
-        <select
-          class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white"
-          [value]="addTaskModal().form.assigneeId"
-          (change)="updateAddTaskForm('assigneeId', $any($event.target).value)"
-        >
-          <option value="">-- เลือกผู้รับผิดชอบ --</option>
-          @for (emp of employeeDropdownList(); track emp.id) {
-            <option 
-              [value]="emp.id"
-              [selected]="emp.id === addTaskModal().form.assigneeId">
-              {{ emp.name }}
-              @if (emp.positionName) {
-                - {{ emp.positionName }}
-              }
-              @if (emp.departmentName) {
-                ({{ emp.departmentName }})
-              }
-            </option>
-          }
-        </select>
-        @if (employeeDropdownList().length === 0) {
-          <p class="text-xs text-amber-600 mt-1 flex items-center gap-1">
-            <app-icon name="alert-triangle" className="w-3 h-3"></app-icon>
-            กำลังโหลดรายชื่อพนักงาน...
-          </p>
-        }
-      </div>
-
-      <div>
-        <label class="block text-sm font-bold text-slate-700 mb-1">
-          ความสำคัญ
-        </label>
-        <select
-          class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white"
-          [value]="addTaskModal().form.priority"
-          (change)="updateAddTaskForm('priority', $any($event.target).value)"
-        >
-          <option value="Low">ต่ำ</option>
-          <option value="Normal">ปกติ</option>
-          <option value="High">สูง</option>
-          <option value="Urgent">ด่วน</option>
-        </select>
-      </div>
-
-      <div class="flex justify-end gap-2 pt-4 border-t border-slate-200">
-        <app-button variant="secondary" (onClick)="handleCloseAddTaskModal()">ยกเลิก</app-button>
-        <app-button variant="primary" (onClick)="handleCreateTask()" [disabled]="loading()">
-          @if (loading()) {
-            สร้างงาน...
-          } @else {
-            สร้างงาน
-          }
-        </app-button>
-      </div>
-    </div>
-  </app-modal>
+  @if (showOpenJobDialog()) {
+    <app-open-job-dialog
+      [userName]="currentUser()"
+      (close)="closeOpenJobDialog()"
+      (confirm)="confirmOpenJob($event)">
+    </app-open-job-dialog>
+  }
 </div>
 

@@ -26,12 +26,10 @@ export class ToastComponent implements OnInit {
   isLeaving = false;
 
   ngOnInit(): void {
-    // Animate in
     setTimeout(() => {
       this.isVisible = true;
     }, 10);
 
-    // Auto remove after duration
     if (this.toast.duration && this.toast.duration > 0) {
       setTimeout(() => {
         this.close();
@@ -43,7 +41,7 @@ export class ToastComponent implements OnInit {
     this.isLeaving = true;
     setTimeout(() => {
       this.remove.emit(this.toast.id);
-    }, 300); // Match animation duration
+    }, 300);
   }
 
   get iconName(): string {

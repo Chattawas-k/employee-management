@@ -1,0 +1,55 @@
+@if (task) {
+  <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-indigo-300 mb-2" (click)="detailClick.emit(task)">
+    <div class="flex justify-between items-start mb-2">
+      <p class="font-medium text-gray-800">{{ task.id }}</p>
+      <div class="flex items-center gap-2">
+        @if (salesStatusInfo(); as status) {
+          <span 
+            class="px-2 py-0.5 text-xs font-medium rounded-md border"
+            [class]="status.class">
+            {{ status.text }}
+          </span>
+        }
+        <span 
+          class="px-2 py-0.5 text-xs font-medium rounded-md border"
+          [class]="task.priorityClass">
+          {{ task.priority }}
+        </span>
+      </div>
+    </div>
+
+    @if (displayTime(); as timeInfo) {
+      @if (timeInfo.time) {
+        <div class="flex items-center text-xs text-gray-500 mb-3">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{{ timeInfo.label }}: {{ timeInfo.time }}</span>
+        </div>
+      }
+    }
+
+    @if (task.status !== 'completed' && task.status !== 'rejected') {
+      <button 
+        class="w-full flex items-center justify-center gap-2 px-4 py-2 text-base font-medium rounded-lg transition-all duration-200 shadow-sm" 
+        [class]="task.buttonClass"
+        (click)="action.emit(task); $event.stopPropagation()">
+        @if (task.buttonIcon === 'refresh') {
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 9.75L16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+          </svg>
+        } @else if (task.buttonIcon === 'check') {
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        } @else if (task.buttonIcon === 'cross') {
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        }
+        <span>{{ task.buttonText }}</span>
+      </button>
+    }
+  </div>
+}
+
