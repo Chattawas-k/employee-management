@@ -97,3 +97,39 @@ export interface UpdateJobStatusResponse {
   report?: UpdateJobStatusReportDto;
 }
 
+export interface JobFormData {
+  jobTitle: string;
+  customerName: string;
+  details?: string;
+  priority: string;
+}
+
+export type PartialJobFormData = {
+  jobTitle?: string;
+  customerName?: string;
+  details?: string;
+  priority?: string;
+};
+
+export interface SalesReportFormData {
+  status: string | null;
+  customerName: string | null;
+  contactInfo: string | null;
+  reasons: Record<string, boolean | null>;
+  interestedProducts: Record<string, boolean | null>;
+  additionalInfo?: string | null;
+  saleValue?: number | null;
+  invoiceId?: string | null;
+}
+
+export interface TaskSalesReportData {
+  status: 'Success' | 'Pending' | 'Failed';
+  customerName: string;
+  contactInfo: string;
+  reasons: Record<string, boolean>;
+  interestedProducts: Record<string, boolean>;
+  productCategory?: string;
+  description?: string;
+  additionalInfo?: string;
+}
+

@@ -1,3 +1,5 @@
+import { environment } from '../../environments/environment';
+
 export interface JwtPayload {
   sub?: string;
   email?: string;
@@ -25,7 +27,9 @@ export function decodeJwtToken(token: string): JwtPayload | null {
     
     return JSON.parse(jsonPayload);
   } catch (error) {
-    console.error('Error decoding JWT token:', error);
+    if (!environment.production) {
+      console.error('Error decoding JWT token:', error);
+    }
     return null;
   }
 }

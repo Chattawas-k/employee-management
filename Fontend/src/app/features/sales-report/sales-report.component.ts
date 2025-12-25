@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { SalesReportDetailDialogComponent } from '../../shared/components/sales-report-detail-dialog/sales-report-detail-dialog.component';
 import { SalesReportDialogComponent } from '../../shared/components/sales-report-dialog/sales-report-dialog.component';
 import { SalesReport, ReportStatus } from '../../models/sales-report.model';
+import { SalesReportFormData } from '../../models/task.model';
 
 // Re-export for backward compatibility
 export type { ReportStatus } from '../../models/sales-report.model';
@@ -259,7 +260,7 @@ export class SalesReportComponent {
     this.showEditReportDialog.set(true);
   }
 
-  handleSaveReport(formData: any) {
+  handleSaveReport(formData: SalesReportFormData) {
     const reportToUpdate = this.reportToEdit();
     if (!reportToUpdate) return;
 
@@ -273,15 +274,15 @@ export class SalesReportComponent {
 
     const updatedReport: SalesReport = {
       ...reportToUpdate,
-      customerName: formData.customerName,
-      contactInfo: formData.contactInfo,
-      status: formData.status,
+      customerName: formData.customerName || '',
+      contactInfo: formData.contactInfo || '',
+      status: (formData.status || 'Success') as ReportStatus,
       interestedProducts,
       reasons,
-      notes: formData.additionalInfo,
+      notes: formData.additionalInfo || undefined,
       submittedAt: new Date(),
-      saleValue: formData.status === 'Success' ? formData.saleValue : undefined,
-      invoiceId: formData.status === 'Success' ? formData.invoiceId : undefined,
+      saleValue: formData.status === 'Success' ? (formData.saleValue || undefined) : undefined,
+      invoiceId: formData.status === 'Success' ? (formData.invoiceId || undefined) : undefined,
       saleDate: formData.status === 'Success' ? new Date() : undefined,
       nextFollowUp: undefined,
       competitor: undefined

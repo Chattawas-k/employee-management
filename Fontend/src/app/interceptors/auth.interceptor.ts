@@ -1,10 +1,12 @@
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { HttpInterceptorFn, HttpErrorResponse, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { AuthService } from '../services/auth.service';
-import { catchError, switchMap, throwError } from 'rxjs';
+import { catchError, switchMap, throwError, BehaviorSubject, Observable, filter, take } from 'rxjs';
 import { Router } from '@angular/router';
 
+// Shared state for token refresh management
 let isRefreshing = false;
+let refreshTokenSubject: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
@@ -31,47 +33,89 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       // Handle 401 Unauthorized errors
       if (error.status === 401 && !req.url.includes('/auth/')) {
-        const refreshToken = authService.getRefreshToken();
-        
-        // If we have a refresh token and not already refreshing, try to refresh
-        if (refreshToken && !isRefreshing) {
-          isRefreshing = true;
-          
-          return authService.refreshToken(refreshToken).pipe(
-            switchMap((response) => {
-              isRefreshing = false;
-              
-              // Retry the original request with new token
-              const newToken = response.token;
-              const retryRequest = req.clone({
-                setHeaders: {
-                  Authorization: `Bearer ${newToken}`
-                }
-              });
-              
-              return next(retryRequest);
-            }),
-            catchError((refreshError) => {
-              isRefreshing = false;
-              
-              // Refresh token failed, logout user
-              authService.logout();
-              router.navigate(['/login']);
-              
-              return throwError(() => refreshError);
-            })
-          );
-        } else {
-          // No refresh token or already refreshing, logout
-          if (!isRefreshing) {
-            authService.logout();
-            router.navigate(['/login']);
-          }
-        }
+        return handle401Error(req, next, authService, router);
       }
       
       return throwError(() => error);
     })
   );
 };
+
+function handle401Error(
+  req: HttpRequest<any>,
+  next: (req: HttpRequest<any>) => Observable<any>,
+  authService: AuthService,
+  router: Router
+): Observable<any> {
+  const refreshToken = authService.getRefreshToken();
+
+  if (!refreshToken) {
+    // No refresh token, logout immediately
+    authService.logout();
+    router.navigate(['/login']);
+    return throwError(() => new Error('No refresh token available'));
+  }
+
+  if (!isRefreshing) {
+    // Start token refresh
+    isRefreshing = true;
+    refreshTokenSubject.next(null);
+
+    return authService.refreshToken(refreshToken).pipe(
+      switchMap((response) => {
+        isRefreshing = false;
+        
+        if (response.token) {
+          // Token is already stored by AuthService.refreshToken() via tap operator
+          // Notify waiting requests with new token
+          refreshTokenSubject.next(response.token);
+          
+          // Retry the original request with new token
+          return retryRequest(req, next, response.token);
+        }
+        
+        // No token in response, logout
+        authService.logout();
+        router.navigate(['/login']);
+        return throwError(() => new Error('Token refresh failed: no token in response'));
+      }),
+      catchError((refreshError) => {
+        isRefreshing = false;
+        refreshTokenSubject.next(null);
+        
+        // Refresh token failed, logout user
+        authService.logout();
+        router.navigate(['/login']);
+        
+        return throwError(() => refreshError);
+      })
+    );
+  } else {
+    // Token refresh already in progress, wait for it to complete
+    return refreshTokenSubject.pipe(
+      filter(token => token !== null),
+      take(1),
+      switchMap((newToken) => {
+        if (newToken) {
+          return retryRequest(req, next, newToken);
+        }
+        return throwError(() => new Error('Token refresh failed'));
+      })
+    );
+  }
+}
+
+function retryRequest(
+  req: HttpRequest<any>,
+  next: (req: HttpRequest<any>) => Observable<any>,
+  token: string
+): Observable<any> {
+  const retryRequest = req.clone({
+    setHeaders: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+  
+  return next(retryRequest);
+}
 

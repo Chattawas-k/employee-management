@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter, OnInit, computed, ChangeDetecti
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Task } from '../task-column/task-column.component';
+import { PartialJobFormData } from '../../../models/task.model';
 
 @Component({
   selector: 'app-open-job-dialog',
@@ -14,7 +15,7 @@ import { Task } from '../task-column/task-column.component';
 export class OpenJobDialogComponent implements OnInit {
   @Input() userName: string = '';
   @Input() task: Task | null = null;
-  @Output() confirm = new EventEmitter<any>();
+  @Output() confirm = new EventEmitter<PartialJobFormData>();
   @Output() close = new EventEmitter<void>();
 
   isEditMode = computed(() => !!this.task);
@@ -42,7 +43,15 @@ export class OpenJobDialogComponent implements OnInit {
 
   onConfirm() {
     if (this.jobForm.valid) {
-      this.confirm.emit(this.jobForm.value);
+      const formValue = this.jobForm.value;
+      // Convert null values to undefined for type compatibility
+      const jobData: PartialJobFormData = {
+        jobTitle: formValue.jobTitle ?? undefined,
+        customerName: formValue.customerName ?? undefined,
+        details: formValue.details ?? undefined,
+        priority: formValue.priority ?? undefined
+      };
+      this.confirm.emit(jobData);
     }
   }
 }

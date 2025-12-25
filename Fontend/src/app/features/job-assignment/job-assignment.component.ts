@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { JobAssignmentCardComponent, StaffMember } from '../../shared/components/job-assignment-card/job-assignment-card.component';
 import { OpenJobDialogComponent } from '../../shared/components/open-job-dialog/open-job-dialog.component';
+import { JobFormData } from '../../models/task.model';
 
 @Component({
   selector: 'app-job-assignment',
@@ -86,7 +87,7 @@ export class JobAssignmentComponent {
     this.selectedStaff.set(null);
   }
 
-  confirmAssignment(jobData: any) {
+  confirmAssignment(jobData: Partial<JobFormData>) {
     const staff = this.selectedStaff();
     if (staff) {
       this.staffMembers.update(members => {

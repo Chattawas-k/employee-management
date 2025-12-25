@@ -90,7 +90,7 @@ export class TaskDetailDialogComponent {
     if (!reportData || !reportData.interestedProducts) return [];
     
     return this.interestedProductsList
-      .filter(p => reportData.interestedProducts[p.controlName])
+      .filter(p => reportData.interestedProducts[p.controlName] === true)
       .map(p => p.label);
   });
 
@@ -99,7 +99,7 @@ export class TaskDetailDialogComponent {
     if (!reportData || !reportData.reasons) return [];
 
     return this.allReasons
-      .filter(r => reportData.reasons[r.controlName])
+      .filter(r => reportData.reasons[r.controlName] === true)
       .map(r => r.label);
   });
 

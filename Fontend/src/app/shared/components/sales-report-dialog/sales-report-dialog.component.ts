@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, ValidatorFn, AbstractControl } from '@angular/forms';
 import { Task } from '../task-column/task-column.component';
 import { SalesReport, ReportStatus } from '../../../models/sales-report.model';
+import { SalesReportFormData } from '../../../models/task.model';
 
 @Component({
   selector: 'app-sales-report-dialog',
@@ -17,7 +18,7 @@ export class SalesReportDialogComponent implements OnInit {
   @Input() report: SalesReport | null = null;
   @Input() initialStatus: ReportStatus | null = null;
 
-  @Output() save = new EventEmitter<any>();
+  @Output() save = new EventEmitter<SalesReportFormData>();
   @Output() close = new EventEmitter<void>();
 
   private fb = new FormBuilder();

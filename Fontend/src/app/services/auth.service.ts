@@ -5,6 +5,8 @@ import { tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { LoginRequest, LoginResponse, RefreshTokenRequest, RefreshTokenResponse } from '../models/auth.model';
 import { environment } from '../../environments/environment';
+import { LoggerService } from './logger.service';
+import { User } from '../models/user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -15,12 +17,13 @@ export class AuthService {
   private refreshTokenKey = 'refresh_token';
   private userKey = 'user_info';
 
-  private currentUserSubject = new BehaviorSubject<any>(this.getStoredUser());
+  private currentUserSubject = new BehaviorSubject<User | null>(this.getStoredUser());
   public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private logger: LoggerService
   ) {}
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
@@ -68,7 +71,7 @@ export class AuthService {
     return localStorage.getItem(this.refreshTokenKey);
   }
 
-  getCurrentUser(): any {
+  getCurrentUser(): User | null {
     return this.currentUserSubject.value;
   }
 
@@ -88,18 +91,29 @@ export class AuthService {
       localStorage.setItem(this.refreshTokenKey, response.refreshToken);
     }
     if (response.userName || response.roles) {
-      const userInfo = {
-        userName: response.userName,
-        roles: response.roles
+      const userInfo: User = {
+        userName: response.userName || '',
+        roles: response.roles || []
       };
       localStorage.setItem(this.userKey, JSON.stringify(userInfo));
       this.currentUserSubject.next(userInfo);
     }
   }
 
-  private getStoredUser(): any {
+  private getStoredUser(): User | null {
     const userStr = localStorage.getItem(this.userKey);
-    return userStr ? JSON.parse(userStr) : null;
+    if (!userStr) {
+      return null;
+    }
+    
+    try {
+      return JSON.parse(userStr);
+    } catch (error) {
+      // Handle corrupted localStorage data gracefully
+      this.logger.error('Error parsing stored user data:', error);
+      localStorage.removeItem(this.userKey);
+      return null;
+    }
   }
 }
 

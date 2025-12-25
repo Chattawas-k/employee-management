@@ -8,11 +8,12 @@ import { OpenJobDialogComponent } from '../../shared/components/open-job-dialog/
 import { RejectTaskDialogComponent } from '../../shared/components/reject-task-dialog/reject-task-dialog.component';
 import { TaskService } from '../../services/task.service';
 import { AuthService } from '../../services/auth.service';
-import { JobDto, JobStatus, JobPriority, UpdateJobStatusRequest, UpdateJobStatusReportDto } from '../../models/task.model';
+import { JobDto, JobStatus, JobPriority, UpdateJobStatusRequest, UpdateJobStatusReportDto, JobFormData, SalesReportFormData, TaskSalesReportData, PartialJobFormData } from '../../models/task.model';
 import { getEmployeeIdFromToken } from '../../utils/jwt.util';
 import { catchError, finalize } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { ToastService } from '../../services/toast.service';
+import { LoggerService } from '../../services/logger.service';
 
 export type AvailabilityStatus = 'available' | 'busy' | 'break' | 'unavailable';
 
@@ -36,6 +37,7 @@ export class MyTasksComponent implements OnInit {
   private taskService = inject(TaskService);
   private authService = inject(AuthService);
   private toastService = inject(ToastService);
+  private logger = inject(LoggerService);
 
   availabilityStatus = signal<AvailabilityStatus>('available');
   statusBannerInfo = signal<{ title: string; subtitle: string; borderColor: string; iconContainerBg: string; iconBorder: string; iconColor: string; } | null>(null);
@@ -75,7 +77,7 @@ export class MyTasksComponent implements OnInit {
     this.isLoading.set(true);
     this.taskService.getMyTasks().pipe(
       catchError(error => {
-        console.error('Error loading tasks:', error);
+        this.logger.error('Error loading tasks:', error);
         this.toastService.error('เกิดข้อผิดพลาดในการโหลดงาน');
         return of({ jobs: [] });
       }),
@@ -95,7 +97,7 @@ export class MyTasksComponent implements OnInit {
     jobs.forEach(job => {
       // Skip jobs with invalid IDs
       if (!job.id || job.id === '00000000-0000-0000-0000-000000000000') {
-        console.warn('Skipping job with invalid ID:', job);
+        this.logger.warn('Skipping job with invalid ID:', job);
         return;
       }
 
@@ -171,15 +173,72 @@ export class MyTasksComponent implements OnInit {
     }
 
     // Map sales report data
-    let salesReportData: any = null;
+    let salesReportData: TaskSalesReportData | null = null;
     if (job.report) {
+      // Convert reasons array to Record format expected by components
+      const reasonsRecord: Record<string, boolean> = {};
+      // Map common reason labels to control names
+      const reasonControlMap: Record<string, string> = {
+        'ขอไปตัดสินใจก่อน': 'wantsToDecide',
+        'รอโปรโมชั่น': 'waitingForPromo',
+        'เปรียบเทียบกับที่อื่น': 'comparing',
+        'ปรึกษาครอบครัว/เพื่อน': 'consultingFamily',
+        'ต้องการข้อมูลเพิ่มเติม': 'needsMoreInfo',
+        'รอสินค้าเข้า': 'waitingForStock',
+        'รออนุมัติทางการเงิน': 'financialApproval',
+        'ยังไม่แน่ใจเรื่องสี/ขนาด': 'undecidedOnSpec',
+        'รอฤกษ์/ช่วงเวลาที่เหมาะสม': 'seasonalTiming',
+        'ต้องการดูสินค้าตัวอย่าง': 'wantsToSeeSample',
+        'ราคาสูงไป': 'priceTooHigh',
+        'สินค้าไม่ตรงความต้องการ': 'productMismatch',
+        'ไม่พอใจบริการ': 'badService',
+        'เจอที่อื่นถูกกว่า': 'foundCheaper',
+        'ระยะเวลาจัดส่งนานไป': 'longDelivery',
+        'สินค้าหมด/เลิกผลิต': 'outOfStock',
+        'เห็นรีวิวไม่ดี': 'negativeReview',
+        'ข้อเสนอของคู่แข่งดีกว่า': 'competitorOffer',
+        'เปลี่ยนใจ/ไม่ต้องการแล้ว': 'changedMind',
+        'งบประมาณไม่พอ': 'budgetCut'
+      };
+      job.report.reasons.forEach(reason => {
+        const controlName = reasonControlMap[reason];
+        if (controlName) {
+          reasonsRecord[controlName] = true;
+        }
+      });
+
+      // Convert product category string to Record format
+      const interestedProductsRecord: Record<string, boolean> = {};
+      const productControlMap: Record<string, string> = {
+        'โซฟาและห้องนั่งเล่น': 'livingRoom',
+        'ชุดห้องนอน': 'bedroom',
+        'โต๊ะอาหาร': 'dining',
+        'ชุดครัว': 'kitchen',
+        'เฟอร์นิเจอร์สำนักงาน': 'office',
+        'เฟอร์นิเจอร์นอกบ้าน': 'outdoor',
+        'โคมไฟและของตกแต่ง': 'lighting',
+        'ตู้และชั้นวางของ': 'storage',
+        'เฟอร์นิเจอร์เด็ก': 'kids'
+      };
+      if (job.report.productCategory) {
+        const categories = job.report.productCategory.split(', ').map(c => c.trim());
+        categories.forEach(category => {
+          const controlName = productControlMap[category];
+          if (controlName) {
+            interestedProductsRecord[controlName] = true;
+          }
+        });
+      }
+
       salesReportData = {
         status: this.mapSalesStatus(job.report.salesStatus),
         customerName: job.report.customerName,
         contactInfo: job.report.customerContact,
-        reasons: job.report.reasons,
+        reasons: reasonsRecord,
+        interestedProducts: interestedProductsRecord,
         productCategory: job.report.productCategory,
-        description: job.report.description
+        description: job.report.description,
+        additionalInfo: job.report.description
       };
     }
 
@@ -198,7 +257,7 @@ export class MyTasksComponent implements OnInit {
       details: job.description,
       status,
       rejectionReason: job.statusLogs.find(log => log.status.includes('Rejected'))?.status.split(':')[1]?.trim(),
-      salesReportData
+      salesReportData: salesReportData || undefined
     };
   }
 
@@ -343,7 +402,7 @@ export class MyTasksComponent implements OnInit {
     this.showOpenJobDialog.set(false);
   }
   
-  confirmOpenJob(jobData: any) {
+  confirmOpenJob(jobData: PartialJobFormData) {
     const token = this.authService.getToken();
     const employeeId = getEmployeeIdFromToken(token);
     
@@ -356,14 +415,14 @@ export class MyTasksComponent implements OnInit {
     
     this.isLoading.set(true);
     this.taskService.createJob({
-      title: jobData.jobTitle,
-      customer: jobData.customerName,
+      title: jobData.jobTitle || '',
+      customer: jobData.customerName || '',
       description: jobData.details || '',
       assigneeId: employeeId,
       priority
     }    ).pipe(
       catchError(error => {
-        console.error('Error creating job:', error);
+        this.logger.error('Error creating job:', error);
         this.toastService.error('เกิดข้อผิดพลาดในการสร้างงาน');
         return of(null);
       }),
@@ -416,7 +475,7 @@ export class MyTasksComponent implements OnInit {
       status: JobStatus.InProgress
     }).pipe(
       catchError(error => {
-        console.error('Error starting task:', error);
+        this.logger.error('Error starting task:', error);
         this.toastService.error('เกิดข้อผิดพลาดในการเริ่มงาน');
         return of(null);
       }),
@@ -455,7 +514,7 @@ export class MyTasksComponent implements OnInit {
       rejectReason: rejectionData.reason
     }).pipe(
       catchError(error => {
-        console.error('Error rejecting task:', error);
+        this.logger.error('Error rejecting task:', error);
         this.toastService.error('เกิดข้อผิดพลาดในการปฏิเสธงาน');
         return of(null);
       }),
@@ -476,7 +535,7 @@ export class MyTasksComponent implements OnInit {
     this.selectedTask.set(null);
   }
 
-  confirmCompleteTask(reportData: any) {
+  confirmCompleteTask(reportData: SalesReportFormData) {
     const taskToMove = this.selectedTask();
     if (!taskToMove || !taskToMove.id || taskToMove.id === '00000000-0000-0000-0000-000000000000') {
       this.toastService.error('ไม่พบข้อมูลงาน');
@@ -489,7 +548,7 @@ export class MyTasksComponent implements OnInit {
     if (reportData.reasons) {
       const reasonControls = reportData.reasons;
       Object.keys(reasonControls).forEach(key => {
-        if (reasonControls[key]) {
+        if (reasonControls[key] === true) {
           // Find the label for this control name
           const allReasons = [
             { controlName: 'wantsToDecide', label: 'ขอไปตัดสินใจก่อน' },
@@ -536,7 +595,7 @@ export class MyTasksComponent implements OnInit {
         kids: 'เฟอร์นิเจอร์เด็ก'
       };
       Object.keys(productControls).forEach(key => {
-        if (productControls[key] && productMap[key]) {
+        if (productControls[key] === true && productMap[key]) {
           productCategories.push(productMap[key]);
         }
       });
@@ -545,7 +604,7 @@ export class MyTasksComponent implements OnInit {
     const report: UpdateJobStatusReportDto = {
       customerName: reportData.customerName || taskToMove.customerName || '',
       customerContact: reportData.contactInfo || '',
-      salesStatus: reportData.status?.toLowerCase() || 'success',
+      salesStatus: (reportData.status || 'success').toLowerCase(),
       reasons,
       productCategory: productCategories.join(', '),
       description: reportData.additionalInfo || ''
@@ -558,7 +617,7 @@ export class MyTasksComponent implements OnInit {
       report
     }    ).pipe(
       catchError(error => {
-        console.error('Error completing task:', error);
+        this.logger.error('Error completing task:', error);
         this.toastService.error('เกิดข้อผิดพลาดในการปิดงาน');
         return of(null);
       }),

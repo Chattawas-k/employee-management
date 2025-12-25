@@ -1,4 +1,5 @@
-import { Component, signal, computed, OnInit } from '@angular/core';
+import { Component, signal, computed, OnInit, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
@@ -6,6 +7,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { IconComponent } from './shared/components/icon/icon.component';
 import { ToastContainerComponent } from './shared/components/toast/toast-container.component';
 import { AuthService } from './services/auth.service';
+import { User } from './models/user.model';
 
 @Component({
   selector: 'app-root',
@@ -27,7 +29,7 @@ export class AppComponent implements OnInit {
   isSettingsOpen = signal(false);
   isStatusMenuOpen = signal(false);
   isAuthenticated = signal(false);
-  currentUser = signal<any>(null);
+  currentUser = signal<User | null>(null);
   availabilityStatus = signal<'available' | 'busy' | 'break' | 'unavailable'>('available');
   isLoginPage = signal(false);
 
@@ -58,6 +60,8 @@ export class AppComponent implements OnInit {
     }
   });
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     private authService: AuthService,
     private router: Router
@@ -72,15 +76,20 @@ export class AppComponent implements OnInit {
 
     // Subscribe to route changes
     this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
-      .subscribe((event: any) => {
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((event) => {
         this.checkRoute(event.url);
       });
 
-    this.authService.currentUser$.subscribe(user => {
-      this.currentUser.set(user);
-      this.isAuthenticated.set(this.authService.isAuthenticated());
-    });
+    this.authService.currentUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(user => {
+        this.currentUser.set(user);
+        this.isAuthenticated.set(this.authService.isAuthenticated());
+      });
   }
 
   private checkRoute(url: string): void {
