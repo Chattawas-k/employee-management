@@ -1,509 +1,594 @@
-import { Component, OnInit, OnDestroy, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, computed, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { JobService } from '../../services/job.service';
-import { EmployeeService } from '../../services/employee.service';
+import { TaskColumnComponent, Task } from '../../shared/components/task-column/task-column.component';
+import { ConfirmationDialogComponent } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { SalesReportDialogComponent } from '../../shared/components/sales-report-dialog/sales-report-dialog.component';
+import { TaskDetailDialogComponent } from '../../shared/components/task-detail-dialog/task-detail-dialog.component';
+import { OpenJobDialogComponent } from '../../shared/components/open-job-dialog/open-job-dialog.component';
+import { RejectTaskDialogComponent } from '../../shared/components/reject-task-dialog/reject-task-dialog.component';
+import { TaskService } from '../../services/task.service';
 import { AuthService } from '../../services/auth.service';
-import { NotificationService } from '../../services/notification.service';
+import { JobDto, JobStatus, JobPriority, UpdateJobStatusRequest, UpdateJobStatusReportDto } from '../../models/task.model';
+import { getEmployeeIdFromToken } from '../../utils/jwt.util';
+import { catchError, finalize } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { ToastService } from '../../services/toast.service';
-import { Employee, EmployeeDropdownItem } from '../../models/employee.model';
-import { Job } from '../../models/job.model';
-import { Category } from '../../models/category.model';
-import { ModalComponent } from '../../shared/components/modal/modal.component';
-import { ButtonComponent } from '../../shared/components/button/button.component';
-import { BadgeComponent } from '../../shared/components/badge/badge.component';
-import { IconComponent } from '../../shared/components/icon/icon.component';
-import { LoadingOverlayComponent } from '../../shared/components/loading-overlay/loading-overlay.component';
-import { ErrorAlertComponent } from '../../shared/components/error-alert/error-alert.component';
-import { formatDateThai, getDurationText } from '../../utils/date.utils';
-import { Subscription } from 'rxjs';
+
+export type AvailabilityStatus = 'available' | 'busy' | 'break' | 'unavailable';
 
 @Component({
   selector: 'app-my-tasks',
   standalone: true,
+  templateUrl: './my-tasks.component.html',
+  styleUrls: ['./my-tasks.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
-    FormsModule,
-    ModalComponent,
-    ButtonComponent,
-    BadgeComponent,
-    IconComponent,
-    LoadingOverlayComponent,
-    ErrorAlertComponent
-  ],
-  templateUrl: './my-tasks.component.html',
-  styleUrls: ['./my-tasks.component.scss']
+    TaskColumnComponent,
+    ConfirmationDialogComponent,
+    SalesReportDialogComponent,
+    TaskDetailDialogComponent,
+    OpenJobDialogComponent,
+    RejectTaskDialogComponent
+  ]
 })
-export class MyTasksComponent implements OnInit, OnDestroy {
-  private notificationSubscription?: Subscription;
-  currentEmployeeId = signal<string>('');
-  loggedInEmployeeId = signal<string>(''); // Employee ID ของผู้ที่ login
-  isAdmin = signal<boolean>(false); // ตรวจสอบว่าเป็น admin หรือไม่
-  employees = signal<Employee[]>([]); // รายชื่อ employee ทั้งหมด (สำหรับ admin)
-  employeeDropdownList = signal<EmployeeDropdownItem[]>([]);
-  jobs = signal<Job[]>([]);
-  categories = signal<Category[]>([]);
-  viewJobModal = signal<Job | null>(null);
-  actionModal = signal({ isOpen: false, job: null as Job | null, step: 'choice' as 'choice' | 'reject', reason: '' });
-  finishModal = signal({ 
-    isOpen: false, 
-    job: null as Job | null, 
-    report: { 
-      customerName: '', 
-      customerContact: '', 
-      salesStatus: 'success' as 'success' | 'failed' | 'pending', 
-      reasons: [] as string[], 
-      productCategory: '', 
-      description: '' 
-    } 
-  });
-  addTaskModal = signal({ 
-    isOpen: false, 
-    form: { 
-      title: '', 
-      customer: '', 
-      description: '', 
-      assigneeId: '', 
-      priority: 'Normal' as 'Low' | 'Normal' | 'High' | 'Urgent' 
-    } 
-  });
+export class MyTasksComponent implements OnInit {
+  private taskService = inject(TaskService);
+  private authService = inject(AuthService);
+  private toastService = inject(ToastService);
 
-  myJobs = computed(() => {
-    const employeeId = this.currentEmployeeId();
-    const allJobs = this.jobs();
-    if (!employeeId) {
-      return [];
-    }
-    const filtered = allJobs.filter(j => j.assigneeId === employeeId);
-    return filtered;
-  });
-
-  // ชื่อ employee ที่กำลังดูอยู่ (สำหรับแสดงในหัวข้อ)
-  currentEmployeeName = computed(() => {
-    const employeeId = this.currentEmployeeId();
-    const employee = this.employees().find(e => e.id === employeeId);
-    return employee?.name || '';
-  });
-
-  // ตรวจสอบว่ากำลังดูงานของตัวเองหรือไม่
-  isViewingSelf = computed(() => {
-    return this.currentEmployeeId() === this.loggedInEmployeeId();
-  });
-
-  // Helper function to check if date is today
-  private isToday(date: Date | string): boolean {
-    const today = new Date();
-    const compareDate = new Date(date);
-    return compareDate.getDate() === today.getDate() &&
-           compareDate.getMonth() === today.getMonth() &&
-           compareDate.getFullYear() === today.getFullYear();
-  }
-
-  // Filter jobs to show only today's jobs
-  todayJobs = computed(() => {
-    const filtered = this.myJobs().filter(j => {
-      const jobDate = j.createdAt || j.createdDate;
-      const isJobToday = jobDate && this.isToday(jobDate);
-      return isJobToday;
-    });
-    return filtered;
-  });
-
-  todoJobs = computed(() => {
-    const allToday = this.todayJobs();
-    const jobs = allToday.filter(j => j.status === 'Pending');
-    return jobs;
-  });
+  availabilityStatus = signal<AvailabilityStatus>('available');
+  statusBannerInfo = signal<{ title: string; subtitle: string; borderColor: string; iconContainerBg: string; iconBorder: string; iconColor: string; } | null>(null);
   
-  inProgressJobs = computed(() => {
-    const jobs = this.todayJobs().filter(j => j.status === 'In Progress' || j.status === 'InProgress');
-    return jobs;
-  });
+  isMyTurn = signal(true);
+  currentUser = signal('สมศักดิ์ รักงาน (Bob)');
   
-  doneJobs = computed(() => {
-    const jobs = this.todayJobs().filter(j => ['Done', 'Rejected'].includes(j.status));
-    return jobs;
+  queuesRemaining = signal(1);
+  myQueuePosition = signal(2);
+  currentlyServing = signal({
+    name: 'สมศักดิ์ รักงาน (Bob)',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop',
+    queuePosition: 1
   });
 
-  loading = signal(false);
-  error = signal<string | null>(null);
+  showStartDialog = signal(false);
+  showRejectDialog = signal(false);
+  showSalesReportDialog = signal(false);
+  showTaskDetailDialog = signal(false);
+  showOpenJobDialog = signal(false);
+  selectedTask = signal<Task | null>(null);
+  isLoading = signal(false);
 
-  constructor(
-    private jobService: JobService,
-    private employeeService: EmployeeService,
-    private authService: AuthService,
-    private notificationService: NotificationService,
-    private toastService: ToastService
-  ) {}
+  todoTasks = signal<Task[]>([]);
+  inProgressTasks = signal<Task[]>([]);
+  completedTasks = signal<Task[]>([]);
+
+  isAvailable = computed(() => this.availabilityStatus() === 'available');
 
   ngOnInit(): void {
-    // Get current user's employeeId from token and load their tasks
-    // Employee list will be loaded inside based on role
-    this.loadCurrentUserTasks();
-    
-    // เริ่ม SignalR connection
-    this.notificationService.startConnection();
-    
-    // Subscribe to notifications
-    this.notificationSubscription = this.notificationService.notifications$.subscribe(notifications => {
-      const latestNotification = notifications[0];
-      if (latestNotification && !latestNotification.read) {
-        // Reload tasks ถ้าเป็น job notification
-        if (latestNotification.type === 'job_assigned') {
-          const currentEmployeeId = this.currentEmployeeId();
-          if (currentEmployeeId) {
-            this.loadMyTasks(currentEmployeeId);
-          }
+    // Initialize status banner info based on availability status
+    this.updateStatusBanner();
+    this.loadTasks();
+  }
+
+  loadTasks(): void {
+    this.isLoading.set(true);
+    this.taskService.getMyTasks().pipe(
+      catchError(error => {
+        console.error('Error loading tasks:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการโหลดงาน');
+        return of({ jobs: [] });
+      }),
+      finalize(() => this.isLoading.set(false))
+    ).subscribe(response => {
+      // Backend uses camelCase, so response will have 'jobs' property
+      const jobs = response.jobs || [];
+      this.mapTasksFromApi(jobs);
+    });
+  }
+
+  private mapTasksFromApi(jobs: JobDto[]): void {
+    const todo: Task[] = [];
+    const inProgress: Task[] = [];
+    const completed: Task[] = [];
+
+    jobs.forEach(job => {
+      // Skip jobs with invalid IDs
+      if (!job.id || job.id === '00000000-0000-0000-0000-000000000000') {
+        console.warn('Skipping job with invalid ID:', job);
+        return;
+      }
+
+      const task = this.mapJobDtoToTask(job);
+      
+      // Handle both enum and string status from API
+      const statusStr = typeof job.status === 'string' ? job.status.toLowerCase() : this.getStatusString(job.status as JobStatus);
+      
+      if (statusStr === 'pending') {
+        todo.push(task);
+      } else if (statusStr === 'inprogress' || statusStr === 'in-progress') {
+        inProgress.push(task);
+        // Update availability status if there are in-progress tasks
+        if (this.availabilityStatus() === 'available') {
+          this.availabilityStatus.set('busy');
+          this.updateStatusBanner();
         }
+      } else if (statusStr === 'done' || statusStr === 'rejected') {
+        completed.push(task);
       }
     });
+
+    this.todoTasks.set(todo);
+    this.inProgressTasks.set(inProgress);
+    this.completedTasks.set(completed);
   }
 
-  ngOnDestroy(): void {
-    // ยกเลิก subscription
-    if (this.notificationSubscription) {
-      this.notificationSubscription.unsubscribe();
+  private getStatusString(status: JobStatus): string {
+    switch (status) {
+      case JobStatus.Pending:
+        return 'pending';
+      case JobStatus.InProgress:
+        return 'inprogress';
+      case JobStatus.Done:
+        return 'done';
+      case JobStatus.Rejected:
+        return 'rejected';
+      default:
+        return 'pending';
     }
-    
-    // ปิด SignalR connection
-    this.notificationService.stopConnection();
   }
 
-  loadCurrentUserTasks(): void {
-    // ดึงข้อมูล user จาก AuthService
-    const employeeId = this.authService.getCurrentEmployeeId();
-    if (!employeeId) {
-      this.error.set('ไม่พบข้อมูล Employee ID กรุณาเข้าสู่ระบบใหม่');
-      return;
+  private mapJobDtoToTask(job: JobDto): Task {
+    const priorityText = this.getPriorityText(job.priority);
+    const priorityClass = this.getPriorityClass(job.priority);
+    const status = this.mapJobStatusToTaskStatus(job.status);
+    
+    // Get timestamps from status logs
+    const createdLog = job.statusLogs.find(log => log.status === 'Pending');
+    const startedLog = job.statusLogs.find(log => log.status === 'InProgress');
+    const completedLog = job.statusLogs.find(log => log.status === 'Done' || log.status === 'Rejected');
+    
+    const createdAt = createdLog ? this.formatDate(new Date(createdLog.timestamp)) : this.formatDate(new Date(job.createdDate));
+    const startedAt = startedLog ? this.formatDate(new Date(startedLog.timestamp)) : null;
+    const completedAt = completedLog ? this.formatDate(new Date(completedLog.timestamp)) : null;
+
+    let buttonText = 'เริ่มงาน';
+    let buttonIcon: 'refresh' | 'check' | 'cross' = 'refresh';
+    let buttonClass = 'bg-indigo-600 hover:bg-indigo-700 text-white';
+
+    if (status === 'in-progress') {
+      buttonText = 'ปิดงาน';
+      buttonIcon = 'check';
+      buttonClass = 'bg-emerald-600 hover:bg-emerald-700 text-white';
+    } else if (status === 'completed') {
+      buttonText = 'เสร็จสิ้น';
+      buttonIcon = 'check';
+      buttonClass = 'bg-gray-200 text-gray-500 cursor-not-allowed';
+    } else if (status === 'rejected') {
+      buttonText = 'ปฏิเสธแล้ว';
+      buttonIcon = 'cross';
+      buttonClass = 'bg-red-100 text-red-600 cursor-not-allowed border border-red-200';
     }
 
-    // ดึง roles และตรวจสอบว่าเป็น Admin หรือไม่
-    const userRoles = this.authService.getCurrentUserRoles();
-    const isAdminUser = this.authService.isAdmin();
-
-    // ตั้งค่า state
-    this.loggedInEmployeeId.set(employeeId);
-    this.currentEmployeeId.set(employeeId);
-    this.isAdmin.set(isAdminUser);
-
-    // โหลดรายชื่อ employee ครั้งเดียว ใช้ทั้ง Admin Dropdown และ Add Task Modal
-    this.loadEmployeeDropdownList();
-    
-    // Load tasks for current user
-    this.loadMyTasks(employeeId);
-  }
-
-  // โหลดรายชื่อ employee จาก dropdown-list endpoint ครั้งเดียว
-  // ใช้ทั้งสำหรับ Admin Dropdown และ Add Task Modal
-  loadEmployeeDropdownList(): void {
-    this.employeeService.getDropdownList({ status: 'Active' }).subscribe({
-      next: (dropdownItems) => {
-        // ตั้งค่าสำหรับ Add Task Modal
-        this.employeeDropdownList.set(dropdownItems);
-        
-        // ถ้าเป็น Admin แปลงเป็น Employee[] สำหรับ Admin Dropdown
-        if (this.isAdmin()) {
-          const employees: Employee[] = dropdownItems.map(item => ({
-            id: item.id,
-            name: item.name,
-            phone: '',
-            status: 'Active' as const,
-            positionId: '',
-            positionName: item.positionName,
-            departmentName: item.departmentName,
-            avatar: undefined,
-            createdDate: new Date().toISOString(),
-            isDeleted: false
-          }));
-          this.employees.set(employees);
-        }
-      },
-      error: (err) => {
-        console.error('Error loading employee dropdown list:', err);
-      }
-    });
-  }
-
-  // เรียกเมื่อ admin เลือก employee อื่น
-  onEmployeeSelected(employeeId: string): void {
-    if (!this.isAdmin()) {
-      return; // ถ้าไม่ใช่ admin ไม่อนุญาตให้เปลี่ยน
-    }
-    this.currentEmployeeId.set(employeeId);
-    this.loadMyTasks(employeeId);
-  }
-
-  loadMyTasks(employeeId: string): void {
-    if (!employeeId) return;
-    
-    this.loading.set(true);
-    this.error.set(null);
-    
-    this.jobService.getMyTasks(employeeId).subscribe({
-      next: (jobs) => {
-        this.jobs.set(jobs);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        console.error('Error loading tasks:', err);
-        this.error.set('ไม่สามารถโหลดข้อมูลงานได้ กรุณาลองอีกครั้ง');
-        this.loading.set(false);
-      }
-    });
-  }
-
-  handleStartClick(job: Job, event?: Event): void {
-    if (event) {
-      event.stopPropagation();
-    }
-    this.actionModal.set({ isOpen: true, job, step: 'choice', reason: '' });
-  }
-
-  handleConfirmStart(): void {
-    const job = this.actionModal().job;
-    if (!job) {
-      return;
-    }
-    
-    this.loading.set(true);
-    this.jobService.updateStatus(job.id, 'InProgress').subscribe({
-      next: (updatedJob) => {
-        // Update the job in the list
-        this.jobs.update(jobs => 
-          jobs.map(j => j.id === updatedJob.id ? updatedJob : j)
-        );
-        this.closeActionModal();
-        this.loading.set(false);
-      },
-      error: (err) => {
-        console.error('Error updating job status:', err);
-        alert('Failed to update job status. Please try again.');
-        this.loading.set(false);
-      }
-    });
-  }
-
-  closeActionModal(): void {
-    this.actionModal.update(m => ({ ...m, isOpen: false }));
-  }
-
-  setActionModalToReject(): void {
-    this.actionModal.update(m => ({ ...m, step: 'reject' }));
-  }
-
-  resetActionModalToChoice(): void {
-    this.actionModal.update(m => ({ ...m, step: 'choice' }));
-  }
-
-  updateActionModalReason(reason: string): void {
-    this.actionModal.update(m => ({ ...m, reason }));
-  }
-
-  closeFinishModal(): void {
-    this.finishModal.update(m => ({ ...m, isOpen: false }));
-  }
-
-  handleConfirmReject(): void {
-    if (!this.actionModal().reason.trim()) {
-      alert("กรุณาระบุเหตุผล");
-      return;
-    }
-    const job = this.actionModal().job;
-    if (!job) return;
-    
-    this.loading.set(true);
-    this.jobService.updateStatus(job.id, 'Rejected', this.actionModal().reason).subscribe({
-      next: (updatedJob) => {
-        // Update the job in the list
-        this.jobs.update(jobs => 
-          jobs.map(j => j.id === updatedJob.id ? updatedJob : j)
-        );
-        this.closeActionModal();
-        this.loading.set(false);
-      },
-      error: (err) => {
-        console.error('Error updating job status:', err);
-        alert('Failed to update job status. Please try again.');
-        this.loading.set(false);
-      }
-    });
-  }
-
-  handleFinishClick(job: Job, event: Event): void {
-    event.stopPropagation();
-    const defaultCategory = this.categories().length > 0 ? this.categories()[0].name : '';
-    this.finishModal.set({
-      isOpen: true,
-      job,
-      report: {
-        customerName: job.customer,
-        customerContact: '',
-        salesStatus: 'success',
-        reasons: [],
-        productCategory: defaultCategory,
-        description: ''
-      }
-    });
-  }
-
-  handleReportChange(field: string, value: any): void {
-    this.finishModal.update(m => ({
-      ...m,
-      report: { ...m.report, [field]: value }
-    }));
-  }
-
-  toggleReason(reason: string): void {
-    this.finishModal.update(m => {
-      const currentReasons = m.report.reasons;
-      const newReasons = currentReasons.includes(reason)
-        ? currentReasons.filter(r => r !== reason)
-        : [...currentReasons, reason];
-      return {
-        ...m,
-        report: { ...m.report, reasons: newReasons }
+    // Map sales report data
+    let salesReportData: any = null;
+    if (job.report) {
+      salesReportData = {
+        status: this.mapSalesStatus(job.report.salesStatus),
+        customerName: job.report.customerName,
+        contactInfo: job.report.customerContact,
+        reasons: job.report.reasons,
+        productCategory: job.report.productCategory,
+        description: job.report.description
       };
-    });
-  }
-
-  handleSaveReport(): void {
-    if (!this.finishModal().report.customerName) {
-      alert("กรุณาระบุชื่อลูกค้า");
-      return;
-    }
-    const job = this.finishModal().job;
-    if (!job) return;
-    
-    this.loading.set(true);
-    this.jobService.updateStatus(job.id, 'Done', undefined, this.finishModal().report).subscribe({
-      next: (updatedJob) => {
-        // Update the job in the list
-        this.jobs.update(jobs => 
-          jobs.map(j => j.id === updatedJob.id ? updatedJob : j)
-        );
-        this.closeFinishModal();
-        this.loading.set(false);
-      },
-      error: (err) => {
-        console.error('Error updating job status:', err);
-        alert('Failed to save report. Please try again.');
-        this.loading.set(false);
-      }
-    });
-  }
-
-  handleViewDetails(job: Job): void {
-    this.viewJobModal.set(job);
-  }
-
-  getReasonOptions(status: string): string[] {
-    switch(status) {
-      case 'success': return ['ราคาคุ้มค่า', 'สินค้าคุณภาพดี', 'บริการประทับใจ', 'โปรโมชั่นน่าสนใจ', 'สินค้าตรงความต้องการ'];
-      case 'failed': return ['ราคาสูงเกินไป', 'คู่แข่งข้อเสนอดีกว่า', 'ยังไม่พร้อมซื้อ', 'สินค้าไม่ตรงความต้องการ', 'ไม่มีของในสต็อก'];
-      case 'pending': return ['รอตัดสินใจ', 'รอปรึกษาครอบครัว', 'รอบงบประมาณ', 'เปรียบเทียบราคา', 'ขอข้อมูลเพิ่มเติม'];
-      default: return [];
-    }
-  }
-
-  getJobDuration(job: Job): string {
-    const log = job.statusLogs?.find(l => l.status === 'In Progress' || l.status === 'InProgress');
-    if (!log) return '-';
-    return getDurationText(log.timestamp);
-  }
-
-  getTotalDuration(job: Job): string | null {
-    if (job.status !== 'Done' || !job.statusLogs) return null;
-    const startLog = job.statusLogs.find(l => l.status === 'In Progress') || job.statusLogs[0];
-    const endLog = job.statusLogs.find(l => l.status === 'Done');
-    if (startLog && endLog) {
-      return getDurationText(startLog.timestamp, new Date(endLog.timestamp));
-    }
-    return null;
-  }
-
-  formatDateThai = formatDateThai;
-
-  handleAddTask(): void {
-    // Initialize form with current viewing employee as default assignee
-    // ถ้าเป็น admin กำลังดูงานของคนอื่น ให้ default เป็นคนที่กำลังดูอยู่
-    // ถ้าไม่ใช่ admin ใช้ตัวเอง
-    const defaultAssigneeId = this.currentEmployeeId() || '';
-    this.addTaskModal.set({
-      isOpen: true,
-      form: {
-        title: '',
-        customer: '',
-        description: '',
-        assigneeId: defaultAssigneeId,
-        priority: 'Normal'
-      }
-    });
-  }
-
-  handleCloseAddTaskModal(): void {
-    this.addTaskModal.set({ ...this.addTaskModal(), isOpen: false });
-  }
-
-  handleCreateTask(): void {
-    const form = this.addTaskModal().form;
-    
-    // Validation
-    if (!form.title.trim()) {
-      alert('กรุณาระบุชื่องาน');
-      return;
-    }
-    if (!form.customer.trim()) {
-      alert('กรุณาระบุชื่อลูกค้า');
-      return;
-    }
-    if (!form.assigneeId) {
-      alert('กรุณาเลือกผู้รับผิดชอบ');
-      return;
     }
 
-    this.loading.set(true);
-    this.jobService.createTask({
-      title: form.title.trim(),
-      customer: form.customer.trim(),
-      description: form.description.trim(),
-      assigneeId: form.assigneeId,
-      priority: form.priority
-    }).subscribe({
-      next: (newJob) => {
-        // ถ้างานที่สร้างเป็นของ employee ที่กำลังดูอยู่ ให้เพิ่มเข้าไปใน list
-        if (newJob.assigneeId === this.currentEmployeeId()) {
-        this.jobs.update(jobs => [...jobs, newJob]);
-        }
-        
-        // Close modal and reset form
-        this.addTaskModal.set({
-          isOpen: false,
-          form: {
-            title: '',
-            customer: '',
-            description: '',
-            assigneeId: this.currentEmployeeId() || '',
-            priority: 'Normal'
-          }
+    return {
+      id: job.id,
+      createdAt,
+      priority: priorityText,
+      priorityClass,
+      buttonText,
+      buttonIcon,
+      buttonClass,
+      startedAt,
+      completedAt,
+      jobTitle: job.title,
+      customerName: job.customer,
+      details: job.description,
+      status,
+      rejectionReason: job.statusLogs.find(log => log.status.includes('Rejected'))?.status.split(':')[1]?.trim(),
+      salesReportData
+    };
+  }
+
+  private mapJobStatusToTaskStatus(status: JobStatus | string): 'pending' | 'in-progress' | 'completed' | 'rejected' {
+    // Handle string status from API (camelCase)
+    if (typeof status === 'string') {
+      const lowerStatus = status.toLowerCase();
+      if (lowerStatus === 'pending') return 'pending';
+      if (lowerStatus === 'inprogress' || lowerStatus === 'in-progress') return 'in-progress';
+      if (lowerStatus === 'done') return 'completed';
+      if (lowerStatus === 'rejected') return 'rejected';
+      return 'pending';
+    }
+
+    // Handle enum status
+    switch (status) {
+      case JobStatus.Pending:
+        return 'pending';
+      case JobStatus.InProgress:
+        return 'in-progress';
+      case JobStatus.Done:
+        return 'completed';
+      case JobStatus.Rejected:
+        return 'rejected';
+      default:
+        return 'pending';
+    }
+  }
+
+  private getPriorityText(priority: JobPriority | string): string {
+    // Handle string priority from API (camelCase)
+    if (typeof priority === 'string') {
+      const lowerPriority = priority.toLowerCase();
+      if (lowerPriority === 'urgent') return 'ด่วน';
+      if (lowerPriority === 'high') return 'สูง';
+      if (lowerPriority === 'normal') return 'ทั่วไป';
+      if (lowerPriority === 'low') return 'ต่ำ';
+      return 'ทั่วไป';
+    }
+
+    // Handle enum priority
+    switch (priority) {
+      case JobPriority.Urgent:
+        return 'ด่วน';
+      case JobPriority.High:
+        return 'สูง';
+      case JobPriority.Normal:
+        return 'ทั่วไป';
+      case JobPriority.Low:
+        return 'ต่ำ';
+      default:
+        return 'ทั่วไป';
+    }
+  }
+
+  private getPriorityClass(priority: JobPriority | string): string {
+    // Handle string priority from API (camelCase)
+    if (typeof priority === 'string') {
+      const lowerPriority = priority.toLowerCase();
+      if (lowerPriority === 'urgent') return 'border-orange-300 bg-orange-100 text-orange-800';
+      if (lowerPriority === 'high') return 'border-red-300 bg-red-100 text-red-800';
+      if (lowerPriority === 'normal') return 'border-blue-300 bg-blue-100 text-blue-800';
+      if (lowerPriority === 'low') return 'border-gray-300 bg-gray-100 text-gray-800';
+      return 'border-blue-300 bg-blue-100 text-blue-800';
+    }
+
+    // Handle enum priority
+    switch (priority) {
+      case JobPriority.Urgent:
+        return 'border-orange-300 bg-orange-100 text-orange-800';
+      case JobPriority.High:
+        return 'border-red-300 bg-red-100 text-red-800';
+      case JobPriority.Normal:
+        return 'border-blue-300 bg-blue-100 text-blue-800';
+      case JobPriority.Low:
+        return 'border-gray-300 bg-gray-100 text-gray-800';
+      default:
+        return 'border-blue-300 bg-blue-100 text-blue-800';
+    }
+  }
+
+  private mapSalesStatus(status: string): 'Success' | 'Pending' | 'Failed' {
+    const lowerStatus = status.toLowerCase();
+    if (lowerStatus === 'success') return 'Success';
+    if (lowerStatus === 'pending') return 'Pending';
+    if (lowerStatus === 'failed') return 'Failed';
+    return 'Success';
+  }
+
+  private formatDate(date: Date): string {
+    const day = date.getDate();
+    const month = date.toLocaleString('th-TH', { month: 'short' });
+    const year = date.getFullYear() + 543;
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${day} ${month} ${year} (${hours}.${minutes} น.)`;
+  }
+
+  private updateStatusBanner() {
+    switch (this.availabilityStatus()) {
+      case 'busy':
+        this.statusBannerInfo.set({
+          title: 'คุณกำลังติดลูกค้า',
+          subtitle: 'สถานะของคุณจะเปลี่ยนเป็น "พร้อมรับงาน" อัตโนมัติเมื่องานเสร็จ',
+          borderColor: 'border-orange-400',
+          iconContainerBg: 'bg-orange-100',
+          iconBorder: 'border-orange-200',
+          iconColor: 'text-orange-500',
         });
-        this.loading.set(false);
-        
-        // แสดงข้อความสำเร็จ
-        alert('สร้างงานสำเร็จ');
-      },
-      error: (err) => {
-        console.error('Error creating task:', err);
-        alert('ไม่สามารถสร้างงานได้ กรุณาลองอีกครั้ง');
-        this.loading.set(false);
+        break;
+      case 'break':
+        this.statusBannerInfo.set({
+          title: 'คุณกำลังพัก',
+          subtitle: 'คุณจะไม่ได้รับคิวใหม่ระหว่างพัก',
+          borderColor: 'border-yellow-400',
+          iconContainerBg: 'bg-yellow-100',
+          iconBorder: 'border-yellow-200',
+          iconColor: 'text-yellow-500',
+        });
+        break;
+      case 'unavailable':
+        this.statusBannerInfo.set({
+          title: 'คุณตั้งสถานะเป็น "ไม่พร้อมรับงาน"',
+          subtitle: 'คุณจะไม่ได้รับคิวใหม่จนกว่าจะเปลี่ยนสถานะกลับมาเป็น "พร้อมรับงาน"',
+          borderColor: 'border-gray-400',
+          iconContainerBg: 'bg-gray-100',
+          iconBorder: 'border-gray-200',
+          iconColor: 'text-gray-500',
+        });
+        break;
+      default:
+        this.statusBannerInfo.set(null);
+    }
+  }
+
+
+  acceptCustomer() {
+    this.showOpenJobDialog.set(true);
+  }
+  
+  closeOpenJobDialog() {
+    this.showOpenJobDialog.set(false);
+  }
+  
+  confirmOpenJob(jobData: any) {
+    const token = this.authService.getToken();
+    const employeeId = getEmployeeIdFromToken(token);
+    
+    if (!employeeId) {
+      this.toastService.error('ไม่พบข้อมูลพนักงาน');
+      return;
+    }
+
+    const priority = jobData.priority === 'Urgent' ? JobPriority.Urgent : JobPriority.Normal;
+    
+    this.isLoading.set(true);
+    this.taskService.createJob({
+      title: jobData.jobTitle,
+      customer: jobData.customerName,
+      description: jobData.details || '',
+      assigneeId: employeeId,
+      priority
+    }    ).pipe(
+      catchError(error => {
+        console.error('Error creating job:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการสร้างงาน');
+        return of(null);
+      }),
+      finalize(() => {
+        this.isLoading.set(false);
+        this.closeOpenJobDialog();
+      })
+    ).subscribe(response => {
+      if (response) {
+        this.toastService.success('สร้างงานสำเร็จ');
+        this.loadTasks();
+        this.isMyTurn.set(false);
+        // Update availability status to busy
+        this.availabilityStatus.set('busy');
+        this.updateStatusBanner();
       }
     });
   }
 
-  updateAddTaskForm(field: 'title' | 'customer' | 'description' | 'assigneeId' | 'priority', value: any): void {
-    this.addTaskModal.update(modal => ({
-      ...modal,
-      form: { ...modal.form, [field]: value }
-    }));
+  handleTaskAction(task: Task) {
+    this.selectedTask.set(task);
+    if (task.buttonText === 'เริ่มงาน') {
+      this.showStartDialog.set(true);
+    } else if (task.buttonText === 'ปิดงาน') {
+      this.showSalesReportDialog.set(true);
+    }
+  }
+
+  showTaskDetails(task: Task) {
+    this.selectedTask.set(task);
+    this.showTaskDetailDialog.set(true);
+  }
+
+  closeTaskDetailDialog() {
+    this.showTaskDetailDialog.set(false);
+    this.selectedTask.set(null);
+  }
+
+  handleStartTaskConfirmation() {
+    const taskToMove = this.selectedTask();
+    if (!taskToMove || !taskToMove.id || taskToMove.id === '00000000-0000-0000-0000-000000000000') {
+      this.toastService.error('ไม่พบข้อมูลงาน');
+      this.closeStartDialog();
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.taskService.updateJobStatus(taskToMove.id, {
+      id: taskToMove.id,
+      status: JobStatus.InProgress
+    }).pipe(
+      catchError(error => {
+        console.error('Error starting task:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการเริ่มงาน');
+        return of(null);
+      }),
+      finalize(() => {
+        this.isLoading.set(false);
+        this.closeStartDialog();
+      })
+    ).subscribe(response => {
+      if (response) {
+        this.toastService.success('เริ่มงานสำเร็จ');
+        this.loadTasks();
+        // Update availability status to busy
+        this.availabilityStatus.set('busy');
+        this.updateStatusBanner();
+      }
+    });
+  }
+
+  handleRejectTask() {
+    this.showStartDialog.set(false);
+    this.showRejectDialog.set(true);
+  }
+
+  confirmRejectTask(rejectionData: { reason: string }) {
+    const taskToReject = this.selectedTask();
+    if (!taskToReject || !taskToReject.id || taskToReject.id === '00000000-0000-0000-0000-000000000000') {
+      this.toastService.error('ไม่พบข้อมูลงาน');
+      this.closeRejectDialog();
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.taskService.updateJobStatus(taskToReject.id, {
+      id: taskToReject.id,
+      status: JobStatus.Rejected,
+      rejectReason: rejectionData.reason
+    }).pipe(
+      catchError(error => {
+        console.error('Error rejecting task:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการปฏิเสธงาน');
+        return of(null);
+      }),
+      finalize(() => {
+        this.isLoading.set(false);
+        this.closeRejectDialog();
+      })
+    ).subscribe(response => {
+      if (response) {
+        this.toastService.success('ปฏิเสธงานสำเร็จ');
+        this.loadTasks();
+      }
+    });
+  }
+
+  closeRejectDialog() {
+    this.showRejectDialog.set(false);
+    this.selectedTask.set(null);
+  }
+
+  confirmCompleteTask(reportData: any) {
+    const taskToMove = this.selectedTask();
+    if (!taskToMove || !taskToMove.id || taskToMove.id === '00000000-0000-0000-0000-000000000000') {
+      this.toastService.error('ไม่พบข้อมูลงาน');
+      this.closeSalesReportDialog();
+      return;
+    }
+
+    // Map report data to API format
+    const reasons: string[] = [];
+    if (reportData.reasons) {
+      const reasonControls = reportData.reasons;
+      Object.keys(reasonControls).forEach(key => {
+        if (reasonControls[key]) {
+          // Find the label for this control name
+          const allReasons = [
+            { controlName: 'wantsToDecide', label: 'ขอไปตัดสินใจก่อน' },
+            { controlName: 'waitingForPromo', label: 'รอโปรโมชั่น' },
+            { controlName: 'comparing', label: 'เปรียบเทียบกับที่อื่น' },
+            { controlName: 'consultingFamily', label: 'ปรึกษาครอบครัว/เพื่อน' },
+            { controlName: 'needsMoreInfo', label: 'ต้องการข้อมูลเพิ่มเติม' },
+            { controlName: 'waitingForStock', label: 'รอสินค้าเข้า' },
+            { controlName: 'financialApproval', label: 'รออนุมัติทางการเงิน' },
+            { controlName: 'undecidedOnSpec', label: 'ยังไม่แน่ใจเรื่องสี/ขนาด' },
+            { controlName: 'seasonalTiming', label: 'รอฤกษ์/ช่วงเวลาที่เหมาะสม' },
+            { controlName: 'wantsToSeeSample', label: 'ต้องการดูสินค้าตัวอย่าง' },
+            { controlName: 'priceTooHigh', label: 'ราคาสูงไป' },
+            { controlName: 'productMismatch', label: 'สินค้าไม่ตรงความต้องการ' },
+            { controlName: 'badService', label: 'ไม่พอใจบริการ' },
+            { controlName: 'foundCheaper', label: 'เจอที่อื่นถูกกว่า' },
+            { controlName: 'longDelivery', label: 'ระยะเวลาจัดส่งนานไป' },
+            { controlName: 'outOfStock', label: 'สินค้าหมด/เลิกผลิต' },
+            { controlName: 'negativeReview', label: 'เห็นรีวิวไม่ดี' },
+            { controlName: 'competitorOffer', label: 'ข้อเสนอของคู่แข่งดีกว่า' },
+            { controlName: 'changedMind', label: 'เปลี่ยนใจ/ไม่ต้องการแล้ว' },
+            { controlName: 'budgetCut', label: 'งบประมาณไม่พอ' }
+          ];
+          const reason = allReasons.find(r => r.controlName === key);
+          if (reason) {
+            reasons.push(reason.label);
+          }
+        }
+      });
+    }
+
+    const productCategories: string[] = [];
+    if (reportData.interestedProducts) {
+      const productControls = reportData.interestedProducts;
+      const productMap: { [key: string]: string } = {
+        livingRoom: 'โซฟาและห้องนั่งเล่น',
+        bedroom: 'ชุดห้องนอน',
+        dining: 'โต๊ะอาหาร',
+        kitchen: 'ชุดครัว',
+        office: 'เฟอร์นิเจอร์สำนักงาน',
+        outdoor: 'เฟอร์นิเจอร์นอกบ้าน',
+        lighting: 'โคมไฟและของตกแต่ง',
+        storage: 'ตู้และชั้นวางของ',
+        kids: 'เฟอร์นิเจอร์เด็ก'
+      };
+      Object.keys(productControls).forEach(key => {
+        if (productControls[key] && productMap[key]) {
+          productCategories.push(productMap[key]);
+        }
+      });
+    }
+
+    const report: UpdateJobStatusReportDto = {
+      customerName: reportData.customerName || taskToMove.customerName || '',
+      customerContact: reportData.contactInfo || '',
+      salesStatus: reportData.status?.toLowerCase() || 'success',
+      reasons,
+      productCategory: productCategories.join(', '),
+      description: reportData.additionalInfo || ''
+    };
+
+    this.isLoading.set(true);
+    this.taskService.updateJobStatus(taskToMove.id, {
+      id: taskToMove.id,
+      status: JobStatus.Done,
+      report
+    }    ).pipe(
+      catchError(error => {
+        console.error('Error completing task:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการปิดงาน');
+        return of(null);
+      }),
+      finalize(() => {
+        this.isLoading.set(false);
+        this.closeSalesReportDialog();
+      })
+    ).subscribe(response => {
+      if (response) {
+        this.toastService.success('ปิดงานสำเร็จ');
+        this.loadTasks();
+        
+        // Update availability status if no more in-progress tasks
+        const updatedInProgressTasks = this.inProgressTasks();
+        if (updatedInProgressTasks.length === 0 && this.availabilityStatus() === 'busy') {
+          this.availabilityStatus.set('available');
+          this.updateStatusBanner();
+        }
+      }
+    });
+  }
+
+  closeStartDialog() {
+    this.showStartDialog.set(false);
+    this.selectedTask.set(null);
+  }
+
+  closeSalesReportDialog() {
+    this.showSalesReportDialog.set(false);
+    this.selectedTask.set(null);
   }
 }
 

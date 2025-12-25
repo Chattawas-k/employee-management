@@ -1,77 +1,76 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { ButtonComponent } from '../../shared/components/button/button.component';
-import { IconComponent } from '../../shared/components/icon/icon.component';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ButtonComponent,
-    IconComponent
-  ],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })
 export class LoginComponent {
-  email = signal('');
-  password = signal('');
+  loginForm: FormGroup;
   isLoading = signal(false);
-  errorMessage = signal('');
+  showPassword = signal(false);
 
   constructor(
+    private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
-  ) {}
+    private router: Router,
+    private toastService: ToastService
+  ) {
+    this.loginForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]]
+    });
 
-  onEmailChange(value: string): void {
-    this.email.set(value);
-    this.errorMessage.set('');
+    // Redirect if already authenticated
+    if (this.authService.isAuthenticated()) {
+      this.router.navigate(['/my-tasks']);
+    }
   }
 
-  onPasswordChange(value: string): void {
-    this.password.set(value);
-    this.errorMessage.set('');
-  }
-
-  onSubmit(): void {
-    if (!this.email().trim() || !this.password().trim()) {
-      this.errorMessage.set('กรุณากรอกอีเมลและรหัสผ่าน');
+  onSubmit() {
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
       return;
     }
 
     this.isLoading.set(true);
-    this.errorMessage.set('');
+    const credentials = this.loginForm.value;
 
-    this.authService.login({
-      email: this.email().trim(),
-      password: this.password()
-    }).subscribe({
+    this.authService.login(credentials).subscribe({
       next: (response) => {
         this.isLoading.set(false);
         if (response.token) {
-          this.router.navigate(['/dashboard']);
+          this.toastService.success('เข้าสู่ระบบสำเร็จ', `ยินดีต้อนรับ ${response.userName || ''}`);
+          this.router.navigate(['/my-tasks']);
         } else {
-          this.errorMessage.set('เข้าสู่ระบบไม่สำเร็จ');
+          this.toastService.error('เข้าสู่ระบบไม่สำเร็จ', 'ไม่พบ token ใน response');
         }
       },
       error: (error) => {
         this.isLoading.set(false);
-        if (error.status === 401) {
-          this.errorMessage.set('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
-        } else if (error.status === 0) {
-          this.errorMessage.set('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
-        } else {
-          this.errorMessage.set('เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
-        }
-        console.error('Login error:', error);
+        const errorMessage = error.error?.message || error.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+        this.toastService.error('เข้าสู่ระบบไม่สำเร็จ', errorMessage);
       }
     });
+  }
+
+  togglePasswordVisibility() {
+    this.showPassword.update(value => !value);
+  }
+
+  get email() {
+    return this.loginForm.get('email');
+  }
+
+  get password() {
+    return this.loginForm.get('password');
   }
 }
 

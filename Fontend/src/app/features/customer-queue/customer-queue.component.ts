@@ -1,13 +1,6 @@
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { EmployeeService } from '../../services/employee.service';
-import { JobService } from '../../services/job.service';
-import { Employee } from '../../models/employee.model';
-import { Job } from '../../models/job.model';
 import { SummaryCardComponent } from '../../shared/components/summary-card/summary-card.component';
-import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
-import { IconComponent } from '../../shared/components/icon/icon.component';
-import { BadgeComponent } from '../../shared/components/badge/badge.component';
 
 interface ReadyQueueStaff {
   queue: number;
@@ -48,25 +41,18 @@ interface SummaryCardData {
 @Component({
   selector: 'app-customer-queue',
   standalone: true,
-  imports: [
-    CommonModule,
-    SummaryCardComponent,
-    AvatarComponent,
-    IconComponent,
-    BadgeComponent
-  ],
+  imports: [CommonModule, SummaryCardComponent],
   templateUrl: './customer-queue.component.html',
-  styleUrls: ['./customer-queue.component.scss']
+  styleUrls: ['./customer-queue.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CustomerQueueComponent implements OnInit, OnDestroy {
   private timerId?: number;
-  employees = signal<Employee[]>([]);
-  jobs = signal<Job[]>([]);
 
   summaryData = signal<SummaryCardData[]>([
     {
       title: 'ลูกค้าที่ดูแลแล้ววันนี้',
-      value: 0,
+      value: 51,
       unit: 'ท่าน',
       icon: 'check',
       valueClass: 'text-gray-800',
@@ -75,7 +61,7 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     },
     {
       title: 'กำลังดูแลลูกค้า',
-      value: 0,
+      value: 7,
       unit: 'ท่าน',
       icon: 'pulse',
       valueClass: 'text-red-600',
@@ -84,7 +70,7 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     },
     {
       title: 'พนักงานพร้อมรับงาน',
-      value: 0,
+      value: 8,
       unit: 'คน',
       icon: 'user-check',
       valueClass: 'text-green-600',
@@ -93,97 +79,45 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     }
   ]);
 
-  readyQueue = computed<ReadyQueueStaff[]>(() => {
-    const employees = this.employees();
-    const jobs = this.jobs();
-    
-    // Filter active employees and calculate served today
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    return employees
-      .filter(emp => emp.status === 'Active')
-      .map((emp, index) => {
-        const servedToday = jobs.filter(j => 
-          j.assigneeId === emp.id && 
-          j.status === 'Done' &&
-          new Date(j.createdAt || j.createdDate) >= today
-        ).length;
+  readyQueue = signal<ReadyQueueStaff[]>([
+    { queue: 1, name: 'คุณวิภา', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop', status: 'รับลูกค้าวันนี้', servedToday: 3, isNext: true },
+    { queue: 2, name: 'คุณเอก', avatar: 'https://images.unsplash.com/photo-1555952517-2e8e729e0b44?q=80&w=200&auto=format&fit=crop', status: 'รอรับลูกค้า', servedToday: 2 },
+    { queue: 3, name: 'คุณก้อง', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop', status: 'รอรับลูกค้า', servedToday: 4 },
+    { queue: 4, name: 'คุณบี', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop', status: 'รอรับลูกค้า', servedToday: 1 },
+    { queue: 5, name: 'คุณชัย', avatar: 'https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?q=80&w=200&auto=format&fit=crop', status: 'รอรับลูกค้า', servedToday: 0 },
+    { queue: 6, name: 'คุณดาว', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=200&auto=format&fit=crop', status: 'รอรับลูกค้า', servedToday: 2 },
+  ]);
 
-        return {
-          queue: index + 1,
-          name: emp.name,
-          avatar: emp.avatar || '',
-          status: 'รอรับลูกค้า',
-          servedToday,
-          isNext: index === 0
-        };
-      });
-  });
+  busyStaff = signal<BusyStaff[]>([
+    { name: 'คุณสมชาย', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop', status: 'ให้บริการอยู่', startTime: 0, duration: '26:51', startTimeFormatted: '10:05 น.', jobId: '#198' },
+    { name: 'คุณนนท์', avatar: 'https://images.unsplash.com/photo-1564564321837-a57b7070ac4f?q=80&w=200&auto=format&fit=crop', status: 'ให้บริการอยู่', startTime: 0, duration: '56:51', startTimeFormatted: '10:30 น.', jobId: '#199' },
+    { name: 'คุณมาย์', avatar: 'https://images.unsplash.com/photo-1614283233556-f35b0c801ef1?q=80&w=200&auto=format&fit=crop', status: 'ให้บริการอยู่', startTime: 0, duration: '16:51', startTimeFormatted: '11:15 น.', jobId: '#201' },
+  ]);
 
-  busyStaff = computed<BusyStaff[]>(() => {
-    const employees = this.employees();
-    const jobs = this.jobs();
-    
-    const inProgressJobs = jobs.filter(j => 
-      j.status === 'In Progress' || j.status === 'InProgress'
-    );
-
-    return inProgressJobs.map(job => {
-      const employee = employees.find(e => e.id === job.assigneeId);
-      const startLog = job.statusLogs?.find(l => 
-        l.status === 'In Progress' || l.status === 'InProgress'
-      );
-      
-      if (!startLog) {
-        return null;
-      }
-
-      const startTime = new Date(startLog.timestamp).getTime();
-      const now = Date.now();
-      const elapsedMs = now - startTime;
-      const totalSeconds = Math.floor(elapsedMs / 1000);
-      const minutes = Math.floor(totalSeconds / 60);
-      const seconds = totalSeconds % 60;
-      const duration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-      return {
-        name: employee?.name || 'Unknown',
-        avatar: employee?.avatar || '',
-        status: 'ให้บริการอยู่',
-        startTime,
-        duration,
-        startTimeFormatted: new Date(startLog.timestamp).toLocaleTimeString('th-TH', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        }),
-        jobId: `#${job.id}`
-      };
-    }).filter((staff): staff is BusyStaff => staff !== null);
-  });
-
-  unavailableStaff = computed<UnavailableStaff[]>(() => {
-    return this.employees()
-      .filter(emp => emp.status === 'Inactive')
-      .map(emp => ({
-        name: emp.name,
-        avatar: emp.avatar || '',
-        status: 'Offline' as const,
-        isAvatarLetter: !emp.avatar
-      }));
-  });
-
-  constructor(
-    private employeeService: EmployeeService,
-    private jobService: JobService
-  ) {}
+  unavailableStaff = signal<UnavailableStaff[]>([
+    { name: 'คุณพลอย', avatar: 'https://images.unsplash.com/photo-1521119989659-a83eee488004?q=80&w=200&auto=format&fit=crop', status: 'Break' },
+    { name: 'คุณอาร์ต', avatar: 'A', status: 'Offline', isAvatarLetter: true },
+    { name: 'คุณแนน', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop', status: 'Break' },
+  ]);
 
   ngOnInit(): void {
-    this.loadEmployees();
-    this.loadJobs();
-    
+    const now = Date.now();
+    this.busyStaff.update(staffList => {
+      return staffList.map((staff) => {
+        const durationParts = staff.duration.split(':');
+        const minutes = parseInt(durationParts[0], 10);
+        const seconds = parseInt(durationParts[1], 10);
+        const elapsedMs = (minutes * 60 + seconds) * 1000;
+        
+        return {
+          ...staff,
+          startTime: now - elapsedMs,
+        };
+      });
+    });
+
     this.timerId = window.setInterval(() => {
-      this.updateSummaryData();
+      this.updateDurations();
     }, 1000);
   }
 
@@ -193,65 +127,22 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     }
   }
 
-  loadEmployees(): void {
-    this.employeeService.search({ status: 'Active', pageSize: 100 }).subscribe({
-      next: (response) => {
-        this.employees.set(response.items || []);
-        this.updateSummaryData();
-      },
-      error: (err) => {
-        console.error('Error loading employees:', err);
-      }
-    });
-  }
-
-  loadJobs(): void {
-    // TODO: Implement getAllJobs or use today's jobs
-    this.jobs.set([]);
-    this.updateSummaryData();
-  }
-
-  private updateSummaryData(): void {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const doneJobs = this.jobs().filter(j => 
-      j.status === 'Done' && 
-      new Date(j.createdAt || j.createdDate) >= today
+  private updateDurations(): void {
+    const currentTime = Date.now();
+    this.busyStaff.update(staffList => 
+      staffList.map(staff => {
+        if (staff.startTime === 0) return staff;
+        
+        const elapsedMs = currentTime - staff.startTime;
+        const totalSeconds = Math.floor(elapsedMs / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        
+        const formattedMinutes = minutes.toString().padStart(2, '0');
+        const formattedSeconds = seconds.toString().padStart(2, '0');
+        
+        return { ...staff, duration: `${formattedMinutes}:${formattedSeconds}` };
+      })
     );
-    
-    const busyCount = this.busyStaff().length;
-    const readyCount = this.readyQueue().length;
-
-    this.summaryData.set([
-      {
-        title: 'ลูกค้าที่ดูแลแล้ววันนี้',
-        value: doneJobs.length,
-        unit: 'ท่าน',
-        icon: 'check',
-        valueClass: 'text-gray-800',
-        iconBgClass: 'bg-indigo-100',
-        iconClass: 'text-indigo-600',
-      },
-      {
-        title: 'กำลังดูแลลูกค้า',
-        value: busyCount,
-        unit: 'ท่าน',
-        icon: 'pulse',
-        valueClass: 'text-red-600',
-        iconBgClass: 'bg-red-100',
-        iconClass: 'text-red-600',
-      },
-      {
-        title: 'พนักงานพร้อมรับงาน',
-        value: readyCount,
-        unit: 'คน',
-        icon: 'user-check',
-        valueClass: 'text-green-600',
-        iconBgClass: 'bg-green-100',
-        iconClass: 'text-green-600',
-      }
-    ]);
   }
 }
-

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output, signal, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TaskCardComponent } from '../task-card/task-card.component';
 
@@ -15,7 +15,6 @@ export interface Task {
   jobTitle?: string;
   customerName?: string;
   details?: string;
-  description?: string;
   status: 'pending' | 'in-progress' | 'completed' | 'rejected';
   rejectionReason?: string;
   salesReportData?: any;
@@ -30,25 +29,24 @@ export interface Task {
   imports: [CommonModule, TaskCardComponent]
 })
 export class TaskColumnComponent implements OnInit {
-  title = input.required<string>();
-  count = input.required<number>();
-  tasks = input.required<Task[]>();
-  isCollapsible = input(false);
-  taskAction = output<Task>();
-  taskDetailClick = output<Task>();
+  @Input() title: string = '';
+  @Input() count: number = 0;
+  @Input() tasks: Task[] = [];
+  @Input() isCollapsible: boolean = false;
+  @Output() taskAction = new EventEmitter<Task>();
+  @Output() taskDetailClick = new EventEmitter<Task>();
 
   isCollapsed = signal(false);
 
   ngOnInit(): void {
-    if (this.isCollapsible()) {
+    if (this.isCollapsible) {
       this.isCollapsed.set(true);
     }
   }
 
   toggleCollapse() {
-    if (this.isCollapsible()) {
+    if (this.isCollapsible) {
       this.isCollapsed.update(v => !v);
     }
   }
 }
-

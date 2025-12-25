@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, input, output, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Task } from '../task-column/task-column.component';
 
-type ReportStatus = 'Success' | 'Failed' | 'Pending';
+export type ReportStatus = 'Success' | 'Pending' | 'Failed';
 
 @Component({
   selector: 'app-task-card',
@@ -13,31 +13,29 @@ type ReportStatus = 'Success' | 'Failed' | 'Pending';
   imports: [CommonModule]
 })
 export class TaskCardComponent {
-  task = input.required<Task>();
-  action = output<Task>();
-  detailClick = output<Task>();
+  @Input() task!: Task;
+  @Output() action = new EventEmitter<Task>();
+  @Output() detailClick = new EventEmitter<Task>();
 
   displayTime = computed(() => {
-    const task = this.task();
-    switch (task.status) {
+    switch (this.task.status) {
       case 'in-progress':
-        return { label: 'เริ่มเมื่อ', time: task.startedAt };
+        return { label: 'เริ่มเมื่อ', time: this.task.startedAt };
       case 'completed':
       case 'rejected':
-        return { label: 'เสร็จเมื่อ', time: task.completedAt };
+        return { label: 'เสร็จเมื่อ', time: this.task.completedAt };
       case 'pending':
       default:
-        return { label: 'สร้างเมื่อ', time: task.createdAt };
+        return { label: 'สร้างเมื่อ', time: this.task.createdAt };
     }
   });
 
   salesStatusInfo = computed(() => {
-    const task = this.task();
-    if (task.status !== 'completed' || !task.salesReportData?.status) {
+    if (this.task.status !== 'completed' || !this.task.salesReportData?.status) {
       return null;
     }
 
-    const status = task.salesReportData.status as ReportStatus;
+    const status = this.task.salesReportData.status as ReportStatus;
     switch (status) {
       case 'Success':
         return { text: 'สำเร็จ', class: 'border-green-300 bg-green-100 text-green-800' };

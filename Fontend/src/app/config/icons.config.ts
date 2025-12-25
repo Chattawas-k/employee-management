@@ -29,6 +29,11 @@ export {
   Mail,
   Loader2,
   LogIn,
-  LogOut
+  LogOut,
+  Users,
+  RefreshCw,
+  Check,
+  XCircle,
+  ChartBar
 } from 'lucide-angular';
 

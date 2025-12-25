@@ -20,18 +20,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   // Add token to request if available
   let clonedRequest = req;
   if (token) {
-    // Always add the token if we have one
-    // Let the backend validate it and return 401 if needed
-    console.log(`🔐 Adding token to request: ${req.method} ${req.url}`);
-    console.log(`   Token (first 20 chars): ${token.substring(0, 20)}...`);
-    
     clonedRequest = req.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
       }
     });
-  } else {
-    console.warn(`⚠️ No token available for request: ${req.method} ${req.url}`);
   }
 
   return next(clonedRequest).pipe(
@@ -43,12 +36,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         // If we have a refresh token and not already refreshing, try to refresh
         if (refreshToken && !isRefreshing) {
           isRefreshing = true;
-          console.log('🔄 Attempting to refresh token after 401 error...');
           
           return authService.refreshToken(refreshToken).pipe(
             switchMap((response) => {
               isRefreshing = false;
-              console.log('✅ Token refresh successful, retrying original request');
               
               // Retry the original request with new token
               const newToken = response.token;
@@ -64,7 +55,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
               isRefreshing = false;
               
               // Refresh token failed, logout user
-              console.error('❌ Token refresh failed, logging out:', refreshError);
               authService.logout();
               router.navigate(['/login']);
               
@@ -74,7 +64,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         } else {
           // No refresh token or already refreshing, logout
           if (!isRefreshing) {
-            console.warn('⚠️ No refresh token available or already refreshing, logging out');
             authService.logout();
             router.navigate(['/login']);
           }

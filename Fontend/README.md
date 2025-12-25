@@ -1,39 +1,26 @@
-# Employee Queue Management - Angular
+# JobQueue System - Angular Frontend
 
-แอปพลิเคชันจัดการคิวพนักงานที่แปลงจาก React เป็น Angular
+This is the Angular frontend application for the JobQueue System, converted from the jobqueue-system_last project to match the Fontend project structure.
 
-## การติดตั้ง
+## Project Structure
+
+- `src/app/features/` - Feature components (my-tasks, customer-queue, job-assignment, sales-report)
+- `src/app/shared/` - Shared components (task-card, task-column, dialogs, etc.)
+- `src/app/services/` - Services (auth, toast)
+- `src/app/models/` - Data models
+- `src/app/guards/` - Route guards
+- `src/app/interceptors/` - HTTP interceptors
+
+## Development
 
 ```bash
 npm install
+ng serve
 ```
 
-## การรันโปรเจกต์
+## Build
 
 ```bash
-npm start
+ng build
 ```
-
-แอปจะรันที่ `http://localhost:4200`
-
-## การ Build
-
-```bash
-npm run build
-```
-
-## โครงสร้างโปรเจกต์
-
-- `src/app/models/` - Models และ interfaces
-- `src/app/services/` - Services สำหรับจัดการ state
-- `src/app/shared/components/` - Shared components (Button, Modal, Avatar, etc.)
-- `src/app/features/` - Feature components (Dashboard, etc.)
-- `src/app/utils/` - Utility functions
-
-## เทคโนโลยีที่ใช้
-
-- Angular 17
-- Tailwind CSS
-- Lucide Angular (Icons)
-- RxJS
 
