@@ -21,9 +21,16 @@ namespace employee_management.WebAPI.Controllers
             _mediator = mediator;
         }
 
-        [HttpGet("my-tasks/{employeeId}")]
-        public async Task<ActionResult<GetMyTasksResponse>> GetMyTasks(Guid employeeId, CancellationToken cancellationToken)
+        [HttpGet("my-tasks")]
+        public async Task<ActionResult<GetMyTasksResponse>> GetMyTasks(CancellationToken cancellationToken)
         {
+            // Get EmployeeId from JWT token claims
+            var employeeIdClaim = User.FindFirst("EmployeeId")?.Value;
+            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId))
+            {
+                return BadRequest("EmployeeId not found in token or invalid format.");
+            }
+
             var response = await _mediator.Send(new GetMyTasksRequest(employeeId), cancellationToken);
             return Ok(response);
         }
@@ -31,6 +38,12 @@ namespace employee_management.WebAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<JobGetResponse>> Get(Guid id, CancellationToken cancellationToken)
         {
+            // Validate that id is not empty GUID
+            if (id == Guid.Empty)
+            {
+                return BadRequest("Job ID cannot be empty.");
+            }
+
             var response = await _mediator.Send(new GetRequest(id), cancellationToken);
             return Ok(response);
         }
@@ -45,6 +58,12 @@ namespace employee_management.WebAPI.Controllers
         [HttpPut("{id}/status")]
         public async Task<ActionResult<UpdateStatusResponse>> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest request, CancellationToken cancellationToken)
         {
+            // Validate that id is not empty GUID
+            if (id == Guid.Empty)
+            {
+                return BadRequest("Job ID cannot be empty.");
+            }
+
             if (id != request.Id)
             {
                 return BadRequest("ID in URL does not match ID in body.");

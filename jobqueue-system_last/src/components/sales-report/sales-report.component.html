@@ -1,0 +1,245 @@
+<div class="flex-1 p-4 sm:p-6 lg:p-8 bg-slate-50">
+  <!-- Header -->
+  <header class="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center pb-6">
+    <div class="flex items-center gap-4">
+      <button (click)="menuClick.emit()" class="p-2 rounded-md text-gray-500 hover:bg-gray-100" aria-label="Open menu">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <div>
+        <h1 class="text-3xl font-medium text-gray-900">รายงานการขาย</h1>
+      </div>
+    </div>
+    <div class="flex items-center gap-3 self-start sm:self-center">
+       <div class="relative w-full sm:w-auto">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <input 
+          type="text" 
+          [ngModel]="searchTerm()"
+          (ngModelChange)="onSearchTermChange($event)"
+          placeholder="ค้นหารายงาน..." 
+          class="w-full sm:w-56 pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+        >
+      </div>
+      <button class="hidden sm:flex items-center gap-2 px-4 py-2.5 border border-gray-200 bg-white rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+        <span>ตัวกรอง</span>
+      </button>
+      <button class="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-md transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+        <span>Export</span>
+      </button>
+    </div>
+  </header>
+
+  @if (statusBannerInfo(); as banner) {
+    <div class="p-4 bg-white border-l-4 rounded-r-lg flex items-center gap-4 shadow-sm mb-6" [class]="banner.borderColor">
+        <div class="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center border-2" [class]="[banner.iconContainerBg, banner.iconBorder]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" [class]="banner.iconColor" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+        </div>
+        <div>
+            <h2 class="text-xl font-medium text-gray-800">{{ banner.title }}</h2>
+            <p class="text-base text-gray-700">{{ banner.subtitle }}</p>
+        </div>
+    </div>
+  }
+
+  <!-- Tabs -->
+  <div class="border-b border-gray-200">
+    <nav class="-mb-px flex flex-wrap gap-x-8 gap-y-2" aria-label="Tabs">
+      <button (click)="setTab('All')" [class]="activeTab() === 'All' ? 'border-indigo-600 text-indigo-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'" class="whitespace-nowrap py-3 px-1 border-b-2 text-base flex items-center gap-2">
+        ทั้งหมด <span class="px-2 py-0.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600">{{ counts()['All'] || 0 }}</span>
+      </button>
+      <button (click)="setTab('Success')" [class]="activeTab() === 'Success' ? 'border-indigo-600 text-indigo-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'" class="whitespace-nowrap py-3 px-1 border-b-2 text-base flex items-center gap-2">
+        สำเร็จ <span class="px-2 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-700">{{ counts()['Success'] || 0 }}</span>
+      </button>
+      <button (click)="setTab('Pending')" [class]="activeTab() === 'Pending' ? 'border-indigo-600 text-indigo-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'" class="whitespace-nowrap py-3 px-1 border-b-2 text-base flex items-center gap-2">
+        รอตัดสินใจ <span class="px-2 py-0.5 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700">{{ counts()['Pending'] || 0 }}</span>
+      </button>
+      <button (click)="setTab('Failed')" [class]="activeTab() === 'Failed' ? 'border-indigo-600 text-indigo-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'" class="whitespace-nowrap py-3 px-1 border-b-2 text-base flex items-center gap-2">
+        ไม่สำเร็จ <span class="px-2 py-0.5 rounded-full text-sm font-medium bg-red-100 text-red-700">{{ counts()['Failed'] || 0 }}</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Main Content Card -->
+  <div class="mt-4 bg-white rounded-lg shadow-sm">
+    <!-- Table View (Desktop) -->
+    <div class="hidden md:block overflow-x-auto">
+      <table class="min-w-full">
+        <thead>
+          <tr class="border-b border-gray-200">
+            <th scope="col" class="px-6 py-4 text-left text-sm font-medium text-gray-500">วันที่รับลูกค้า</th>
+            <th scope="col" class="px-6 py-4 text-left text-sm font-medium text-gray-500">ลูกค้า</th>
+            <th scope="col" class="px-6 py-4 text-left text-sm font-medium text-gray-500">สถานะ</th>
+            <th scope="col" class="px-6 py-4 text-left text-sm font-medium text-gray-500">สินค้าที่สนใจ</th>
+            <th scope="col" class="px-6 py-4 text-left text-sm font-medium text-gray-500">เหตุผล</th>
+            <th scope="col" class="px-6 py-4 text-left text-sm font-medium text-gray-500">อัพเดตล่าสุด</th>
+            <th scope="col" class="relative px-6 py-4 text-right"><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for(report of paginatedReports(); track report.id) {
+            @let statusInfo = getStatusClass(report.status);
+            @let productChips = getChipDisplay(report.interestedProducts);
+            @let reasonChips = getChipDisplay(report.reasons);
+            <tr class="hover:bg-gray-50 cursor-pointer transition-colors duration-150 border-b border-gray-100 last:border-b-0" (click)="openDetailDialog(report)">
+              <td class="px-6 py-5 whitespace-nowrap text-sm text-gray-500">
+                  {{ formatThaiDateTime(report.submittedAt) }}
+              </td>
+              <td class="px-6 py-5 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-800">{{ report.customerName }}</div>
+                <div class="text-sm text-gray-500">{{ report.contactInfo }}</div>
+              </td>
+              <td class="px-6 py-5 whitespace-nowrap">
+                <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-medium rounded-full" [class]="statusInfo.tag">
+                  {{ statusInfo.text }}
+                </span>
+              </td>
+              <td class="px-6 py-5 whitespace-nowrap max-w-xs">
+                <div class="flex items-center gap-1.5 flex-wrap" [title]="getTooltip(report.interestedProducts)">
+                  @for(product of productChips.display; track product) {
+                    <span class="px-2 py-0.5 text-xs text-gray-600 bg-gray-100 rounded-md">{{ product }}</span>
+                  }
+                  @if (productChips.remainder > 0) {
+                    <span class="px-2 py-0.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-md">+{{ productChips.remainder }}</span>
+                  }
+                </div>
+              </td>
+              <td class="px-6 py-5 whitespace-nowrap max-w-xs">
+                @if(report.reasons.length > 0) {
+                  <div class="flex items-center gap-1.5 flex-wrap" [title]="getTooltip(report.reasons)">
+                    @for(reason of reasonChips.display; track reason) {
+                      <span class="px-2 py-0.5 text-xs text-gray-600 bg-gray-100 rounded-md">{{ reason }}</span>
+                    }
+                    @if (reasonChips.remainder > 0) {
+                      <span class="px-2 py-0.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-md">+{{ reasonChips.remainder }}</span>
+                    }
+                  </div>
+                } @else {
+                  <span class="text-sm text-gray-400">-</span>
+                }
+              </td>
+              <td class="px-6 py-5 whitespace-nowrap text-sm text-gray-500">
+                {{ formatThaiDateTime(report.status === 'Success' ? report.saleDate : report.submittedAt) }}
+              </td>
+              <td class="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                <button (click)="openDetailDialog(report); $event.stopPropagation()" class="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                  <span class="sr-only">ดูรายละเอียด</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="text-center py-16">
+                <h3 class="text-lg font-medium text-gray-800">ไม่มีรายงาน</h3>
+                <p class="text-base text-gray-500 mt-1">ไม่พบรายงานการขายที่ตรงกับเงื่อนไข</p>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- List View (Mobile) -->
+    <div class="md:hidden divide-y divide-gray-100">
+       @for(report of paginatedReports(); track report.id) {
+          @let statusInfo = getStatusClass(report.status);
+          <div class="p-4 space-y-3 cursor-pointer hover:bg-gray-50 transition-colors duration-150" (click)="openDetailDialog(report)">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="font-medium text-gray-800">{{ report.customerName }}</p>
+                <p class="text-sm text-gray-500">{{ report.contactInfo }}</p>
+              </div>
+              <span class="px-2 py-0.5 text-xs font-medium rounded-full flex-shrink-0 ml-2" [class]="statusInfo.tag">
+                {{ statusInfo.text }}
+              </span>
+            </div>
+            
+            @if(report.interestedProducts.length > 0) {
+              <div>
+                <p class="text-xs font-medium text-gray-500">สินค้าที่สนใจ:</p>
+                <div class="flex flex-wrap gap-1.5 mt-1">
+                    @for(product of report.interestedProducts.slice(0, 3); track product) {
+                        <span class="px-2 py-0.5 text-xs text-gray-600 bg-gray-100 rounded-md">{{ product }}</span>
+                    }
+                    @if (report.interestedProducts.length > 3) {
+                        <span class="px-2 py-0.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-md">+{{ report.interestedProducts.length - 3 }}</span>
+                    }
+                </div>
+              </div>
+            }
+
+            <div class="pt-3 flex justify-between items-center text-xs text-gray-500">
+               <span>รับเมื่อ: {{ formatThaiDateTime(report.submittedAt) }}</span>
+               @if(report.saleDate) {
+                  <span class="font-medium text-green-700">สำเร็จ: {{ formatThaiDateTime(report.saleDate) }}</span>
+               }
+            </div>
+          </div>
+       } @empty {
+          <div class="text-center py-16 px-4">
+              <h3 class="text-xl font-medium text-gray-800">ไม่มีรายงาน</h3>
+              <p class="text-base text-gray-500 mt-1">ไม่พบรายงานการขาย</p>
+          </div>
+       }
+    </div>
+
+    <!-- Pagination -->
+    @if (filteredReports().length > 0) {
+      <div class="p-4 border-t border-gray-200 flex items-center justify-between">
+        <button (click)="previousPage()" [disabled]="currentPage() === 1" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30">
+          <span>Previous</span>
+        </button>
+        
+        <nav class="hidden sm:flex items-center space-x-2">
+          @for (page of pages(); track page) {
+            <button
+              (click)="goToPage(page)"
+              class="px-3 py-1.5 text-sm font-medium rounded-md"
+              [class]="page === currentPage() 
+                ? 'bg-gray-100 text-gray-800' 
+                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-300'">
+              {{ page }}
+            </button>
+          }
+        </nav>
+        
+        <div class="sm:hidden text-sm text-gray-600">
+          Page {{ currentPage() }} of {{ totalPages() }}
+        </div>
+
+        <button (click)="nextPage()" [disabled]="currentPage() === totalPages()" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30">
+          <span>Next</span>
+        </button>
+      </div>
+    }
+  </div>
+</div>
+
+@if (showDetailDialog() && selectedReport()) {
+  <app-sales-report-detail-dialog
+    [report]="selectedReport()!"
+    (close)="closeDetailDialog()"
+    (updateStatus)="handleUpdateStatus($event)">
+  </app-sales-report-detail-dialog>
+}
+
+@if (showEditReportDialog() && reportToEdit()) {
+  <app-sales-report-dialog
+    [report]="reportToEdit()"
+    [initialStatus]="statusToEdit()"
+    (save)="handleSaveReport($event)"
+    (close)="closeEditReportDialog()">
+  </app-sales-report-dialog>
+}

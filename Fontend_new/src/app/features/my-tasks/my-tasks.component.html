@@ -1,0 +1,140 @@
+<div class="flex flex-col min-h-screen bg-slate-50">
+  <header class="bg-white px-4 sm:px-8 pt-4 sm:pt-8">
+    <div class="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center pb-6">
+      <div class="flex items-center gap-4">
+        <h1 class="text-2xl font-medium text-gray-900">งานของฉัน</h1>
+      </div>
+    </div>
+  </header>
+
+  <div class="bg-white px-4 sm:px-8 py-6">
+    @if (statusBannerInfo(); as banner) {
+      <div class="p-4 bg-white border-l-4 rounded-r-lg flex items-center gap-4 shadow-sm mb-6" [class]="banner.borderColor">
+        <div class="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center border-2" [class]="[banner.iconContainerBg, banner.iconBorder]">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" [class]="banner.iconColor" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-xl font-medium text-gray-800">{{ banner.title }}</h2>
+          <p class="text-base text-gray-700">{{ banner.subtitle }}</p>
+        </div>
+      </div>
+    }
+
+    @if (isAvailable()) {
+      @if (isMyTurn()) {
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div class="w-full md:flex-1 p-4 bg-green-50/80 border-l-4 border-green-400 rounded-r-lg flex items-center gap-4">
+            <div class="flex-shrink-0 w-12 h-12 bg-white rounded-full flex items-center justify-center border-2 border-green-200">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-xl font-medium text-green-800">ถึงคิวคุณแล้ว เชิญรับลูกค้าได้เลย!</h2>
+              <p class="text-base text-green-700">มีลูกค้ากำลังรอรับบริการอยู่ที่หน้าร้าน</p>
+            </div>
+          </div>
+          <button (click)="acceptCustomer()" class="w-full md:w-auto flex-shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 bg-green-600 text-white font-medium rounded-lg shadow-sm hover:bg-green-700 transition-colors duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+            <span>รับลูกค้า</span>
+          </button>
+        </div>
+      } @else {
+        <div class="p-4 bg-white shadow-sm rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-xl font-medium text-gray-800">
+                รออีก <span class="text-indigo-600">{{ queuesRemaining() }}</span> คิว (ลำดับที่ #{{ myQueuePosition() }})
+              </h2>
+              <p class="text-base text-gray-500">โปรดเตรียมความพร้อมสำหรับการรับงานต่อไป</p>
+            </div>
+          </div>
+          <div class="mt-4 sm:mt-0 sm:ml-6 flex items-center gap-3 flex-shrink-0">
+            <div class="text-right">
+              <p class="text-base text-gray-500">คิวปัจจุบัน (#{{ currentlyServing().queuePosition }})</p>
+              <p class="font-medium text-gray-800">{{ currentlyServing().name }}</p>
+            </div>
+            <img [src]="currentlyServing().avatarUrl" alt="Current staff" class="w-12 h-12 rounded-full object-cover">
+          </div>
+        </div>
+      }
+    }
+  </div>
+
+  <main class="px-4 sm:px-8 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <app-task-column 
+        title="งานที่ต้องทำ (รอดำเนินการ)" 
+        [count]="todoTasks().length" 
+        [tasks]="todoTasks()"
+        (taskAction)="handleTaskAction($event)"
+        (taskDetailClick)="showTaskDetails($event)">
+      </app-task-column>
+      <app-task-column 
+        title="กำลังดำเนินการ" 
+        [count]="inProgressTasks().length" 
+        [tasks]="inProgressTasks()"
+        (taskAction)="handleTaskAction($event)"
+        (taskDetailClick)="showTaskDetails($event)">
+      </app-task-column>
+      <app-task-column 
+        title="ประวัติ (เสร็จสิ้น)" 
+        [count]="completedTasks().length" 
+        [tasks]="completedTasks()"
+        [isCollapsible]="true"
+        (taskAction)="handleTaskAction($event)"
+        (taskDetailClick)="showTaskDetails($event)">
+      </app-task-column>
+    </div>
+  </main>
+
+  @if (showStartDialog() && selectedTask()) {
+    <app-confirmation-dialog 
+      [task]="selectedTask()!"
+      (confirm)="handleStartTaskConfirmation()"
+      (reject)="handleRejectTask()"
+      (close)="closeStartDialog()">
+    </app-confirmation-dialog>
+  }
+
+  @if (showRejectDialog() && selectedTask()) {
+    <app-reject-task-dialog
+      [task]="selectedTask()!"
+      (close)="closeRejectDialog()"
+      (confirm)="confirmRejectTask($event)">
+    </app-reject-task-dialog>
+  }
+
+  @if (showSalesReportDialog() && selectedTask()) {
+    <app-sales-report-dialog
+      [task]="selectedTask()!"
+      (save)="confirmCompleteTask($event)"
+      (close)="closeSalesReportDialog()">
+    </app-sales-report-dialog>
+  }
+
+  @if (showTaskDetailDialog() && selectedTask()) {
+    <app-task-detail-dialog
+      [task]="selectedTask()!"
+      (close)="closeTaskDetailDialog()">
+    </app-task-detail-dialog>
+  }
+
+  @if (showOpenJobDialog()) {
+    <app-open-job-dialog
+      [userName]="currentUser()"
+      (close)="closeOpenJobDialog()"
+      (confirm)="confirmOpenJob($event)">
+    </app-open-job-dialog>
+  }
+</div>
+

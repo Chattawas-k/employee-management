@@ -1,0 +1,225 @@
+<div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" (click)="close.emit()">
+  <div class="bg-gray-50 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col relative max-h-[90vh]" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <header class="p-5 border-b border-gray-200 flex justify-between items-center flex-shrink-0 bg-white rounded-t-2xl">
+      <h2 class="text-xl font-medium text-gray-800">รายละเอียดงาน {{ task.id }}</h2>
+      <button (click)="close.emit()" class="text-gray-400 hover:text-gray-600">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-1 px-5 py-4 space-y-4 overflow-y-auto">
+      <!-- Basic Info -->
+      <section>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-y-4 sm:gap-x-6">
+          <!-- Item 1: Created At -->
+          <div class="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p class="text-sm text-gray-500">สร้างเมื่อ</p>
+              <p class="font-medium text-base text-gray-800 leading-tight">{{ task.createdAt }}</p>
+            </div>
+          </div>
+          
+          <!-- Item 2: Priority -->
+          <div class="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            <div>
+              <p class="text-sm text-gray-500">ความสำคัญ</p>
+              <p class="font-medium text-base text-gray-800">{{ task.priority }}</p>
+            </div>
+          </div>
+          
+          <!-- Item 3: Status -->
+          <div class="flex items-center gap-3">
+             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 flex-shrink-0" [class]="statusInfo().iconColor" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+             </svg>
+            <div>
+              <p class="text-sm text-gray-500">สถานะ</p>
+              <p class="font-medium text-base" [class]="statusInfo().textColor">
+                {{ statusInfo().text }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tabs -->
+      <section>
+        <div class="border-b border-gray-200">
+            <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                <button (click)="setActiveTab('details')" 
+                        class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-base"
+                        [class]="activeTab() === 'details' 
+                          ? 'border-indigo-600 text-indigo-600' 
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
+                    รายละเอียด
+                </button>
+                <button (click)="setActiveTab('history')" 
+                        class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-base"
+                        [class]="activeTab() === 'history' 
+                          ? 'border-indigo-600 text-indigo-600' 
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
+                    ประวัติการดำเนินงาน
+                </button>
+            </nav>
+        </div>
+      </section>
+
+      <!-- Tab Content -->
+      <div class="pt-2">
+        @if (activeTab() === 'details') {
+          <div class="space-y-4">
+            <!-- Customer Details -->
+            <section>
+              <h3 class="text-base font-medium text-gray-600 mb-2">ข้อมูลลูกค้า</h3>
+              <div class="bg-white p-4 rounded-lg border border-gray-200 text-base space-y-2">
+                <div class="flex">
+                  <span class="font-medium text-gray-500 w-24 inline-block flex-shrink-0">ชื่อ:</span> 
+                  <span class="font-medium text-gray-800">{{ task.customerName }}</span>
+                </div>
+                <div class="flex">
+                  <span class="font-medium text-gray-500 w-24 inline-block flex-shrink-0">เบอร์ติดต่อ:</span> 
+                  <span class="font-medium text-gray-800">081-234-5678</span>
+                </div>
+                 <div class="flex">
+                  <span class="font-medium text-gray-500 w-24 inline-block flex-shrink-0">ประเภท:</span> 
+                  <span class="font-medium text-gray-800">{{ task.jobTitle }}</span>
+                </div>
+              </div>
+            </section>
+             <!-- Task Details -->
+            <section>
+              <h3 class="text-base font-medium text-gray-600 mb-2">รายละเอียดงาน</h3>
+              <div class="bg-white p-4 rounded-lg border border-gray-200 text-base">
+                <p class="text-gray-700">{{ task.details }}</p>
+              </div>
+            </section>
+            <!-- Sales Report Details -->
+            @if (task.status === 'completed' && task.salesReportData) {
+              <section>
+                <h3 class="text-base font-medium text-gray-600 mb-2">ข้อมูลการปิดงาน</h3>
+                <div class="bg-white p-4 rounded-lg border border-gray-200 text-base space-y-4">
+                  <div>
+                    <h4 class="text-sm font-medium text-gray-500 mb-2">สถานะการขาย</h4>
+                    @if (salesStatusInfo(); as status) {
+                      <span class="px-3 py-1 text-sm font-medium rounded-full" [class]="status.class">
+                        {{ status.text }}
+                      </span>
+                    }
+                  </div>
+
+                  <div>
+                    <h4 class="text-sm font-medium text-gray-500 mb-2">สินค้าที่สนใจ</h4>
+                    @if (salesReportInterestedProducts().length > 0) {
+                      <div class="flex flex-wrap gap-2">
+                        @for (product of salesReportInterestedProducts(); track product) {
+                          <span class="px-3 py-1 text-sm font-medium text-violet-700 bg-violet-100 rounded-full">{{ product }}</span>
+                        }
+                      </div>
+                    } @else {
+                      <p class="text-gray-500">-</p>
+                    }
+                  </div>
+
+                  @if (salesReportReasons().length > 0) {
+                    <div>
+                      <h4 class="text-sm font-medium text-gray-500 mb-2">เหตุผล</h4>
+                      <div class="flex flex-wrap gap-2">
+                        @for (reason of salesReportReasons(); track reason) {
+                          <span class="px-2 py-1 text-sm text-gray-700 bg-gray-200 rounded-full">{{ reason }}</span>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  @if (task.salesReportData.additionalInfo) {
+                    <div>
+                      <h4 class="text-sm font-medium text-gray-500 mb-2">คำอธิบายเพิ่มเติม</h4>
+                      <p class="text-gray-700 whitespace-pre-wrap">{{ task.salesReportData.additionalInfo }}</p>
+                    </div>
+                  }
+                </div>
+              </section>
+            }
+          </div>
+        }
+
+        @if (activeTab() === 'history') {
+          <div>
+            <!-- Task History -->
+            <section>
+              <div class="bg-white p-4 rounded-lg border border-gray-200">
+                <ol class="relative border-l-2 border-gray-100 ml-1">                  
+                  <!-- Step 1: Created -->
+                  <li class="ml-6" [class.mb-6]="task.startedAt">            
+                    <span class="absolute flex items-center justify-center w-6 h-6 bg-blue-100 rounded-full -left-[13px] ring-4 ring-white">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+                    </span>
+                    <h4 class="font-medium text-gray-800 text-base">สร้างงานในระบบ</h4>
+                    <time class="block text-sm font-normal leading-none text-gray-400 mt-0.5">{{ task.createdAt }}</time>
+                    <p class="text-sm text-gray-500 mt-1.5">ลูกค้า Walk-in เข้ามาที่ร้าน และพนักงานรับคิว</p>
+                  </li>
+                  
+                  <!-- Step 2: In Progress -->
+                  @if (task.startedAt) {
+                    <li class="ml-6" [class.mb-6]="task.completedAt">
+                      <span class="absolute flex items-center justify-center w-6 h-6 bg-yellow-100 rounded-full -left-[13px] ring-4 ring-white">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                           <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </span>
+                      <h4 class="font-medium text-gray-800 text-base">พนักงานเริ่มดำเนินการ</h4>
+                      <time class="block text-sm font-normal leading-none text-gray-400 mt-0.5">{{ task.startedAt }}</time>
+                    </li>
+                  }
+
+                  <!-- Step 3: Completed / Rejected -->
+                  @if (task.completedAt) {
+                    <li class="ml-6">
+                      @if (task.status === 'completed') {
+                        <span class="absolute flex items-center justify-center w-6 h-6 bg-green-100 rounded-full -left-[13px] ring-4 ring-white">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                           </svg>
+                        </span>
+                        <h4 class="font-medium text-gray-800 text-base">ปิดงานเรียบร้อย</h4>
+                        <time class="block text-sm font-normal leading-none text-gray-400 mt-0.5">{{ task.completedAt }}</time>
+                      } @else if (task.status === 'rejected') {
+                        <span class="absolute flex items-center justify-center w-6 h-6 bg-red-100 rounded-full -left-[13px] ring-4 ring-white">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </span>
+                        <h4 class="font-medium text-gray-800 text-base">ปฏิเสธงาน</h4>
+                        <time class="block text-sm font-normal leading-none text-gray-400 mt-0.5">{{ task.completedAt }}</time>
+                        @if(task.rejectionReason) {
+                          <p class="text-sm text-gray-500 mt-1.5">เหตุผล: {{ task.rejectionReason }}</p>
+                        }
+                      }
+                    </li>
+                  }
+                </ol>
+              </div>
+            </section>
+          </div>
+        }
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="p-4 border-t border-gray-200 flex justify-end items-center gap-3 flex-shrink-0 bg-white rounded-b-2xl">
+      <button type="button" (click)="close.emit()" class="px-5 py-2 border border-gray-300 rounded-lg text-base font-medium text-gray-700 bg-white hover:bg-gray-100 transition-colors">
+          ปิด
+      </button>
+    </footer>
+  </div>
+</div>

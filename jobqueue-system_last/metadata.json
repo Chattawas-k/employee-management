@@ -1,0 +1,5 @@
+{
+  "name": "JobQueue System",
+  "description": "A dashboard interface for managing tasks and job queues, inspired by a modern system UI. It allows users to view tasks in different states like 'To Do', 'In Progress', and 'Completed'.",
+  "requestFramePermissions": []
+}
