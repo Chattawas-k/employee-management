@@ -4,6 +4,7 @@ namespace employee_management.Application.Features.Jobs.Queries.Get
 {
     public sealed record JobGetResponse(
         Guid Id,
+        string RunningNumber,
         string Title,
         string Customer,
         string Description,

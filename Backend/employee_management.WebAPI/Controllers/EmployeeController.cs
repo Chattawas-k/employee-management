@@ -7,6 +7,7 @@ using employee_management.Application.Features.Employees.Commands.Update;
 using employee_management.Application.Features.Employees.Queries.Get;
 using employee_management.Application.Features.Employees.Queries.Search;
 using employee_management.Application.Features.Employees.Queries.DropdownList;
+using employee_management.Application.Features.Employees.Queries.GetJobAssignmentList;
 using employee_management.WebAPI.Controllers.Base;
 using employee_management.Domain.Enums;
 
@@ -68,6 +69,16 @@ namespace employee_management.WebAPI.Controllers
             CancellationToken cancellationToken = default)
         {
             var request = new DropdownListRequest(status, departmentId, positionId);
+            var response = await _mediator.Send(request, cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpGet("job-assignment-list")]
+        public async Task<ActionResult<List<GetJobAssignmentListResponse>>> GetJobAssignmentList(
+            [FromQuery] string? keyword = null,
+            CancellationToken cancellationToken = default)
+        {
+            var request = new GetJobAssignmentListRequest(keyword);
             var response = await _mediator.Send(request, cancellationToken);
             return Ok(response);
         }

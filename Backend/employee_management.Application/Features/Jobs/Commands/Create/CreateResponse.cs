@@ -4,6 +4,7 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
 {
     public sealed record CreateResponse(
         Guid Id,
+        string RunningNumber,
         string Title,
         string Customer,
         string Description,

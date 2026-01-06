@@ -5,6 +5,7 @@ namespace employee_management.Application.Repository.JobsRepository
     public interface IJobRepository : IBaseRepository<Job>
     {
         Task<List<Job>> GetMyTasksAsync(Guid employeeId, CancellationToken cancellationToken);
+        Task<string> GetNextRunningNumberAsync(DateTime date, CancellationToken cancellationToken);
     }
 }
 

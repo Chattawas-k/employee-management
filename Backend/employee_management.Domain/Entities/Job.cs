@@ -6,6 +6,7 @@ namespace employee_management.Domain.Entities
 {
     public class Job : BaseEntity
     {
+        public string RunningNumber { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string Customer { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;

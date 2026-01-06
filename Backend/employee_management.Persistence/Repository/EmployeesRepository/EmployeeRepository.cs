@@ -71,6 +71,28 @@ namespace employee_management.Persistence.Repository.EmployeesRepository
 
             return await PaginatedList<Employee>.CreateAsync(query, pageNumber, pageSize);
         }
+
+        public async Task<List<Employee>> GetJobAssignmentListAsync(string? keyword, CancellationToken cancellationToken)
+        {
+            IQueryable<Employee> query = Context.Employees
+                .Include(e => e.Position)
+                .ThenInclude(p => p!.Department)
+                .Where(e => !e.IsDeleted);
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                query = query.Where(e =>
+                    (e.Name != null && EF.Functions.ILike(e.Name, $"%{keyword}%")) ||
+                    (e.Phone != null && EF.Functions.ILike(e.Phone, $"%{keyword}%")) ||
+                    (e.Position != null && e.Position.Name != null && EF.Functions.ILike(e.Position.Name, $"%{keyword}%")) ||
+                    (e.Position != null && e.Position.Department != null && e.Position.Department.Name != null && EF.Functions.ILike(e.Position.Department.Name, $"%{keyword}%")));
+            }
+
+            // Order by name for consistent queue position calculation
+            query = query.OrderBy(e => e.Name);
+
+            return await query.ToListAsync(cancellationToken);
+        }
     }
 }
 

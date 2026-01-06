@@ -2,9 +2,10 @@ import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter } from 
 import { CommonModule } from '@angular/common';
 
 export interface StaffMember {
+  id?: string;
   name: string;
   role: string;
-  avatarUrl: string;
+  avatarUrl?: string;
   status: 'พร้อมรับงาน' | 'ติดลูกค้า' | 'พัก/ลางาน';
   statusClass: string;
   currentTasks: number;
@@ -25,6 +26,13 @@ export class JobAssignmentCardComponent {
 
   onActionClick() {
     this.action.emit(this.staff);
+  }
+
+  getAvatarUrl(): string {
+    if (this.staff.avatarUrl) {
+      return this.staff.avatarUrl;
+    }
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(this.staff.name)}&background=6366f1&color=fff`;
   }
 }
 

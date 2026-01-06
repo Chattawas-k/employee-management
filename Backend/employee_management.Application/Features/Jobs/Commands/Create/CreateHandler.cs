@@ -48,9 +48,14 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
                     throw new NoDataFoundException($"Employee with Id {request.AssigneeId} not found.");
                 }
 
+                // Generate running number for today
+                var today = DateTime.UtcNow.Date;
+                var runningNumber = await _jobRepository.GetNextRunningNumberAsync(today, cancellationToken);
+
                 // Create new Job entity
                 var job = new Job
                 {
+                    RunningNumber = runningNumber,
                     Title = request.Title,
                     Customer = request.Customer,
                     Description = request.Description,

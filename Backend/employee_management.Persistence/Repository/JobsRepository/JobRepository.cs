@@ -29,6 +29,40 @@ namespace employee_management.Persistence.Repository.JobsRepository
                 .OrderByDescending(j => j.CreatedDate)
                 .ToListAsync(cancellationToken);
         }
+
+        public async Task<string> GetNextRunningNumberAsync(DateTime date, CancellationToken cancellationToken)
+        {
+            // Format: ddMMyyyy###
+            var datePrefix = date.ToString("ddMMyyyy");
+            var startOfDay = date.Date;
+            var endOfDay = startOfDay.AddDays(1);
+
+            // Get all running numbers for the current date
+            var existingNumbers = await Context.Jobs
+                .Where(j => !j.IsDeleted && 
+                           !string.IsNullOrEmpty(j.RunningNumber) &&
+                           j.RunningNumber.StartsWith(datePrefix))
+                .Select(j => j.RunningNumber)
+                .ToListAsync(cancellationToken);
+
+            // Extract the numeric part and find the maximum
+            int maxNumber = 0;
+            foreach (var number in existingNumbers)
+            {
+                if (number.Length >= datePrefix.Length + 3)
+                {
+                    var numericPart = number.Substring(datePrefix.Length);
+                    if (int.TryParse(numericPart, out int num))
+                    {
+                        maxNumber = Math.Max(maxNumber, num);
+                    }
+                }
+            }
+
+            // Increment and format with 3 digits
+            var nextNumber = maxNumber + 1;
+            return $"{datePrefix}{nextNumber:D3}";
+        }
     }
 }
 

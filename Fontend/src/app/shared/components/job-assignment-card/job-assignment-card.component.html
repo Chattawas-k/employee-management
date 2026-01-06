@@ -2,7 +2,7 @@
 <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 h-full">
   <div class="flex items-start justify-between">
     <div class="flex items-center gap-4">
-      <img [src]="staff.avatarUrl" [alt]="staff.name" class="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md">
+      <img [src]="getAvatarUrl()" [alt]="staff.name" class="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md">
       <div>
         <h3 class="text-lg font-medium text-gray-800">{{ staff.name }}</h3>
         <p class="text-base text-gray-500">{{ staff.role }}</p>
