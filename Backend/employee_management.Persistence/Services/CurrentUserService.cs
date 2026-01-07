@@ -23,5 +23,16 @@ namespace employee_management.Persistence.Services
                 return null;
             }
         }
+
+        public Guid? EmployeeId
+        {
+            get
+            {
+                var employeeId = _httpContextAccessor.HttpContext?.User?.FindFirst("EmployeeId")?.Value;
+                if (Guid.TryParse(employeeId, out var guid))
+                    return guid;
+                return null;
+            }
+        }
     }
 }

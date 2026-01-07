@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal, computed, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TaskColumnComponent, Task } from '../../shared/components/task-column/task-column.component';
 import { ConfirmationDialogComponent } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
@@ -8,6 +8,7 @@ import { OpenJobDialogComponent } from '../../shared/components/open-job-dialog/
 import { RejectTaskDialogComponent } from '../../shared/components/reject-task-dialog/reject-task-dialog.component';
 import { TaskService } from '../../services/task.service';
 import { AuthService } from '../../services/auth.service';
+import { SignalRService } from '../../services/signalr.service';
 import { JobDto, JobStatus, JobPriority, UpdateJobStatusRequest, UpdateJobStatusReportDto } from '../../models/task.model';
 import { getEmployeeIdFromToken } from '../../utils/jwt.util';
 import { catchError, finalize } from 'rxjs/operators';
@@ -32,13 +33,14 @@ export type AvailabilityStatus = 'available' | 'busy' | 'break' | 'unavailable';
     RejectTaskDialogComponent
   ]
 })
-export class MyTasksComponent implements OnInit {
+export class MyTasksComponent implements OnInit, OnDestroy {
   availabilityStatus = signal<AvailabilityStatus>('available');
   
   constructor(
     private taskService: TaskService,
     private authService: AuthService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private signalRService: SignalRService
   ) {}
   statusBannerInfo = signal<{ title: string; subtitle: string; borderColor: string; iconContainerBg: string; iconBorder: string; iconColor: string; } | null>(null);
   
@@ -67,10 +69,41 @@ export class MyTasksComponent implements OnInit {
 
   isAvailable = computed(() => this.availabilityStatus() === 'available');
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     // Initialize status banner info based on availability status
     this.updateStatusBanner();
     this.loadTasks();
+
+    // Start SignalR connection for real-time updates
+    try {
+      await this.signalRService.startConnection();
+      
+      // Subscribe to real-time notifications
+      this.signalRService.onJobStatusChanged(() => {
+        this.loadTasks();
+      });
+
+      this.signalRService.onQueueUpdated(() => {
+        this.loadTasks();
+      });
+
+      this.signalRService.onJobAssigned((jobId, jobTitle, customer) => {
+        // Show notification when new job is assigned
+        this.toastService.success(`ได้รับงานใหม่: ${jobTitle}`);
+        // Refresh tasks to show the new job
+        this.loadTasks();
+      });
+    } catch (error) {
+      console.error('Failed to start SignalR connection:', error);
+      // Continue without real-time updates if SignalR fails
+    }
+  }
+
+  ngOnDestroy(): void {
+    // Unsubscribe from SignalR notifications
+    this.signalRService.offJobStatusChanged();
+    this.signalRService.offQueueUpdated();
+    this.signalRService.offJobAssigned();
   }
 
   loadTasks(): void {

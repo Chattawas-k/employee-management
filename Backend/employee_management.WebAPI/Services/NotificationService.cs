@@ -117,6 +117,21 @@ namespace employee_management.WebAPI.Services
                 _logger.LogError(ex, $"❌ Error sending broadcast notification");
             }
         }
+
+        /// <summary>
+        /// ส่ง notification เมื่อ queue status ถูก update
+        /// </summary>
+        public async Task SendQueueUpdatedNotificationAsync()
+        {
+            try
+            {
+                await _hubContext.Clients.All.SendAsync("QueueUpdated");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error sending QueueUpdated notification");
+            }
+        }
     }
 }
 

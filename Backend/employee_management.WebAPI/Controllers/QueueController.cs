@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using employee_management.Application.Features.Queues.Commands.Add;
 using employee_management.Application.Features.Queues.Commands.ResetDaily;
 using employee_management.Application.Features.Queues.Commands.Update;
+using employee_management.Application.Features.Queues.Commands.UpdateMyStatus;
 using employee_management.Application.Features.Queues.Queries.GetByDate;
+using employee_management.Domain.Enums;
 using employee_management.WebAPI.Controllers.Base;
 
 namespace employee_management.WebAPI.Controllers
@@ -49,6 +51,34 @@ namespace employee_management.WebAPI.Controllers
             var response = await _mediator.Send(new ResetDailyRequest(targetDate), cancellationToken);
             return Ok(response);
         }
+
+        [HttpPut("my-status")]
+        public async Task<ActionResult<UpdateMyQueueStatusResponse>> UpdateMyStatus(
+            [FromBody] UpdateMyQueueStatusRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            // Get EmployeeId from JWT token claims
+            var employeeIdClaim = User.FindFirst("EmployeeId")?.Value;
+            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId))
+            {
+                return BadRequest("EmployeeId not found in token or invalid format.");
+            }
+
+            // Map string status to QueueStatus enum
+            QueueStatus queueStatus = request.Status.ToLower() switch
+            {
+                "active" => QueueStatus.Active,
+                "busy" => QueueStatus.Busy,
+                "inactive" => QueueStatus.Inactive,
+                _ => throw new ArgumentException($"Invalid status: {request.Status}")
+            };
+
+            var requestWithEmployeeId = new UpdateMyQueueStatusRequest(employeeId, queueStatus);
+            var response = await _mediator.Send(requestWithEmployeeId, cancellationToken);
+            return Ok(response);
+        }
+
+        public sealed record UpdateMyQueueStatusRequestDto(string Status);
     }
 }
 

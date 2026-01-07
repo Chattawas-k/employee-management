@@ -1,6 +1,12 @@
-import { ChangeDetectionStrategy, Component, signal, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, OnInit, OnDestroy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SummaryCardComponent } from '../../shared/components/summary-card/summary-card.component';
+import { QueueService } from '../../services/queue.service';
+import { SignalRService } from '../../services/signalr.service';
+import { ToastService } from '../../services/toast.service';
+import { QueueDto, QueueSummaryJobDto } from '../../models/queue.model';
+import { forkJoin, of } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 
 interface ReadyQueueStaff {
   queue: number;
@@ -48,6 +54,15 @@ interface SummaryCardData {
 })
 export class CustomerQueueComponent implements OnInit, OnDestroy {
   private timerId?: number;
+  private refreshTimerId?: number;
+  isLoading = signal(false);
+  allJobs: QueueSummaryJobDto[] = [];
+
+  constructor(
+    private queueService: QueueService,
+    private toastService: ToastService,
+    private signalRService: SignalRService
+  ) {}
 
   summaryData = signal<SummaryCardData[]>([
     {
@@ -79,43 +94,20 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     }
   ]);
 
-  readyQueue = signal<ReadyQueueStaff[]>([
-    { queue: 1, name: 'คุณวิภา', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop', status: 'รับลูกค้าวันนี้', servedToday: 3, isNext: true },
-    { queue: 2, name: 'คุณเอก', avatar: 'https://images.unsplash.com/photo-1555952517-2e8e729e0b44?q=80&w=200&auto=format&fit=crop', status: 'รอรับลูกค้า', servedToday: 2 },
-    { queue: 3, name: 'คุณก้อง', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop', status: 'รอรับลูกค้า', servedToday: 4 },
-    { queue: 4, name: 'คุณบี', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop', status: 'รอรับลูกค้า', servedToday: 1 },
-    { queue: 5, name: 'คุณชัย', avatar: 'https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?q=80&w=200&auto=format&fit=crop', status: 'รอรับลูกค้า', servedToday: 0 },
-    { queue: 6, name: 'คุณดาว', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=200&auto=format&fit=crop', status: 'รอรับลูกค้า', servedToday: 2 },
-  ]);
-
-  busyStaff = signal<BusyStaff[]>([
-    { name: 'คุณสมชาย', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop', status: 'ให้บริการอยู่', startTime: 0, duration: '26:51', startTimeFormatted: '10:05 น.', jobId: '#198' },
-    { name: 'คุณนนท์', avatar: 'https://images.unsplash.com/photo-1564564321837-a57b7070ac4f?q=80&w=200&auto=format&fit=crop', status: 'ให้บริการอยู่', startTime: 0, duration: '56:51', startTimeFormatted: '10:30 น.', jobId: '#199' },
-    { name: 'คุณมาย์', avatar: 'https://images.unsplash.com/photo-1614283233556-f35b0c801ef1?q=80&w=200&auto=format&fit=crop', status: 'ให้บริการอยู่', startTime: 0, duration: '16:51', startTimeFormatted: '11:15 น.', jobId: '#201' },
-  ]);
-
-  unavailableStaff = signal<UnavailableStaff[]>([
-    { name: 'คุณพลอย', avatar: 'https://images.unsplash.com/photo-1521119989659-a83eee488004?q=80&w=200&auto=format&fit=crop', status: 'Break' },
-    { name: 'คุณอาร์ต', avatar: 'A', status: 'Offline', isAvatarLetter: true },
-    { name: 'คุณแนน', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop', status: 'Break' },
-  ]);
+  readyQueue = signal<ReadyQueueStaff[]>([]);
+  busyStaff = signal<BusyStaff[]>([]);
+  unavailableStaff = signal<UnavailableStaff[]>([]);
 
   ngOnInit(): void {
-    const now = Date.now();
-    this.busyStaff.update(staffList => {
-      return staffList.map((staff) => {
-        const durationParts = staff.duration.split(':');
-        const minutes = parseInt(durationParts[0], 10);
-        const seconds = parseInt(durationParts[1], 10);
-        const elapsedMs = (minutes * 60 + seconds) * 1000;
-        
-        return {
-          ...staff,
-          startTime: now - elapsedMs,
-        };
-      });
-    });
+    this.loadQueueData();
+    this.setupSignalR();
 
+    // Auto-refresh every 30 seconds (fallback if SignalR fails)
+    this.refreshTimerId = window.setInterval(() => {
+      this.loadQueueData();
+    }, 30000);
+
+    // Update busy staff durations every second
     this.timerId = window.setInterval(() => {
       this.updateDurations();
     }, 1000);
@@ -125,6 +117,269 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     if (this.timerId) {
       clearInterval(this.timerId);
     }
+    if (this.refreshTimerId) {
+      clearInterval(this.refreshTimerId);
+    }
+    this.signalRService.stopConnection();
+    this.signalRService.offQueueUpdated();
+    this.signalRService.offJobStatusChanged();
+    this.signalRService.offEmployeeStatusChanged();
+  }
+
+  private setupSignalR(): void {
+    this.signalRService.startConnection().then(() => {
+      this.signalRService.onQueueUpdated(() => {
+        this.loadQueueData();
+      });
+      this.signalRService.onJobStatusChanged(() => {
+        this.loadQueueData();
+      });
+      this.signalRService.onEmployeeStatusChanged(() => {
+        this.loadQueueData();
+      });
+    }).catch(err => console.error('SignalR Connection Error in CustomerQueueComponent: ', err));
+  }
+
+  loadQueueData(): void {
+    this.isLoading.set(true);
+    const today = new Date();
+
+    forkJoin({
+      queues: this.queueService.getQueuesByDate(today).pipe(
+        catchError(error => {
+          console.error('Error loading queues:', error);
+          this.toastService.error('เกิดข้อผิดพลาดในการโหลดข้อมูลคิว');
+          return of([]);
+        })
+      ),
+      jobs: this.queueService.getQueueSummary(today).pipe(
+        catchError(error => {
+          console.error('Error loading queue summary:', error);
+          this.toastService.error('เกิดข้อผิดพลาดในการโหลดข้อมูลงาน');
+          return of({ jobs: [] });
+        })
+      )
+    }).pipe(
+      finalize(() => this.isLoading.set(false))
+    ).subscribe({
+      next: ({ queues, jobs }) => {
+        this.allJobs = jobs.jobs || [];
+        this.mapQueueData(queues);
+        this.updateSummaryData(queues, jobs.jobs || []);
+      }
+    });
+  }
+
+  private mapQueueData(queues: QueueDto[]): void {
+    const readyQueueList: ReadyQueueStaff[] = [];
+    const busyStaffList: BusyStaff[] = [];
+    const unavailableStaffList: UnavailableStaff[] = [];
+
+    const sortedQueues = [...queues].sort((a, b) => a.position - b.position);
+
+    sortedQueues.forEach((queue) => {
+      const employeeName = queue.employeeName ? `คุณ${queue.employeeName}` : 'ไม่ระบุชื่อ';
+      const avatar = this.generateAvatar(queue.employeeName || '');
+      const servedToday = this.countServedToday(queue.employeeId);
+
+      const normalizedStatus = typeof queue.status === 'string' ? queue.status.toLowerCase() : String(queue.status || '').toLowerCase();
+
+      if (normalizedStatus === 'active') {
+        const isNext = queue.position === 1;
+        readyQueueList.push({
+          queue: queue.position,
+          name: employeeName,
+          avatar,
+          status: isNext ? 'รับลูกค้าวันนี้' : 'รอรับลูกค้า',
+          servedToday,
+          isNext
+        });
+      } else if (normalizedStatus === 'busy') {
+        const job = this.findActiveJobForEmployee(queue.employeeId);
+        const startTime = job ? this.getJobStartTime(job) : Date.now();
+        const startTimeFormatted = job ? this.formatStartTime(job) : '';
+        const jobId = job?.jobNumber || '';
+
+        busyStaffList.push({
+          name: employeeName,
+          avatar,
+          status: 'ให้บริการอยู่',
+          startTime,
+          duration: '00:00',
+          startTimeFormatted,
+          jobId: jobId ? `#${jobId}` : ''
+        });
+      } else if (normalizedStatus === 'inactive') {
+        const initial = queue.employeeName ? queue.employeeName.charAt(0).toUpperCase() : '?';
+        unavailableStaffList.push({
+          name: employeeName,
+          avatar: initial,
+          status: 'Offline',
+          isAvatarLetter: true
+        });
+      }
+    });
+
+    // Also add employees with in-progress jobs but not in queue
+    const queueEmployeeIds = new Set(queues.map(q => q.employeeId.toLowerCase()));
+    this.allJobs.forEach(job => {
+      const statusStr = this.normalizeStatus(job.status);
+      const assigneeIdStr = typeof job.assigneeId === 'string' ? job.assigneeId.toLowerCase() : job.assigneeId;
+      if (statusStr === 'inprogress' && !queueEmployeeIds.has(assigneeIdStr)) {
+        const employeeName = job.assigneeName ? `คุณ${job.assigneeName}` : 'ไม่ระบุชื่อ';
+        const avatar = this.generateAvatar(job.assigneeName || '');
+        const startTime = this.getJobStartTime(job);
+        const startTimeFormatted = this.formatStartTime(job);
+        const jobId = job.jobNumber || '';
+
+        busyStaffList.push({
+          name: employeeName,
+          avatar,
+          status: 'ให้บริการอยู่',
+          startTime,
+          duration: '00:00',
+          startTimeFormatted,
+          jobId: jobId ? `#${jobId}` : ''
+        });
+      }
+    });
+
+    this.readyQueue.set(readyQueueList);
+    this.busyStaff.set(busyStaffList);
+    this.unavailableStaff.set(unavailableStaffList);
+  }
+
+  private generateAvatar(name: string): string {
+    if (!name) return 'https://ui-avatars.com/api/?name=User&background=random&size=200';
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=200`;
+  }
+
+  private countServedToday(employeeId: string): number {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const employeeIdLower = employeeId.toLowerCase();
+
+    return this.allJobs.filter(job => {
+      const assigneeIdStr = typeof job.assigneeId === 'string' ? job.assigneeId.toLowerCase() : job.assigneeId;
+      if (assigneeIdStr !== employeeIdLower) return false;
+      const statusStr = this.normalizeStatus(job.status);
+      if (statusStr !== 'done') return false;
+      const doneLog = job.statusLogs?.find(log => this.normalizeStatus(log.status) === 'done');
+      if (!doneLog) return false;
+      const jobDoneDate = new Date(doneLog.timestamp);
+      jobDoneDate.setHours(0, 0, 0, 0);
+      return jobDoneDate.getTime() === today.getTime();
+    }).length;
+  }
+
+  private findActiveJobForEmployee(employeeId: string): QueueSummaryJobDto | undefined {
+    const employeeIdLower = employeeId.toLowerCase();
+    return this.allJobs.find(job => {
+      const assigneeIdStr = typeof job.assigneeId === 'string' ? job.assigneeId.toLowerCase() : job.assigneeId;
+      const statusStr = this.normalizeStatus(job.status);
+      return assigneeIdStr === employeeIdLower && statusStr === 'inprogress';
+    });
+  }
+
+  private normalizeStatus(status: string | number | any): string {
+    if (typeof status === 'string') {
+      return status.toLowerCase();
+    }
+    // Handle enum values: 1=Pending, 2=InProgress, 3=Done, 4=Rejected
+    if (typeof status === 'number') {
+      const statusMap: { [key: number]: string } = {
+        1: 'pending',
+        2: 'inprogress',
+        3: 'done',
+        4: 'rejected'
+      };
+      return statusMap[status] || 'pending';
+    }
+    // Handle enum names
+    if (status && typeof status === 'object' && status.toString) {
+      return status.toString().toLowerCase();
+    }
+    return String(status).toLowerCase();
+  }
+
+  private getJobStartTime(job: QueueSummaryJobDto): number {
+    const inProgressLog = job.statusLogs?.find(log => 
+      this.normalizeStatus(log.status) === 'inprogress'
+    );
+    if (inProgressLog) {
+      return new Date(inProgressLog.timestamp).getTime();
+    }
+    // Fallback to created date
+    return new Date(job.createdDate).getTime();
+  }
+
+  private formatStartTime(job: QueueSummaryJobDto): string {
+    const inProgressLog = job.statusLogs?.find(log => 
+      this.normalizeStatus(log.status) === 'inprogress'
+    );
+    const timestamp = inProgressLog ? inProgressLog.timestamp : job.createdDate;
+    const date = new Date(timestamp);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes} น.`;
+  }
+
+  private updateSummaryData(queues: QueueDto[], jobs: QueueSummaryJobDto[]): void {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // ลูกค้าที่ดูแลแล้ววันนี้ = count jobs ที่ status = Done ในวันนี้
+    const servedToday = jobs.filter(job => {
+      const statusStr = this.normalizeStatus(job.status);
+      if (statusStr !== 'done') return false;
+      const doneLog = job.statusLogs?.find(log => this.normalizeStatus(log.status) === 'done');
+      if (!doneLog) return false;
+      const jobDoneDate = new Date(doneLog.timestamp);
+      jobDoneDate.setHours(0, 0, 0, 0);
+      return jobDoneDate.getTime() === today.getTime();
+    }).length;
+
+    // กำลังดูแลลูกค้า = count jobs ที่ status = InProgress
+    const inProgress = jobs.filter(job => {
+      const statusStr = this.normalizeStatus(job.status);
+      return statusStr === 'inprogress';
+    }).length;
+
+    // พนักงานพร้อมรับงาน = count queues ที่ status = Active
+    const readyStaff = queues.filter(queue => {
+      const normalizedStatus = typeof queue.status === 'string' ? queue.status.toLowerCase() : '';
+      return normalizedStatus === 'active';
+    }).length;
+
+    this.summaryData.set([
+      {
+        title: 'ลูกค้าที่ดูแลแล้ววันนี้',
+        value: servedToday,
+        unit: 'ท่าน',
+        icon: 'check',
+        valueClass: 'text-gray-800',
+        iconBgClass: 'bg-indigo-100',
+        iconClass: 'text-indigo-600',
+      },
+      {
+        title: 'กำลังดูแลลูกค้า',
+        value: inProgress,
+        unit: 'ท่าน',
+        icon: 'pulse',
+        valueClass: 'text-red-600',
+        iconBgClass: 'bg-red-100',
+        iconClass: 'text-red-600',
+      },
+      {
+        title: 'พนักงานพร้อมรับงาน',
+        value: readyStaff,
+        unit: 'คน',
+        icon: 'user-check',
+        valueClass: 'text-green-600',
+        iconBgClass: 'bg-green-100',
+        iconClass: 'text-green-600',
+      }
+    ]);
   }
 
   private updateDurations(): void {

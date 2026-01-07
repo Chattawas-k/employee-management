@@ -73,6 +73,17 @@ namespace employee_management.Persistence.Repository.JobsRepository
                            j.CreatedDate < nextDate)
                 .CountAsync(cancellationToken);
         }
+
+        public async Task<List<Job>> GetAllJobsAsync(CancellationToken cancellationToken)
+        {
+            // StatusLogs is a computed property that deserializes from StatusLogsJson column
+            // It's configured as Ignore in ApplicationDbContext, so we don't need to Include it
+            return await Context.Jobs
+                .Include(j => j.Employee)
+                .Where(j => !j.IsDeleted)
+                .OrderByDescending(j => j.CreatedDate)
+                .ToListAsync(cancellationToken);
+        }
     }
 }
 

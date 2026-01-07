@@ -29,6 +29,11 @@ namespace employee_management.Application.Common.Services
         /// ส่ง notification broadcast ถึงทุกคน
         /// </summary>
         Task SendBroadcastNotificationAsync(string message);
+
+        /// <summary>
+        /// ส่ง notification เมื่อ queue status ถูก update
+        /// </summary>
+        Task SendQueueUpdatedNotificationAsync();
     }
 }
 

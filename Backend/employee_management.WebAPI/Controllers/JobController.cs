@@ -6,6 +6,7 @@ using employee_management.Application.Features.Jobs.Commands.UpdateStatus;
 using employee_management.Application.Features.Jobs.Queries.Get;
 using employee_management.Application.Features.Jobs.Queries.GetMyTasks;
 using employee_management.Application.Features.Jobs.Queries.GetSalesReports;
+using employee_management.Application.Features.Jobs.Queries.GetQueueSummary;
 using employee_management.WebAPI.Controllers.Base;
 
 namespace employee_management.WebAPI.Controllers
@@ -87,6 +88,16 @@ namespace employee_management.WebAPI.Controllers
             }
 
             var response = await _mediator.Send(new GetSalesReportsRequest(userId, status), cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpGet("queue-summary")]
+        public async Task<ActionResult<GetQueueSummaryResponse>> GetQueueSummary(
+            [FromQuery] DateTime? date = null,
+            CancellationToken cancellationToken = default)
+        {
+            var targetDate = date ?? DateTime.Today;
+            var response = await _mediator.Send(new GetQueueSummaryRequest(targetDate), cancellationToken);
             return Ok(response);
         }
     }

@@ -29,7 +29,7 @@ namespace employee_management.Persistence.Seeds
             {
                 employees.Add(new Employee
                 {
-                    Id = new Guid("33333333-3333-3333-3333-333333333333"), // Fixed ID for employee user link
+                    Id = Guid.NewGuid(),
                     Name = "สมชาย ใจดี",
                     Phone = "081-234-5678",
                     Status = EmployeeStatus.Active,
@@ -44,7 +44,7 @@ namespace employee_management.Persistence.Seeds
             {
                 employees.Add(new Employee
                 {
-                    Id = new Guid("44444444-4444-4444-4444-444444444444"), // Fixed ID for employee user link
+                    Id = Guid.NewGuid(),
                     Name = "วิชัย สมบูรณ์",
                     Phone = "082-345-6789",
                     Status = EmployeeStatus.Active,
@@ -75,7 +75,7 @@ namespace employee_management.Persistence.Seeds
             {
                 employees.Add(new Employee
                 {
-                    Id = new Guid("55555555-5555-5555-5555-555555555555"), // Fixed ID for employee user link
+                    Id = Guid.NewGuid(),
                     Name = "สมศรี ทำงานดี",
                     Phone = "084-567-8901",
                     Status = EmployeeStatus.Active,
@@ -118,7 +118,7 @@ namespace employee_management.Persistence.Seeds
             {
                 employees.Add(new Employee
                 {
-                    Id = new Guid("66666666-6666-6666-6666-666666666666"), // Fixed ID for employee user link
+                    Id = Guid.NewGuid(),
                     Name = "สุรีย์ ตรวจสอบดี",
                     Phone = "087-890-1234",
                     Status = EmployeeStatus.Active,
@@ -192,7 +192,7 @@ namespace employee_management.Persistence.Seeds
 
                 employees.Add(new Employee
                 {
-                    Id = new Guid("77777777-7777-7777-7777-777777777777"), // Fixed ID for employee user link
+                    Id = Guid.NewGuid(),
                     Name = "สุดา ขายดี",
                     Phone = "092-345-6789",
                     Status = EmployeeStatus.Active,

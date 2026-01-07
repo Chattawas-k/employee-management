@@ -71,6 +71,19 @@ namespace employee_management.WebAPI.Controllers
             var response = await _mediator.Send(request, cancellationToken);
             return Ok(response);
         }
+
+        [HttpGet("me")]
+        public async Task<ActionResult<EmployeeGetResponse>> GetMyEmployeeInfo(CancellationToken cancellationToken)
+        {
+            var employeeIdClaim = User.FindFirst("EmployeeId")?.Value;
+            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId))
+            {
+                return BadRequest("EmployeeId not found in token or invalid format.");
+            }
+
+            var response = await _mediator.Send(new GetRequest(employeeId), cancellationToken);
+            return Ok(response);
+        }
     }
 }
 

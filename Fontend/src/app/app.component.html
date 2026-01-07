@@ -67,22 +67,12 @@
       @if (isStatusMenuOpen()) {
         <div class="absolute left-4 right-4 bottom-full mb-2 w-auto rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
           <div class="py-1">
-            <a href="#" (click)="setStatus('available'); $event.preventDefault()" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-              <span class="h-2.5 w-2.5 rounded-full bg-green-500"></span>
-              <span>พร้อมรับงาน</span>
-            </a>
-            <a href="#" (click)="setStatus('busy'); $event.preventDefault()" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-              <span class="h-2.5 w-2.5 rounded-full bg-orange-500"></span>
-              <span>ติดลูกค้า</span>
-            </a>
-            <a href="#" (click)="setStatus('break'); $event.preventDefault()" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-              <span class="h-2.5 w-2.5 rounded-full bg-yellow-500"></span>
-              <span>พัก</span>
-            </a>
-            <a href="#" (click)="setStatus('unavailable'); $event.preventDefault()" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-              <span class="h-2.5 w-2.5 rounded-full bg-gray-400"></span>
-              <span>ไม่พร้อมรับงาน</span>
-            </a>
+            @for (status of getAvailableStatuses(); track status.value) {
+              <a href="#" (click)="setStatus(status.value); $event.preventDefault()" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <span class="h-2.5 w-2.5 rounded-full" [class]="status.dotClass"></span>
+                <span>{{ status.label }}</span>
+              </a>
+            }
           </div>
         </div>
       }
@@ -161,22 +151,12 @@
           @if (isStatusMenuOpen()) {
             <div class="absolute left-4 right-4 bottom-full mb-2 w-auto rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
               <div class="py-1">
-                <a href="#" (click)="setStatus('available'); $event.preventDefault()" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                  <span class="h-2.5 w-2.5 rounded-full bg-green-500"></span>
-                  <span>พร้อมรับงาน</span>
-                </a>
-                <a href="#" (click)="setStatus('busy'); $event.preventDefault()" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                  <span class="h-2.5 w-2.5 rounded-full bg-orange-500"></span>
-                  <span>ติดลูกค้า</span>
-                </a>
-                <a href="#" (click)="setStatus('break'); $event.preventDefault()" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                  <span class="h-2.5 w-2.5 rounded-full bg-yellow-500"></span>
-                  <span>พัก</span>
-                </a>
-                <a href="#" (click)="setStatus('unavailable'); $event.preventDefault()" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                  <span class="h-2.5 w-2.5 rounded-full bg-gray-400"></span>
-                  <span>ไม่พร้อมรับงาน</span>
-                </a>
+                @for (status of getAvailableStatuses(); track status.value) {
+                  <a href="#" (click)="setStatus(status.value); $event.preventDefault()" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <span class="h-2.5 w-2.5 rounded-full" [class]="status.dotClass"></span>
+                    <span>{{ status.label }}</span>
+                  </a>
+                }
               </div>
             </div>
           }

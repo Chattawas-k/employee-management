@@ -6,6 +6,12 @@ import { LucideAngularModule } from 'lucide-angular';
 import { IconComponent } from './shared/components/icon/icon.component';
 import { ToastContainerComponent } from './shared/components/toast/toast-container.component';
 import { AuthService } from './services/auth.service';
+import { QueueService } from './services/queue.service';
+import { ToastService } from './services/toast.service';
+import { EmployeeService } from './services/employee.service';
+import { EmployeeDto } from './models/employee.model';
+import { catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -28,6 +34,7 @@ export class AppComponent implements OnInit {
   isStatusMenuOpen = signal(false);
   isAuthenticated = signal(false);
   currentUser = signal<any>(null);
+  currentEmployee = signal<EmployeeDto | null>(null);
   availabilityStatus = signal<'available' | 'busy' | 'break' | 'unavailable'>('available');
   isLoginPage = signal(false);
 
@@ -60,7 +67,10 @@ export class AppComponent implements OnInit {
 
   constructor(
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private queueService: QueueService,
+    private toastService: ToastService,
+    private employeeService: EmployeeService
   ) {}
 
   ngOnInit(): void {
@@ -80,6 +90,28 @@ export class AppComponent implements OnInit {
     this.authService.currentUser$.subscribe(user => {
       this.currentUser.set(user);
       this.isAuthenticated.set(this.authService.isAuthenticated());
+      if (user) {
+        this.loadEmployeeInfo();
+      } else {
+        this.currentEmployee.set(null);
+      }
+    });
+
+    if (this.isAuthenticated()) {
+      this.loadEmployeeInfo();
+    }
+  }
+
+  private loadEmployeeInfo(): void {
+    this.employeeService.getMyEmployeeInfo().pipe(
+      catchError(error => {
+        console.error('Error loading employee info:', error);
+        return of(null);
+      })
+    ).subscribe(employee => {
+      if (employee) {
+        this.currentEmployee.set(employee);
+      }
     });
   }
 
@@ -94,6 +126,10 @@ export class AppComponent implements OnInit {
   }
 
   getUserInitial(): string {
+    const employee = this.currentEmployee();
+    if (employee?.name) {
+      return employee.name.charAt(0).toUpperCase();
+    }
     const user = this.currentUser();
     if (user?.userName) {
       return user.userName.charAt(0).toUpperCase();
@@ -102,6 +138,10 @@ export class AppComponent implements OnInit {
   }
 
   getUserName(): string {
+    const employee = this.currentEmployee();
+    if (employee?.name) {
+      return employee.name;
+    }
     const user = this.currentUser();
     return user?.userName || 'Admin User';
   }
@@ -118,9 +158,50 @@ export class AppComponent implements OnInit {
     this.isStatusMenuOpen.update(v => !v);
   }
 
+  getAvailableStatuses(): Array<{ value: 'available' | 'busy' | 'break' | 'unavailable'; label: string; dotClass: string }> {
+    const currentStatus = this.availabilityStatus();
+    const allStatuses: Array<{ value: 'available' | 'busy' | 'break' | 'unavailable'; label: string; dotClass: string }> = [
+      { value: 'available', label: 'พร้อมรับงาน', dotClass: 'bg-green-500' },
+      { value: 'busy', label: 'ติดลูกค้า', dotClass: 'bg-orange-500' },
+      { value: 'break', label: 'พัก', dotClass: 'bg-yellow-500' },
+      { value: 'unavailable', label: 'ไม่พร้อมรับงาน', dotClass: 'bg-gray-400' }
+    ];
+    
+    // Filter out current status
+    return allStatuses.filter(status => status.value !== currentStatus);
+  }
+
   setStatus(status: 'available' | 'busy' | 'break' | 'unavailable'): void {
-    this.availabilityStatus.set(status);
-    this.isStatusMenuOpen.set(false);
+    // Map frontend status to backend queue status
+    let queueStatus: 'active' | 'busy' | 'inactive';
+    switch (status) {
+      case 'available':
+        queueStatus = 'active';
+        break;
+      case 'busy':
+        queueStatus = 'busy';
+        break;
+      case 'break':
+      case 'unavailable':
+        queueStatus = 'inactive';
+        break;
+      default:
+        return;
+    }
+
+    this.queueService.updateMyQueueStatus(queueStatus).pipe(
+      catchError(error => {
+        console.error('Error updating queue status:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+        return of(null);
+      })
+    ).subscribe(response => {
+      if (response) {
+        this.availabilityStatus.set(status);
+        this.toastService.success('อัปเดตสถานะสำเร็จ');
+      }
+      this.isStatusMenuOpen.set(false);
+    });
   }
 }
 

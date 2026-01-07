@@ -36,6 +36,11 @@
       </header>
 
       <div class="space-y-3">
+        @if (readyQueue().length === 0) {
+          <div class="bg-white rounded-xl p-6 text-center text-gray-500">
+            <p>ไม่มีพนักงานที่พร้อมรับงานในขณะนี้</p>
+          </div>
+        }
         @for(staff of readyQueue(); track staff.queue) {
           @if (staff.isNext) {
             <div class="bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl p-4 text-white relative shadow-lg overflow-hidden transition-all hover:shadow-xl hover:-translate-y-1">
@@ -92,6 +97,11 @@
           <span class="ml-auto px-2.5 py-1 text-base font-medium text-red-700 bg-red-100 rounded-full">{{busyStaff().length}}</span>
         </header>
         <div class="space-y-3">
+          @if (busyStaff().length === 0) {
+            <div class="bg-white rounded-xl p-6 text-center text-gray-500">
+              <p>ไม่มีพนักงานที่กำลังดูแลลูกค้าในขณะนี้</p>
+            </div>
+          }
           @for(staff of busyStaff(); track staff.name) {
             <div class="bg-white rounded-xl p-3.5 border-l-4 border-red-500 shadow-sm transition-all hover:shadow-md hover:border-red-600">
               <div class="flex items-center gap-4">
@@ -120,6 +130,11 @@
           <span class="ml-auto px-2.5 py-1 text-base font-medium text-gray-700 bg-gray-200 rounded-full">{{unavailableStaff().length}}</span>
         </header>
         <div class="bg-gray-100 rounded-xl p-3 space-y-2">
+          @if (unavailableStaff().length === 0) {
+            <div class="bg-white rounded-lg p-4 text-center text-gray-500">
+              <p>ไม่มีพนักงานที่พักหรือไม่ว่างในขณะนี้</p>
+            </div>
+          }
           @for(staff of unavailableStaff(); track staff.name) {
             <div class="bg-white rounded-lg p-2.5 flex items-center gap-3">
                @if(staff.isAvatarLetter) {
