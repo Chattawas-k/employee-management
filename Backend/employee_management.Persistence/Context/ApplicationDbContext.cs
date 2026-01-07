@@ -70,6 +70,7 @@ namespace employee_management.Persistence.Context
                 entity.HasIndex(e => e.AssigneeId);
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.CreatedDate);
+                entity.HasIndex(e => e.JobNumber);
             });
         }
     }

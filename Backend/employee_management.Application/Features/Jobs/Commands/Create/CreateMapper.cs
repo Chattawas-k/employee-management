@@ -8,6 +8,8 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
         public CreateMapper()
         {
             CreateMap<Job, CreateResponse>()
+                .ForCtorParam(nameof(CreateResponse.JobNumber),
+                    opt => opt.MapFrom(src => src.JobNumber))
                 .ForCtorParam(nameof(CreateResponse.AssigneeName),
                     opt => opt.MapFrom(src => src.Employee != null ? src.Employee.Name : null))
                 .ForCtorParam(nameof(CreateResponse.StatusLogs),

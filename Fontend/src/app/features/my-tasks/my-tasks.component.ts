@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal, computed, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TaskColumnComponent, Task } from '../../shared/components/task-column/task-column.component';
 import { ConfirmationDialogComponent } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
@@ -33,11 +33,13 @@ export type AvailabilityStatus = 'available' | 'busy' | 'break' | 'unavailable';
   ]
 })
 export class MyTasksComponent implements OnInit {
-  private taskService = inject(TaskService);
-  private authService = inject(AuthService);
-  private toastService = inject(ToastService);
-
   availabilityStatus = signal<AvailabilityStatus>('available');
+  
+  constructor(
+    private taskService: TaskService,
+    private authService: AuthService,
+    private toastService: ToastService
+  ) {}
   statusBannerInfo = signal<{ title: string; subtitle: string; borderColor: string; iconContainerBg: string; iconBorder: string; iconColor: string; } | null>(null);
   
   isMyTurn = signal(true);
@@ -185,6 +187,7 @@ export class MyTasksComponent implements OnInit {
 
     return {
       id: job.id,
+      jobNumber: job.jobNumber,
       createdAt,
       priority: priorityText,
       priorityClass,

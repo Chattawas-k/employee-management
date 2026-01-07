@@ -8,6 +8,8 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
         public UpdateStatusMapper()
         {
             CreateMap<Job, UpdateStatusResponse>()
+                .ForCtorParam(nameof(UpdateStatusResponse.JobNumber),
+                    opt => opt.MapFrom(src => src.JobNumber))
                 .ForCtorParam(nameof(UpdateStatusResponse.AssigneeName),
                     opt => opt.MapFrom(src => src.Employee != null ? src.Employee.Name : null))
                 .ForCtorParam(nameof(UpdateStatusResponse.StatusLogs),

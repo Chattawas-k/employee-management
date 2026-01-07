@@ -1,7 +1,7 @@
 @if (task) {
   <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-indigo-300 mb-2" (click)="detailClick.emit(task)">
     <div class="flex justify-between items-start mb-2">
-      <p class="font-medium text-gray-800">{{ task.id }}</p>
+      <p class="font-medium text-gray-800"># {{ task.jobNumber || task.id }}</p>
       <div class="flex items-center gap-2">
         @if (salesStatusInfo(); as status) {
           <span 

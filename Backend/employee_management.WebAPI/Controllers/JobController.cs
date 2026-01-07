@@ -5,6 +5,7 @@ using employee_management.Application.Features.Jobs.Commands.Create;
 using employee_management.Application.Features.Jobs.Commands.UpdateStatus;
 using employee_management.Application.Features.Jobs.Queries.Get;
 using employee_management.Application.Features.Jobs.Queries.GetMyTasks;
+using employee_management.Application.Features.Jobs.Queries.GetSalesReports;
 using employee_management.WebAPI.Controllers.Base;
 
 namespace employee_management.WebAPI.Controllers
@@ -69,6 +70,23 @@ namespace employee_management.WebAPI.Controllers
                 return BadRequest("ID in URL does not match ID in body.");
             }
             var response = await _mediator.Send(request, cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpGet("sales-reports")]
+        public async Task<ActionResult<GetSalesReportsResponse>> GetSalesReports(
+            [FromQuery] string? status = null,
+            CancellationToken cancellationToken = default)
+        {
+            // Get UserId from JWT token claims (NameIdentifier)
+            // This is the user who created the job, not the assignee
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return BadRequest("UserId not found in token or invalid format.");
+            }
+
+            var response = await _mediator.Send(new GetSalesReportsRequest(userId, status), cancellationToken);
             return Ok(response);
         }
     }

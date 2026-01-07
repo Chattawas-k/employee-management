@@ -20,8 +20,6 @@ export class SalesReportDialogComponent implements OnInit {
   @Output() save = new EventEmitter<any>();
   @Output() close = new EventEmitter<void>();
 
-  private fb = new FormBuilder();
-
   pendingReasons = [
     { controlName: 'wantsToDecide', label: 'ขอไปตัดสินใจก่อน' },
     { controlName: 'waitingForPromo', label: 'รอโปรโมชั่น' },
@@ -60,21 +58,36 @@ export class SalesReportDialogComponent implements OnInit {
     { controlName: 'kids', label: 'เฟอร์นิเจอร์เด็ก' }
   ];
 
-  salesReportForm = this.fb.group({
-    customerName: ['', Validators.required],
-    contactInfo: ['', Validators.required],
-    status: ['Success' as ReportStatus, Validators.required],
-    reasons: this.fb.group({
-      wantsToDecide: [false], waitingForPromo: [false], comparing: [false], consultingFamily: [false], needsMoreInfo: [false], waitingForStock: [false], financialApproval: [false], undecidedOnSpec: [false], seasonalTiming: [false], wantsToSeeSample: [false],
-      priceTooHigh: [false], productMismatch: [false], badService: [false], foundCheaper: [false], longDelivery: [false], outOfStock: [false], negativeReview: [false], competitorOffer: [false], changedMind: [false], budgetCut: [false],
-    }, { validators: this.requireAtLeastOne() }),
-    interestedProducts: this.fb.group({
-      livingRoom: [false], bedroom: [false], dining: [false], kitchen: [false], office: [false], outdoor: [false], lighting: [false], storage: [false], kids: [false]
-    }, { validators: this.requireAtLeastOne() }),
-    additionalInfo: [''],
-    saleValue: [0],
-    invoiceId: ['']
-  });
+  salesReportForm!: ReturnType<FormBuilder['group']>;
+
+  constructor(private fb: FormBuilder) {
+    const requireAtLeastOne = (): ValidatorFn => {
+      return (control: AbstractControl): { [key: string]: any } | null => {
+        const formGroup = control as FormGroup;
+        if (!formGroup) {
+          return null;
+        }
+        const hasSelection = Object.keys(formGroup.controls).some(key => formGroup.controls[key].value);
+        return hasSelection ? null : { requireAtLeastOne: true };
+      };
+    };
+
+    this.salesReportForm = this.fb.group({
+      customerName: ['', Validators.required],
+      contactInfo: ['', Validators.required],
+      status: ['Success' as ReportStatus, Validators.required],
+      reasons: this.fb.group({
+        wantsToDecide: [false], waitingForPromo: [false], comparing: [false], consultingFamily: [false], needsMoreInfo: [false], waitingForStock: [false], financialApproval: [false], undecidedOnSpec: [false], seasonalTiming: [false], wantsToSeeSample: [false],
+        priceTooHigh: [false], productMismatch: [false], badService: [false], foundCheaper: [false], longDelivery: [false], outOfStock: [false], negativeReview: [false], competitorOffer: [false], changedMind: [false], budgetCut: [false],
+      }, { validators: requireAtLeastOne() }),
+      interestedProducts: this.fb.group({
+        livingRoom: [false], bedroom: [false], dining: [false], kitchen: [false], office: [false], outdoor: [false], lighting: [false], storage: [false], kids: [false]
+      }, { validators: requireAtLeastOne() }),
+      additionalInfo: [''],
+      saleValue: [0],
+      invoiceId: ['']
+    });
+  }
 
   selectedStatus = signal<ReportStatus>('Success');
 
@@ -127,7 +140,7 @@ export class SalesReportDialogComponent implements OnInit {
 
   setStatus(status: ReportStatus) {
     this.selectedStatus.set(status);
-    this.salesReportForm.controls.status.setValue(status);
+    this.salesReportForm.controls['status'].setValue(status);
     
     const reasonsControl = this.salesReportForm.get('reasons');
     if (status === 'Success') {

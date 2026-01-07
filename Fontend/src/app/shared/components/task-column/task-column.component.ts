@@ -4,6 +4,7 @@ import { TaskCardComponent } from '../task-card/task-card.component';
 
 export interface Task {
   id: string;
+  jobNumber?: string;
   createdAt: string;
   priority: string;
   priorityClass: string;
@@ -33,6 +34,7 @@ export class TaskColumnComponent implements OnInit {
   @Input() count: number = 0;
   @Input() tasks: Task[] = [];
   @Input() isCollapsible: boolean = false;
+  @Input() isLoading: boolean = false;
   @Output() taskAction = new EventEmitter<Task>();
   @Output() taskDetailClick = new EventEmitter<Task>();
 

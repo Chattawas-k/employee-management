@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { ToastComponent, Toast } from './toast.component';
@@ -8,6 +8,7 @@ import { ToastService } from '../../../services/toast.service';
   selector: 'app-toast-container',
   standalone: true,
   imports: [CommonModule, ToastComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="toast-container">
       @for (toast of toasts; track toast.id) {
@@ -48,11 +49,16 @@ export class ToastContainerComponent implements OnInit, OnDestroy {
   toasts: Toast[] = [];
   private subscription?: Subscription;
 
-  constructor(private toastService: ToastService) {}
+  constructor(
+    private toastService: ToastService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.subscription = this.toastService.toasts$.subscribe(toasts => {
       this.toasts = toasts;
+      // Mark for check to update view when using OnPush
+      this.cdr.markForCheck();
     });
   }
 

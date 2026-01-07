@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter, computed } from '@angular/core';
-import { CommonModule, CurrencyPipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { SalesReport, ReportStatus } from '../../../models/sales-report.model';
 
 @Component({
   selector: 'app-sales-report-detail-dialog',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe],
+  imports: [CommonModule],
   templateUrl: './sales-report-detail-dialog.component.html',
   styleUrls: ['./sales-report-detail-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

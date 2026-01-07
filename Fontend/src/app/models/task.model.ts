@@ -28,6 +28,7 @@ export interface MyTaskJobReportDto {
 
 export interface JobDto {
   id: string;
+  jobNumber: string;
   title: string;
   customer: string;
   description: string;
@@ -55,6 +56,7 @@ export interface CreateJobRequest {
 
 export interface CreateJobResponse {
   id: string;
+  jobNumber: string;
   title: string;
   customer: string;
   description: string;
@@ -84,6 +86,7 @@ export interface UpdateJobStatusReportDto {
 
 export interface UpdateJobStatusResponse {
   id: string;
+  jobNumber: string;
   title: string;
   customer: string;
   description: string;

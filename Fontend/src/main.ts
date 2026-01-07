@@ -1,3 +1,4 @@
+import '@angular/compiler'; // Required for JIT compilation in development
 import { bootstrapApplication } from '@angular/platform-browser';
 import { AppComponent } from './app/app.component';
 import { provideRouter } from '@angular/router';

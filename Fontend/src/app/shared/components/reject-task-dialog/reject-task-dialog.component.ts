@@ -16,11 +16,13 @@ export class RejectTaskDialogComponent {
   @Output() close = new EventEmitter<void>();
   @Output() confirm = new EventEmitter<{ reason: string }>();
   
-  private fb = new FormBuilder();
+  rejectForm!: ReturnType<FormBuilder['group']>;
 
-  rejectForm = this.fb.group({
-    reason: ['', Validators.required],
-  });
+  constructor(private fb: FormBuilder) {
+    this.rejectForm = this.fb.group({
+      reason: ['', Validators.required],
+    });
+  }
 
   onConfirm() {
     if (this.rejectForm.valid) {

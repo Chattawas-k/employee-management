@@ -14,6 +14,9 @@ namespace employee_management.Application
             services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
             services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+            
+            // Register JobNumberService
+            services.AddScoped<Common.Services.IJobNumberService, Common.Services.JobNumberService>();
         }
     }
 }

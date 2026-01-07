@@ -4,7 +4,34 @@ module.exports = {
     "./src/**/*.{html,ts}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ['Kanit', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 'sans-serif'],
+      },
+      fontSize: {
+        'xs': '14px',      // Minimum size
+        'sm': '14px',      // Small (minimum)
+        'base': '15px',    // Default size
+        'lg': '16px',
+        'xl': '18px',
+        '2xl': '20px',
+        '3xl': '24px',
+        '4xl': '30px',
+        '5xl': '36px',
+      },
+      fontWeight: {
+        'normal': '400',
+        'medium': '500',
+      },
+      transitionDuration: {
+        'fast': '150ms',
+        'normal': '200ms',
+        'slow': '300ms',
+      },
+      transitionTimingFunction: {
+        'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
+      },
+    },
   },
   plugins: [
     function({ addComponents }) {

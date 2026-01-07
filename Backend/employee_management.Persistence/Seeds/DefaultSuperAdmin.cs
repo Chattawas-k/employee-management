@@ -1,10 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using employee_management.Domain.Entities;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace employee_management.Persistence.Seeds
@@ -24,17 +20,13 @@ namespace employee_management.Persistence.Seeds
                 PhoneNumberConfirmed = true,
                 EmployeeId = new Guid("22222222-2222-2222-2222-222222222222") // Link to "ประเสริฐ ขายเยี่ยม"
             };
-            if (userManager.Users.All(u => u.Id != defaultUser.Id))
+            var user = await userManager.FindByEmailAsync(defaultUser.Email);
+            if (user == null)
             {
-                var user = await userManager.FindByEmailAsync(defaultUser.Email);
-                if (user == null)
-                {
-                    await userManager.CreateAsync(defaultUser, "123Pa$$word!");
-                    await userManager.AddToRoleAsync(defaultUser, "Basic");
-                    await userManager.AddToRoleAsync(defaultUser, "Admin");
-                    await userManager.AddToRoleAsync(defaultUser, "SuperAdmin");
-                }
-
+                await userManager.CreateAsync(defaultUser, "123Pa$$word!");
+                await userManager.AddToRoleAsync(defaultUser, "Basic");
+                await userManager.AddToRoleAsync(defaultUser, "Admin");
+                await userManager.AddToRoleAsync(defaultUser, "SuperAdmin");
             }
         }
     }

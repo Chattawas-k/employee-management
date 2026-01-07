@@ -19,14 +19,16 @@ export class OpenJobDialogComponent implements OnInit {
 
   isEditMode = computed(() => !!this.task);
 
-  private fb = new FormBuilder();
+  jobForm!: ReturnType<FormBuilder['group']>;
 
-  jobForm = this.fb.group({
-    jobTitle: ['Walk-in Customer', Validators.required],
-    customerName: ['ลูกค้าทั่วไป', Validators.required],
-    details: ['บริการลูกค้าหน้าร้าน'],
-    priority: ['Normal', Validators.required]
-  });
+  constructor(private fb: FormBuilder) {
+    this.jobForm = this.fb.group({
+      jobTitle: ['Walk-in Customer', Validators.required],
+      customerName: ['ลูกค้าทั่วไป', Validators.required],
+      details: ['บริการลูกค้าหน้าร้าน'],
+      priority: ['Normal', Validators.required]
+    });
+  }
 
   ngOnInit(): void {
     const currentTask = this.task;

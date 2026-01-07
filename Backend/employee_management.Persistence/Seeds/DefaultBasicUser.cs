@@ -1,9 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using employee_management.Domain.Entities;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace employee_management.Persistence.Seeds
@@ -22,14 +19,11 @@ namespace employee_management.Persistence.Seeds
                 EmailConfirmed = true,
                 PhoneNumberConfirmed = true
             };
-            if (userManager.Users.All(u => u.Id != defaultUser.Id))
+            var user = await userManager.FindByEmailAsync(defaultUser.Email);
+            if (user == null)
             {
-                var user = await userManager.FindByEmailAsync(defaultUser.Email);
-                if (user == null)
-                {
-                    await userManager.CreateAsync(defaultUser, "123Pa$$word!");
-                    await userManager.AddToRoleAsync(defaultUser, "Basic");
-                }
+                await userManager.CreateAsync(defaultUser, "123Pa$$word!");
+                await userManager.AddToRoleAsync(defaultUser, "Basic");
             }
         }
     }

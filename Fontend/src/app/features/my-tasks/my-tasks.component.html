@@ -76,6 +76,7 @@
         title="งานที่ต้องทำ (รอดำเนินการ)" 
         [count]="todoTasks().length" 
         [tasks]="todoTasks()"
+        [isLoading]="isLoading()"
         (taskAction)="handleTaskAction($event)"
         (taskDetailClick)="showTaskDetails($event)">
       </app-task-column>
@@ -83,6 +84,7 @@
         title="กำลังดำเนินการ" 
         [count]="inProgressTasks().length" 
         [tasks]="inProgressTasks()"
+        [isLoading]="isLoading()"
         (taskAction)="handleTaskAction($event)"
         (taskDetailClick)="showTaskDetails($event)">
       </app-task-column>
@@ -91,6 +93,7 @@
         [count]="completedTasks().length" 
         [tasks]="completedTasks()"
         [isCollapsible]="true"
+        [isLoading]="isLoading()"
         (taskAction)="handleTaskAction($event)"
         (taskDetailClick)="showTaskDetails($event)">
       </app-task-column>

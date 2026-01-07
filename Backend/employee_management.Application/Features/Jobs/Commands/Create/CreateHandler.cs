@@ -19,6 +19,7 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
         private readonly IMapper _mapper;
         private readonly ILogger<CreateHandler> _logger;
         private readonly INotificationService _notificationService;
+        private readonly IJobNumberService _jobNumberService;
 
         public CreateHandler(
             IUnitOfWork unitOfWork,
@@ -26,7 +27,8 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
             IEmployeeRepository employeeRepository,
             IMapper mapper,
             ILogger<CreateHandler> logger,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IJobNumberService jobNumberService)
         {
             _unitOfWork = unitOfWork;
             _jobRepository = jobRepository;
@@ -34,6 +36,7 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
             _mapper = mapper;
             _logger = logger;
             _notificationService = notificationService;
+            _jobNumberService = jobNumberService;
         }
 
         public async Task<CreateResponse> Handle(CreateRequest request, CancellationToken cancellationToken)
@@ -48,9 +51,14 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
                     throw new NoDataFoundException($"Employee with Id {request.AssigneeId} not found.");
                 }
 
+                // Generate job number for today
+                var today = DateTime.UtcNow;
+                var jobNumber = await _jobNumberService.GenerateJobNumberAsync(today, cancellationToken);
+
                 // Create new Job entity
                 var job = new Job
                 {
+                    JobNumber = jobNumber,
                     Title = request.Title,
                     Customer = request.Customer,
                     Description = request.Description,

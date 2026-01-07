@@ -1,9 +1,13 @@
-import { ChangeDetectionStrategy, Component, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SalesReportDetailDialogComponent } from '../../shared/components/sales-report-detail-dialog/sales-report-detail-dialog.component';
 import { SalesReportDialogComponent } from '../../shared/components/sales-report-dialog/sales-report-dialog.component';
 import { SalesReport, ReportStatus } from '../../models/sales-report.model';
+import { SalesReportService } from '../../services/sales-report.service';
+import { catchError, finalize } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { ToastService } from '../../services/toast.service';
 
 // Re-export for backward compatibility
 export type { ReportStatus } from '../../models/sales-report.model';
@@ -17,7 +21,17 @@ export type { SalesReport } from '../../models/sales-report.model';
   styleUrls: ['./sales-report.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class SalesReportComponent {
+export class SalesReportComponent implements OnInit {
+  isLoading = signal(false);
+  allReports = signal<SalesReport[]>([]);
+  
+  constructor(
+    private salesReportService: SalesReportService,
+    private toastService: ToastService
+  ) {}
+  
+  // Mock data removed - now using API data
+  /*
   allReports = signal<SalesReport[]>([
     {
       id: 'SR-001',
@@ -114,6 +128,167 @@ export class SalesReportComponent {
         };
     })
   ]);
+  */
+
+  ngOnInit(): void {
+    // Load initial data based on current active tab
+    this.loadSalesReports(this.activeTab());
+  }
+
+  loadSalesReports(status: ReportStatus | 'All' = 'All'): void {
+    this.isLoading.set(true);
+    // Convert 'All' to undefined, and map status to backend format
+    const backendStatus = status === 'All' ? undefined : status;
+    this.salesReportService.getSalesReports(backendStatus).pipe(
+      catchError(error => {
+        console.error('Error loading sales reports:', error);
+        console.error('Error details:', {
+          status: error.status,
+          statusText: error.statusText,
+          message: error.message,
+          error: error.error
+        });
+        
+        let errorMessage = 'เกิดข้อผิดพลาดในการโหลดรายงานขาย';
+        if (error.status === 401) {
+          errorMessage = 'กรุณาเข้าสู่ระบบใหม่';
+        } else if (error.status === 403) {
+          errorMessage = 'คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้';
+        } else if (error.status === 404) {
+          errorMessage = 'ไม่พบ API endpoint';
+        } else if (error.status >= 500) {
+          errorMessage = 'เกิดข้อผิดพลาดที่เซิร์ฟเวอร์';
+        }
+        
+        // Use setTimeout to defer toast display after change detection cycle
+        setTimeout(() => {
+          this.toastService.error(errorMessage);
+        }, 0);
+        
+        return of({ reports: [] });
+      }),
+      finalize(() => this.isLoading.set(false))
+    ).subscribe({
+      next: (response) => {
+        console.log('Sales reports response:', response);
+        // Backend returns "Reports" but JSON serialization converts to camelCase "reports"
+        const reports = this.mapApiDataToSalesReports(response.reports || []);
+        console.log('Mapped reports:', reports);
+        this.allReports.set(reports);
+      },
+      error: (error) => {
+        console.error('Unexpected error in subscribe:', error);
+        // Use setTimeout to defer toast display after change detection cycle
+        setTimeout(() => {
+          this.toastService.error('เกิดข้อผิดพลาดที่ไม่คาดคิด');
+        }, 0);
+      }
+    });
+  }
+
+  private mapApiDataToSalesReports(apiReports: any[]): SalesReport[] {
+    if (!Array.isArray(apiReports)) {
+      console.error('Expected array but got:', typeof apiReports, apiReports);
+      return [];
+    }
+
+    const validReports: SalesReport[] = [];
+
+    for (let index = 0; index < apiReports.length; index++) {
+      const apiReport = apiReports[index];
+      
+      if (!apiReport || typeof apiReport !== 'object') {
+        console.warn(`Invalid report at index ${index}:`, apiReport);
+        continue;
+      }
+      // Map salesStatus to ReportStatus (Backend sends lowercase: "success", "failed", "pending")
+      // Also handle empty string or null as Pending
+      let status: ReportStatus = 'Pending';
+      const salesStatus = (apiReport.salesStatus || '').toLowerCase().trim();
+      if (salesStatus === 'success' || salesStatus === 'สำเร็จ') {
+        status = 'Success';
+      } else if (salesStatus === 'failed' || salesStatus === 'ไม่สำเร็จ') {
+        status = 'Failed';
+      } else {
+        // Default to Pending for empty, null, or any other value
+        status = 'Pending';
+      }
+
+      // Parse product category (comma-separated string) to array
+      const interestedProducts = apiReport.productCategory 
+        ? apiReport.productCategory.split(',').map((p: string) => p.trim()).filter((p: string) => p.length > 0)
+        : [];
+
+      // Convert Guid to string for id
+      const id = typeof apiReport.id === 'string' ? apiReport.id : apiReport.id?.toString() || '';
+
+      // Parse dates safely (Backend sends DateTimeOffset as ISO 8601 string)
+      let submittedAt: Date;
+      try {
+        if (apiReport.submittedAt) {
+          // Handle both DateTimeOffset format and standard ISO string
+          const dateStr = typeof apiReport.submittedAt === 'string' 
+            ? apiReport.submittedAt 
+            : apiReport.submittedAt.toString();
+          submittedAt = new Date(dateStr);
+          
+          // Validate date
+          if (isNaN(submittedAt.getTime())) {
+            console.warn('Invalid submittedAt date:', apiReport.submittedAt);
+            submittedAt = new Date();
+          }
+        } else {
+          submittedAt = new Date();
+        }
+      } catch (error) {
+        console.warn('Error parsing submittedAt:', apiReport.submittedAt, error);
+        submittedAt = new Date();
+      }
+
+      let saleDate: Date | undefined;
+      if (apiReport.saleDate) {
+        try {
+          const dateStr = typeof apiReport.saleDate === 'string' 
+            ? apiReport.saleDate 
+            : apiReport.saleDate.toString();
+          saleDate = new Date(dateStr);
+          
+          // Validate date
+          if (isNaN(saleDate.getTime())) {
+            console.warn('Invalid saleDate:', apiReport.saleDate);
+            saleDate = undefined;
+          }
+        } catch (error) {
+          console.warn('Error parsing saleDate:', apiReport.saleDate, error);
+          saleDate = undefined;
+        }
+      }
+
+      const report: SalesReport = {
+        id: id,
+        customerName: apiReport.customerName || '',
+        contactInfo: apiReport.customerContact || '',
+        status: status,
+        interestedProducts: interestedProducts,
+        reasons: apiReport.reasons || [],
+        submittedAt: submittedAt,
+        saleDate: saleDate,
+        salesperson: {
+          name: apiReport.assigneeName || 'ไม่ระบุ',
+          avatarUrl: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=200&auto=format&fit=crop'
+        },
+        saleValue: undefined, // Not available in current API response
+        invoiceId: apiReport.invoiceId || undefined,
+        nextFollowUp: undefined, // Not available in current API response
+        notes: apiReport.description || '',
+        competitor: undefined // Not available in current API response
+      };
+      
+      validReports.push(report);
+    }
+
+    return validReports;
+  }
 
   searchTerm = signal('');
   activeTab = signal<ReportStatus | 'All'>('All');
@@ -226,6 +401,8 @@ export class SalesReportComponent {
   setTab(tab: ReportStatus | 'All') {
     this.activeTab.set(tab);
     this.currentPage.set(1);
+    // Reload data from API when tab changes
+    this.loadSalesReports(tab);
   }
 
   goToPage(page: number) {
