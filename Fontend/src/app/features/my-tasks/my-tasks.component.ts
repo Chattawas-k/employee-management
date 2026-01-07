@@ -364,7 +364,7 @@ export class MyTasksComponent implements OnInit {
       description: jobData.details || '',
       assigneeId: employeeId,
       priority
-    }    ).pipe(
+    }).pipe(
       catchError(error => {
         console.error('Error creating job:', error);
         this.toastService.error('เกิดข้อผิดพลาดในการสร้างงาน');
@@ -373,11 +373,14 @@ export class MyTasksComponent implements OnInit {
       finalize(() => {
         this.isLoading.set(false);
         this.closeOpenJobDialog();
+        // Reload tasks after a short delay to ensure backend has updated
+        setTimeout(() => {
+          this.loadTasks();
+        }, 200);
       })
     ).subscribe(response => {
       if (response) {
         this.toastService.success('สร้างงานสำเร็จ');
-        this.loadTasks();
         this.isMyTurn.set(false);
         // Update availability status to busy
         this.availabilityStatus.set('busy');
@@ -426,11 +429,14 @@ export class MyTasksComponent implements OnInit {
       finalize(() => {
         this.isLoading.set(false);
         this.closeStartDialog();
+        // Reload tasks after a short delay to ensure backend has updated
+        setTimeout(() => {
+          this.loadTasks();
+        }, 200);
       })
     ).subscribe(response => {
       if (response) {
         this.toastService.success('เริ่มงานสำเร็จ');
-        this.loadTasks();
         // Update availability status to busy
         this.availabilityStatus.set('busy');
         this.updateStatusBanner();
@@ -465,11 +471,14 @@ export class MyTasksComponent implements OnInit {
       finalize(() => {
         this.isLoading.set(false);
         this.closeRejectDialog();
+        // Reload tasks after a short delay to ensure backend has updated
+        setTimeout(() => {
+          this.loadTasks();
+        }, 200);
       })
     ).subscribe(response => {
       if (response) {
         this.toastService.success('ปฏิเสธงานสำเร็จ');
-        this.loadTasks();
       }
     });
   }
@@ -559,7 +568,7 @@ export class MyTasksComponent implements OnInit {
       id: taskToMove.id,
       status: JobStatus.Done,
       report
-    }    ).pipe(
+    }).pipe(
       catchError(error => {
         console.error('Error completing task:', error);
         this.toastService.error('เกิดข้อผิดพลาดในการปิดงาน');
@@ -568,18 +577,23 @@ export class MyTasksComponent implements OnInit {
       finalize(() => {
         this.isLoading.set(false);
         this.closeSalesReportDialog();
+        // Reload tasks after a short delay to ensure backend has updated
+        setTimeout(() => {
+          this.loadTasks();
+          // Update availability status if no more in-progress tasks
+          // Check after reload completes
+          setTimeout(() => {
+            const updatedInProgressTasks = this.inProgressTasks();
+            if (updatedInProgressTasks.length === 0 && this.availabilityStatus() === 'busy') {
+              this.availabilityStatus.set('available');
+              this.updateStatusBanner();
+            }
+          }, 100);
+        }, 200);
       })
     ).subscribe(response => {
       if (response) {
         this.toastService.success('ปิดงานสำเร็จ');
-        this.loadTasks();
-        
-        // Update availability status if no more in-progress tasks
-        const updatedInProgressTasks = this.inProgressTasks();
-        if (updatedInProgressTasks.length === 0 && this.availabilityStatus() === 'busy') {
-          this.availabilityStatus.set('available');
-          this.updateStatusBanner();
-        }
       }
     });
   }
