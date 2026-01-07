@@ -314,11 +314,13 @@ using (var scope = app.Services.CreateScope())
         await DefaultDepartments.SeedAsync(dbContext);
         await DefaultPositions.SeedAsync(dbContext);
         await DefaultEmployees.SeedAsync(dbContext);
+        await UpdateEmployeeGuids.UpdateAsync(dbContext); // Update existing employees with fixed GUIDs
         
         await DefaultRoles.SeedAsync(userManager, roleManager);
         await DefaultSuperAdmin.SeedAsync(userManager, roleManager);
         await DefaultAdmin.SeedAsync(userManager, roleManager);
         await DefaultBasicUser.SeedAsync(userManager, roleManager);
+        await DefaultEmployeeUsers.SeedAsync(userManager, roleManager, dbContext);
         
         logger.LogInformation("Database seeding completed successfully.");
     }
