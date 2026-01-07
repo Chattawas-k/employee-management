@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TaskCardComponent } from '../task-card/task-card.component';
+import { TaskCardComponent, TaskAction } from '../task-card/task-card.component';
 
 export interface Task {
   id: string;
@@ -35,7 +35,7 @@ export class TaskColumnComponent implements OnInit {
   @Input() tasks: Task[] = [];
   @Input() isCollapsible: boolean = false;
   @Input() isLoading: boolean = false;
-  @Output() taskAction = new EventEmitter<Task>();
+  @Output() taskAction = new EventEmitter<TaskAction>();
   @Output() taskDetailClick = new EventEmitter<Task>();
 
   isCollapsed = signal(false);

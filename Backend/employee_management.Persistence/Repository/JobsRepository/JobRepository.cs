@@ -30,35 +30,36 @@ namespace employee_management.Persistence.Repository.JobsRepository
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<Job>> GetSalesReportsAsync(Guid userId, string? status, CancellationToken cancellationToken)
+        public async Task<List<Job>> GetSalesReportsAsync(Guid employeeId, string? status, CancellationToken cancellationToken)
         {
             // Use EF Core LINQ with proper filtering
-            // Filter by CreatedBy (UserId) to show only reports created by the current user
+            // Filter by AssigneeId (EmployeeId) to show only jobs assigned to the current employee
+            // Note: Report is a computed property, so we filter by ReportJson in the query
+            // and then filter by Report.SalesStatus in memory after deserialization
             var query = Context.Jobs
                 .Include(j => j.Employee)
-                .Where(j => !j.IsDeleted && j.CreatedBy == userId);
+                .Where(j => !j.IsDeleted && j.AssigneeId == employeeId && j.ReportJson != null);
 
-            // Filter by status if provided
+            // Execute query first to get jobs with reports
+            var jobs = await query
+                .OrderByDescending(j => j.CreatedDate)
+                .ToListAsync(cancellationToken);
+
+            // Filter by status in memory after deserialization
             if (!string.IsNullOrWhiteSpace(status))
             {
                 var statusLower = status.ToLower();
-                // Filter jobs where Report.SalesStatus matches (case-insensitive)
-                // We need to deserialize JSON and check SalesStatus
-                query = query.Where(j => 
-                    j.ReportJson != null && 
+                jobs = jobs.Where(j => 
                     j.Report != null && 
-                    j.Report.SalesStatus.ToLower() == statusLower);
+                    j.Report.SalesStatus.ToLower() == statusLower).ToList();
             }
             else
             {
-                // Only filter jobs that have reports
-                query = query.Where(j => j.ReportJson != null && j.Report != null);
+                // Only return jobs that have valid reports
+                jobs = jobs.Where(j => j.Report != null).ToList();
             }
 
-            // Order and execute
-            return await query
-                .OrderByDescending(j => j.CreatedDate)
-                .ToListAsync(cancellationToken);
+            return jobs;
         }
 
         public async Task<int> CountJobsByDateAsync(DateTime date, CancellationToken cancellationToken)

@@ -131,15 +131,15 @@ export class SalesReportComponent implements OnInit {
   */
 
   ngOnInit(): void {
-    // Load initial data based on current active tab
-    this.loadSalesReports(this.activeTab());
+    // Always load all data to calculate counts correctly
+    this.loadSalesReports('All');
   }
 
   loadSalesReports(status: ReportStatus | 'All' = 'All'): void {
     this.isLoading.set(true);
-    // Convert 'All' to undefined, and map status to backend format
-    const backendStatus = status === 'All' ? undefined : status;
-    this.salesReportService.getSalesReports(backendStatus).pipe(
+    // Always load all reports (no status filter) so counts() can calculate correctly
+    // The filtering by status will be done in filteredReports computed property
+    this.salesReportService.getSalesReports(undefined).pipe(
       catchError(error => {
         console.error('Error loading sales reports:', error);
         console.error('Error details:', {
@@ -401,8 +401,8 @@ export class SalesReportComponent implements OnInit {
   setTab(tab: ReportStatus | 'All') {
     this.activeTab.set(tab);
     this.currentPage.set(1);
-    // Reload data from API when tab changes
-    this.loadSalesReports(tab);
+    // No need to reload data - filtering is done in filteredReports computed property
+    // Data is already loaded in ngOnInit with all reports
   }
 
   goToPage(page: number) {

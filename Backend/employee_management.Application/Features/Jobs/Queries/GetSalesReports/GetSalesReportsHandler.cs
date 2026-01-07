@@ -25,9 +25,9 @@ namespace employee_management.Application.Features.Jobs.Queries.GetSalesReports
         {
             try
             {
-                _logger.LogInformation("Starting to retrieve sales reports for UserId: {UserId}, Status: {Status}", 
-                    request.UserId, request.Status ?? "All");
-                var jobs = await _jobRepository.GetSalesReportsAsync(request.UserId, request.Status, cancellationToken);
+                _logger.LogInformation("Starting to retrieve sales reports for EmployeeId: {EmployeeId}, Status: {Status}", 
+                    request.EmployeeId, request.Status ?? "All");
+                var jobs = await _jobRepository.GetSalesReportsAsync(request.EmployeeId, request.Status, cancellationToken);
                 _logger.LogInformation("Retrieved {Count} jobs from repository", jobs.Count);
                 
                 // Log details about each job

@@ -9,6 +9,7 @@ export interface StaffMember {
   statusClass: string;
   currentTasks: number;
   queuePosition: number;
+  employeeId?: string;
 }
 
 @Component({

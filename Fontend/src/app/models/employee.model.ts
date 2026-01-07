@@ -10,3 +10,10 @@ export interface EmployeeDto {
   createdDate: string;
 }
 
+export interface EmployeeDropdownDto {
+  id: string;
+  name: string;
+  positionName?: string;
+  departmentName?: string;
+}
+

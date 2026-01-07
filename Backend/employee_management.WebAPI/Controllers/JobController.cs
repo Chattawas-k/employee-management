@@ -79,15 +79,15 @@ namespace employee_management.WebAPI.Controllers
             [FromQuery] string? status = null,
             CancellationToken cancellationToken = default)
         {
-            // Get UserId from JWT token claims (NameIdentifier)
-            // This is the user who created the job, not the assignee
-            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            // Get EmployeeId from JWT token claims
+            // This is the employee who is assigned to the job, not the creator
+            var employeeIdClaim = User.FindFirst("EmployeeId")?.Value;
+            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId))
             {
-                return BadRequest("UserId not found in token or invalid format.");
+                return BadRequest("EmployeeId not found in token or invalid format.");
             }
 
-            var response = await _mediator.Send(new GetSalesReportsRequest(userId, status), cancellationToken);
+            var response = await _mediator.Send(new GetSalesReportsRequest(employeeId, status), cancellationToken);
             return Ok(response);
         }
 

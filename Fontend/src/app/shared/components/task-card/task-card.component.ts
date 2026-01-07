@@ -4,6 +4,11 @@ import { Task } from '../task-column/task-column.component';
 
 export type ReportStatus = 'Success' | 'Pending' | 'Failed';
 
+export interface TaskAction {
+  task: Task;
+  actionType: 'start' | 'complete' | 'reject';
+}
+
 @Component({
   selector: 'app-task-card',
   standalone: true,
@@ -14,21 +19,40 @@ export type ReportStatus = 'Success' | 'Pending' | 'Failed';
 })
 export class TaskCardComponent {
   @Input() task!: Task;
-  @Output() action = new EventEmitter<Task>();
+  @Output() action = new EventEmitter<TaskAction>();
   @Output() detailClick = new EventEmitter<Task>();
 
   displayTime = computed(() => {
     switch (this.task.status) {
       case 'in-progress':
-        return { label: 'เริ่มเมื่อ', time: this.task.startedAt };
+        return { label: 'เริ่มเมื่อ', time: this.formatThaiDateTime(this.task.startedAt) };
       case 'completed':
       case 'rejected':
-        return { label: 'เสร็จเมื่อ', time: this.task.completedAt };
+        return { label: 'เสร็จเมื่อ', time: this.formatThaiDateTime(this.task.completedAt) };
       case 'pending':
       default:
-        return { label: 'สร้างเมื่อ', time: this.task.createdAt };
+        return { label: 'สร้างเมื่อ', time: this.formatThaiDateTime(this.task.createdAt) };
     }
   });
+
+  formatThaiDateTime(dateString?: string | null): string {
+    if (!dateString) return '';
+    
+    try {
+      const date = new Date(dateString);
+      const day = date.getDate();
+      const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+      const month = monthNames[date.getMonth()];
+      const year = date.getFullYear() + 543; // Convert to Buddhist era
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      
+      return `${day} ${month} ${year} (${hours}.${minutes} น.)`;
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return dateString;
+    }
+  }
 
   salesStatusInfo = computed(() => {
     if (this.task.status !== 'completed' || !this.task.salesReportData?.status) {

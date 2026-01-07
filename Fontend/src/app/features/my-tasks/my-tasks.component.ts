@@ -422,12 +422,15 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     });
   }
 
-  handleTaskAction(task: Task) {
-    this.selectedTask.set(task);
-    if (task.buttonText === 'เริ่มงาน') {
+  handleTaskAction(action: { task: Task; actionType: 'start' | 'complete' | 'reject' }) {
+    this.selectedTask.set(action.task);
+    if (action.actionType === 'start') {
       this.showStartDialog.set(true);
-    } else if (task.buttonText === 'ปิดงาน') {
+    } else if (action.actionType === 'complete') {
       this.showSalesReportDialog.set(true);
+    } else if (action.actionType === 'reject') {
+      this.showStartDialog.set(false);
+      this.showRejectDialog.set(true);
     }
   }
 

@@ -1,8 +1,14 @@
-import { ChangeDetectionStrategy, Component, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { JobAssignmentCardComponent, StaffMember } from '../../shared/components/job-assignment-card/job-assignment-card.component';
 import { OpenJobDialogComponent } from '../../shared/components/open-job-dialog/open-job-dialog.component';
+import { EmployeeService } from '../../services/employee.service';
+import { TaskService } from '../../services/task.service';
+import { ToastService } from '../../services/toast.service';
+import { JobPriority } from '../../models/task.model';
+import { catchError, finalize } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 @Component({
   selector: 'app-job-assignment',
@@ -12,66 +18,61 @@ import { OpenJobDialogComponent } from '../../shared/components/open-job-dialog/
   imports: [CommonModule, FormsModule, JobAssignmentCardComponent, OpenJobDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class JobAssignmentComponent {
+export class JobAssignmentComponent implements OnInit {
   searchTerm = signal('');
+  isLoading = signal(false);
 
   showAssignDialog = signal(false);
   selectedStaff = signal<StaffMember | null>(null);
 
-  staffMembers = signal<StaffMember[]>([
-    {
-      name: 'สมศักดิ์ รักงาน (Bob)',
-      role: 'พนักงานขาย',
-      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop',
-      status: 'พร้อมรับงาน',
-      statusClass: 'bg-green-100 text-green-800',
-      currentTasks: 0,
-      queuePosition: 1,
-    },
-    {
-      name: 'สมชาย ใจดี (Alice)',
-      role: 'พนักงานขาย',
-      avatarUrl: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=200&auto=format&fit=crop',
-      status: 'ติดลูกค้า',
-      statusClass: 'bg-orange-100 text-orange-800',
-      currentTasks: 1,
-      queuePosition: 2,
-    },
-    {
-      name: 'วิชัย จัดการ (Charlie)',
-      role: 'ผู้จัดการสาขา',
-      avatarUrl: 'https://images.unsplash.com/photo-1583864697784-a0efc8379f70?q=80&w=200&auto=format&fit=crop',
-      status: 'ติดลูกค้า',
-      statusClass: 'bg-orange-100 text-orange-800',
-      currentTasks: 3,
-      queuePosition: 3,
-    },
-    {
-      name: 'ดาริน สวยงาม (Diana)',
-      role: 'ออกแบบ',
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop',
-      status: 'พัก/ลางาน',
-      statusClass: 'bg-gray-100 text-gray-800',
-      currentTasks: 0,
-      queuePosition: 0,
-    },
-    {
-      name: 'เอกชัย มุ่งมั่น (Ethan)',
-      role: 'พนักงานขาย',
-      avatarUrl: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?q=80&w=200&auto=format&fit=crop',
-      status: 'พร้อมรับงาน',
-      statusClass: 'bg-green-100 text-green-800',
-      currentTasks: 0,
-      queuePosition: 4,
-    }
-  ]);
+  staffMembers = signal<StaffMember[]>([]);
+
+  constructor(
+    private employeeService: EmployeeService,
+    private taskService: TaskService,
+    private toastService: ToastService
+  ) {}
+
+  ngOnInit(): void {
+    this.loadEmployees();
+  }
+
+  loadEmployees(): void {
+    this.isLoading.set(true);
+    this.employeeService.getAllEmployees('Active').pipe(
+      catchError(error => {
+        console.error('Error loading employees:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการโหลดข้อมูลพนักงาน');
+        return of([]);
+      }),
+      finalize(() => this.isLoading.set(false))
+    ).subscribe(employees => {
+      const staffMembers: StaffMember[] = employees.map(emp => {
+        const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}&background=random&size=200`;
+        return {
+          name: emp.name,
+          role: emp.positionName || 'ไม่ระบุตำแหน่ง',
+          avatarUrl,
+          status: 'พร้อมรับงาน' as const,
+          statusClass: 'bg-green-100 text-green-800',
+          currentTasks: 0,
+          queuePosition: 0,
+          employeeId: emp.id
+        };
+      });
+      this.staffMembers.set(staffMembers);
+    });
+  }
 
   filteredStaff = computed(() => {
     const term = this.searchTerm().toLowerCase();
     if (!term) {
       return this.staffMembers();
     }
-    return this.staffMembers().filter(staff => staff.name.toLowerCase().includes(term));
+    return this.staffMembers().filter(staff =>
+      staff.name.toLowerCase().includes(term) ||
+      staff.role.toLowerCase().includes(term)
+    );
   });
 
   handleAction(staff: StaffMember) {
@@ -88,23 +89,48 @@ export class JobAssignmentComponent {
 
   confirmAssignment(jobData: any) {
     const staff = this.selectedStaff();
-    if (staff) {
-      this.staffMembers.update(members => {
-        return members.map(m => {
-          if (m.name === staff.name) {
-            const newTasks = m.currentTasks + 1;
-            const isBusy = newTasks > 0;
-            return {
-              ...m,
-              currentTasks: newTasks,
-              status: isBusy ? 'ติดลูกค้า' : 'พร้อมรับงาน',
-              statusClass: isBusy ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800',
-            };
-          }
-          return m;
-        });
-      });
+    if (!staff || !staff.employeeId) {
+      this.toastService.error('ไม่พบข้อมูลพนักงาน');
+      this.closeAssignDialog();
+      return;
     }
-    this.closeAssignDialog();
+
+    let priority: JobPriority = JobPriority.Normal;
+    if (jobData.priority === 'Urgent') {
+      priority = JobPriority.Urgent;
+    } else if (jobData.priority === 'High') {
+      priority = JobPriority.High;
+    } else if (jobData.priority === 'Low') {
+      priority = JobPriority.Low;
+    }
+
+    const createJobRequest = {
+      title: jobData.jobTitle || 'Walk-in Customer',
+      customer: jobData.customerName || 'ลูกค้าทั่วไป',
+      description: jobData.details || 'บริการลูกค้าหน้าร้าน',
+      assigneeId: staff.employeeId,
+      priority: priority
+    };
+
+    this.isLoading.set(true);
+    this.taskService.createJob(createJobRequest).pipe(
+      catchError(error => {
+        console.error('Error creating job:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการสร้างงาน');
+        return of(null);
+      }),
+      finalize(() => {
+        this.isLoading.set(false);
+        this.closeAssignDialog();
+      })
+    ).subscribe(response => {
+      if (response) {
+        this.toastService.success('มอบหมายงานสำเร็จ');
+        // Reload employees to get updated data
+        setTimeout(() => {
+          this.loadEmployees();
+        }, 500);
+      }
+    });
   }
 }
