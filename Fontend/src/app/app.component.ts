@@ -1,10 +1,11 @@
-import { Component, signal, computed, OnInit } from '@angular/core';
+import { Component, signal, computed, OnInit, OnDestroy, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { LucideAngularModule } from 'lucide-angular';
 import { IconComponent } from './shared/components/icon/icon.component';
 import { ToastContainerComponent } from './shared/components/toast/toast-container.component';
+import { StatusChangeDialogComponent } from './shared/components/status-change-dialog/status-change-dialog.component';
 import { AuthService } from './services/auth.service';
 import { QueueService } from './services/queue.service';
 import { ToastService } from './services/toast.service';
@@ -23,12 +24,16 @@ import { of } from 'rxjs';
     RouterLinkActive,
     LucideAngularModule,
     IconComponent,
-    ToastContainerComponent
+    ToastContainerComponent,
+    StatusChangeDialogComponent
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
+  @ViewChild('statusMenuContainer', { static: false }) statusMenuContainer!: ElementRef;
+  @ViewChild('statusMenuButton', { static: false }) statusMenuButton!: ElementRef;
+  
   isMobileMenuOpen = signal(false);
   isSettingsOpen = signal(false);
   isStatusMenuOpen = signal(false);
@@ -37,6 +42,8 @@ export class AppComponent implements OnInit {
   currentEmployee = signal<EmployeeDto | null>(null);
   availabilityStatus = signal<'available' | 'busy' | 'break' | 'unavailable'>('available');
   isLoginPage = signal(false);
+  showStatusChangeDialog = signal(false);
+  pendingStatusChange = signal<'available' | 'busy' | 'break' | 'unavailable' | null>(null);
 
   showLayout = computed(() => this.isAuthenticated() && !this.isLoginPage());
 
@@ -159,19 +166,27 @@ export class AppComponent implements OnInit {
   }
 
   getAvailableStatuses(): Array<{ value: 'available' | 'busy' | 'break' | 'unavailable'; label: string; dotClass: string }> {
-    const currentStatus = this.availabilityStatus();
-    const allStatuses: Array<{ value: 'available' | 'busy' | 'break' | 'unavailable'; label: string; dotClass: string }> = [
-      { value: 'available', label: 'พร้อมรับงาน', dotClass: 'bg-green-500' },
+    // Only show busy, break, and unavailable in dropdown (not available)
+    return [
       { value: 'busy', label: 'ติดลูกค้า', dotClass: 'bg-orange-500' },
       { value: 'break', label: 'พัก', dotClass: 'bg-yellow-500' },
       { value: 'unavailable', label: 'ไม่พร้อมรับงาน', dotClass: 'bg-gray-400' }
     ];
-    
-    // Filter out current status
-    return allStatuses.filter(status => status.value !== currentStatus);
   }
 
   setStatus(status: 'available' | 'busy' | 'break' | 'unavailable'): void {
+    // Show confirmation dialog first
+    this.pendingStatusChange.set(status);
+    this.showStatusChangeDialog.set(true);
+    this.isStatusMenuOpen.set(false);
+  }
+
+  confirmStatusChange(): void {
+    const status = this.pendingStatusChange();
+    if (!status) {
+      return;
+    }
+
     // Map frontend status to backend queue status
     let queueStatus: 'active' | 'busy' | 'inactive';
     switch (status) {
@@ -200,8 +215,39 @@ export class AppComponent implements OnInit {
         this.availabilityStatus.set(status);
         this.toastService.success('อัปเดตสถานะสำเร็จ');
       }
-      this.isStatusMenuOpen.set(false);
+      this.showStatusChangeDialog.set(false);
+      this.pendingStatusChange.set(null);
     });
+  }
+
+  cancelStatusChange(): void {
+    this.showStatusChangeDialog.set(false);
+    this.pendingStatusChange.set(null);
+  }
+
+  closeStatusChangeDialog(): void {
+    this.showStatusChangeDialog.set(false);
+    this.pendingStatusChange.set(null);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.isStatusMenuOpen()) {
+      return;
+    }
+
+    const target = event.target as HTMLElement;
+    const container = this.statusMenuContainer?.nativeElement;
+    const button = this.statusMenuButton?.nativeElement;
+
+    // Check if click is outside both the dropdown and the button
+    if (container && button && !container.contains(target) && !button.contains(target)) {
+      this.isStatusMenuOpen.set(false);
+    }
+  }
+
+  ngOnDestroy(): void {
+    // Cleanup if needed
   }
 }
 

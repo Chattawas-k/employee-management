@@ -6,6 +6,9 @@ import { SalesReportComponent } from './features/sales-report/sales-report.compo
 import { WorkCalendarComponent } from './features/work-calendar/work-calendar.component';
 import { QueueSummaryComponent } from './features/queue-summary/queue-summary.component';
 import { LoginComponent } from './features/login/login.component';
+import { EmployeeManagementComponent } from './features/employee-management/employee-management.component';
+import { QueueSettingsComponent } from './features/queue-settings/queue-settings.component';
+import { UsersPermissionsComponent } from './features/users-permissions/users-permissions.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -17,6 +20,9 @@ export const routes: Routes = [
   { path: 'assign', component: JobAssignmentComponent, canActivate: [authGuard] },
   { path: 'summary', component: QueueSummaryComponent, canActivate: [authGuard] },
   { path: 'report', component: SalesReportComponent, canActivate: [authGuard] },
+  { path: 'settings/employees', component: EmployeeManagementComponent, canActivate: [authGuard] },
+  { path: 'settings/queue', component: QueueSettingsComponent, canActivate: [authGuard] },
+  { path: 'settings/users', component: UsersPermissionsComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '/my-tasks' }
 ];
 
