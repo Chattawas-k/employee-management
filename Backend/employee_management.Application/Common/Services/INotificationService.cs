@@ -34,6 +34,11 @@ namespace employee_management.Application.Common.Services
         /// ส่ง notification เมื่อ queue status ถูก update
         /// </summary>
         Task SendQueueUpdatedNotificationAsync();
+
+        /// <summary>
+        /// ส่ง notification เมื่อ employee status ถูกเปลี่ยน (break/unavailable/available)
+        /// </summary>
+        Task SendEmployeeStatusChangedNotificationAsync();
     }
 }
 

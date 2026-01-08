@@ -20,8 +20,10 @@ namespace employee_management.Application.Common.Behaviors
 
             var context = new ValidationContext<TRequest>(request);
 
-            var errors = _validators
-                .Select(x => x.Validate(context))
+            var validationTasks = _validators.Select(x => x.ValidateAsync(context, cancellationToken));
+            var validationResults = await Task.WhenAll(validationTasks);
+
+            var errors = validationResults
                 .SelectMany(x => x.Errors)
                 .Where(x => x != null)
                 .Select(x => x.ErrorMessage)

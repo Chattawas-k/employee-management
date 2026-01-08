@@ -6,6 +6,7 @@ export interface QueueDto {
   departmentName?: string;
   position: number;
   status: 'active' | 'inactive' | 'busy' | 'Active' | 'Inactive' | 'Busy';
+  availabilityStatus: 'Available' | 'Busy' | 'Break' | 'Unavailable';
   queueDate: string;
 }
 
@@ -35,15 +36,23 @@ export interface QueueSummaryResponse {
   jobs: QueueSummaryJobDto[];
 }
 
+export enum AvailabilityStatus {
+  Available = 1,
+  Busy = 2,
+  Break = 3,
+  Unavailable = 4
+}
+
 export interface UpdateMyQueueStatusRequest {
-  status: 'active' | 'busy' | 'inactive';
+  status: 'available' | 'busy' | 'break' | 'unavailable';
 }
 
 export interface UpdateMyQueueStatusResponse {
   id: string;
   employeeId: string;
   position: number;
-  status: 'active' | 'busy' | 'inactive';
+  availabilityStatus: 'Available' | 'Busy' | 'Break' | 'Unavailable';
+  status: 'Active' | 'Busy' | 'Inactive';
   updatedDate?: string;
 }
 
@@ -82,6 +91,16 @@ export interface MyQueueInfoResponse {
     avatarUrl?: string;
   } | null;
   isInQueue: boolean;
-  queueStatus: string; // "Active", "Busy", "Inactive"
+  queueStatus: string; // "Active", "Busy", "Inactive" (for backward compatibility)
+  availabilityStatus: string; // "Available", "Busy", "Break", "Unavailable"
+}
+
+export interface MigrateInactiveStatusRequest {
+  targetStatus: 'Break' | 'Unavailable';
+}
+
+export interface MigrateInactiveStatusResponse {
+  migratedCount: number;
+  message: string;
 }
 

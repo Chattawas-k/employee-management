@@ -53,6 +53,7 @@ namespace employee_management.Persistence
             services.AddScoped<employee_management.Application.Repository.QueuesRepository.IQueueRepository, employee_management.Persistence.Repository.QueuesRepository.QueueRepository>();
             services.AddScoped<employee_management.Application.Repository.JobsRepository.IJobRepository, employee_management.Persistence.Repository.JobsRepository.JobRepository>();
             services.AddScoped<employee_management.Application.Repository.WaitingJobsRepository.IWaitingJobRepository, employee_management.Persistence.Repository.WaitingJobsRepository.WaitingJobRepository>();
+            services.AddScoped<employee_management.Application.Repository.IEmployeeStatusHistoryRepository, employee_management.Persistence.Repository.EmployeeStatusHistoryRepository.EmployeeStatusHistoryRepository>();
             //Services
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();

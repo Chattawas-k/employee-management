@@ -34,7 +34,8 @@ namespace employee_management.Application.Features.Queues.Queries.GetMyQueueInfo
                     QueuesRemaining = 0,
                     CurrentlyServing = null,
                     IsInQueue = false,
-                    QueueStatus = string.Empty
+                    QueueStatus = string.Empty,
+                    AvailabilityStatus = string.Empty
                 };
             }
 
@@ -86,7 +87,8 @@ namespace employee_management.Application.Features.Queues.Queries.GetMyQueueInfo
                 QueuesRemaining = queuesRemaining,
                 CurrentlyServing = currentlyServing,
                 IsInQueue = true,
-                QueueStatus = myQueue.Status.ToString() // "Active", "Busy", "Inactive"
+                QueueStatus = myQueue.Status.ToString(), // "Active", "Busy", "Inactive" (for backward compatibility)
+                AvailabilityStatus = myQueue.AvailabilityStatus.ToString() // "Available", "Busy", "Break", "Unavailable"
             };
         }
     }

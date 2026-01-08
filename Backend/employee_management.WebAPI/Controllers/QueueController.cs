@@ -7,6 +7,7 @@ using employee_management.Application.Features.Queues.Commands.Delete;
 using employee_management.Application.Features.Queues.Commands.ResetDaily;
 using employee_management.Application.Features.Queues.Commands.Update;
 using employee_management.Application.Features.Queues.Commands.UpdateMyStatus;
+using employee_management.Application.Features.Queues.Commands.MigrateInactiveStatus;
 using employee_management.Application.Features.Queues.Queries.GetByDate;
 using employee_management.Application.Features.Queues.Queries.GetMyQueueInfo;
 using employee_management.Domain.Enums;
@@ -112,21 +113,42 @@ namespace employee_management.WebAPI.Controllers
                 return BadRequest("EmployeeId not found in token or invalid format.");
             }
 
-            // Map string status to QueueStatus enum
-            QueueStatus queueStatus = request.Status.ToLower() switch
+            // Map string status to AvailabilityStatus enum
+            AvailabilityStatus availabilityStatus = request.Status.ToLower() switch
             {
-                "active" => QueueStatus.Active,
-                "busy" => QueueStatus.Busy,
-                "inactive" => QueueStatus.Inactive,
+                "available" => AvailabilityStatus.Available,
+                "busy" => AvailabilityStatus.Busy,
+                "break" => AvailabilityStatus.Break,
+                "unavailable" => AvailabilityStatus.Unavailable,
                 _ => throw new ArgumentException($"Invalid status: {request.Status}")
             };
 
-            var requestWithEmployeeId = new UpdateMyQueueStatusRequest(employeeId, queueStatus);
+            var requestWithEmployeeId = new UpdateMyQueueStatusRequest(employeeId, availabilityStatus);
             var response = await _mediator.Send(requestWithEmployeeId, cancellationToken);
             return Ok(response);
         }
 
+        [HttpPost("migrate-inactive-status")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Policy = "AdminOnly")]
+        public async Task<ActionResult<MigrateInactiveStatusResponse>> MigrateInactiveStatus(
+            [FromBody] MigrateInactiveStatusRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            // Map string status to AvailabilityStatus enum
+            AvailabilityStatus targetStatus = request.TargetStatus.ToLower() switch
+            {
+                "break" => AvailabilityStatus.Break,
+                "unavailable" => AvailabilityStatus.Unavailable,
+                _ => throw new ArgumentException($"Invalid target status: {request.TargetStatus}. Must be 'break' or 'unavailable'")
+            };
+
+            var migrateRequest = new MigrateInactiveStatusRequest(targetStatus);
+            var response = await _mediator.Send(migrateRequest, cancellationToken);
+            return Ok(response);
+        }
+
         public sealed record UpdateMyQueueStatusRequestDto(string Status);
+        public sealed record MigrateInactiveStatusRequestDto(string TargetStatus);
         public sealed record ArchiveRequestDto(DateTime SourceDate, DateTime? TargetDate = null);
     }
 }

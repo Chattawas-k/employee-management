@@ -27,6 +27,7 @@ namespace employee_management.Persistence.Context
         public DbSet<Queue> Queues { get; set; }
         public DbSet<Job> Jobs { get; set; }
         public DbSet<WaitingJob> WaitingJobs { get; set; }
+        public DbSet<EmployeeStatusHistory> EmployeeStatusHistories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -89,6 +90,30 @@ namespace employee_management.Persistence.Context
                 entity.HasIndex(w => w.JobId);
                 entity.HasIndex(w => w.CreatedDate);
                 entity.HasIndex(w => w.IsDeleted);
+            });
+
+            // Configure EmployeeStatusHistory entity
+            modelBuilder.Entity<EmployeeStatusHistory>(entity =>
+            {
+                entity.ToTable("EmployeeStatusHistories");
+
+                // Configure relationship with Employee
+                entity.HasOne(e => e.Employee)
+                    .WithMany()
+                    .HasForeignKey(e => e.EmployeeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Configure relationship with ChangedByEmployee
+                entity.HasOne(e => e.ChangedByEmployee)
+                    .WithMany()
+                    .HasForeignKey(e => e.ChangedBy)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // Create indexes
+                entity.HasIndex(e => e.EmployeeId);
+                entity.HasIndex(e => e.ChangedDate);
+                entity.HasIndex(e => e.ChangeReason);
+                entity.HasIndex(e => e.IsDeleted);
             });
         }
     }

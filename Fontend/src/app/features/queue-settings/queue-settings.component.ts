@@ -217,6 +217,7 @@ export class QueueSettingsComponent implements OnInit {
           departmentName: employee?.departmentName,
           position: maxPosition + index + 1, // Add to end
           status: 'Active',
+          availabilityStatus: 'Available' as const,
           queueDate: new Date().toISOString().split('T')[0]
         };
       });

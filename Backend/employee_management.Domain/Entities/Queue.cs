@@ -9,6 +9,7 @@ namespace employee_management.Domain.Entities
         public Employee? Employee { get; set; }
         public int Position { get; set; }
         public QueueStatus Status { get; set; } = QueueStatus.Active;
+        public AvailabilityStatus AvailabilityStatus { get; set; } = AvailabilityStatus.Available;
         public DateTime QueueDate { get; set; } = DateTime.Today;
     }
 }

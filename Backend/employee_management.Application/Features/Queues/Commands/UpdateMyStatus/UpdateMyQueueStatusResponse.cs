@@ -1,5 +1,4 @@
 using employee_management.Domain.Enums;
-using System;
 
 namespace employee_management.Application.Features.Queues.Commands.UpdateMyStatus
 {
@@ -7,6 +6,7 @@ namespace employee_management.Application.Features.Queues.Commands.UpdateMyStatu
         Guid Id,
         Guid EmployeeId,
         int Position,
+        AvailabilityStatus AvailabilityStatus,
         QueueStatus Status,
         DateTimeOffset? UpdatedDate
     );

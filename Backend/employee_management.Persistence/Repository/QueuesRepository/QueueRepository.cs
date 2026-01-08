@@ -79,6 +79,57 @@ namespace employee_management.Persistence.Repository.QueuesRepository
                     EmployeeId = employeeId,
                     Position = maxPosition + 1,
                     Status = status,
+                    AvailabilityStatus = Domain.Enums.AvailabilityStatus.Available, // Default
+                    QueueDate = targetDate
+                };
+                Context.Queues.Add(newQueue);
+            }
+        }
+
+        public async Task UpdateAvailabilityStatusAsync(Guid employeeId, DateTime date, AvailabilityStatus availabilityStatus, CancellationToken cancellationToken)
+        {
+            // Convert to UTC to avoid DateTime Kind issues with PostgreSQL
+            var targetDate = date.Date.ToUniversalTime();
+            
+            var queue = await GetByEmployeeIdAndDateAsync(employeeId, date, cancellationToken);
+            if (queue != null)
+            {
+                queue.AvailabilityStatus = availabilityStatus;
+                
+                // Map AvailabilityStatus to QueueStatus for queue logic
+                QueueStatus queueStatus = availabilityStatus switch
+                {
+                    AvailabilityStatus.Available => QueueStatus.Active,
+                    AvailabilityStatus.Busy => QueueStatus.Busy,
+                    AvailabilityStatus.Break => QueueStatus.Inactive,
+                    AvailabilityStatus.Unavailable => QueueStatus.Inactive,
+                    _ => QueueStatus.Active
+                };
+                queue.Status = queueStatus;
+                
+                Context.Queues.Update(queue);
+            }
+            else
+            {
+                // If no queue exists for today, create a new one
+                var queuesForToday = await GetByDateAsync(date, cancellationToken);
+                var maxPosition = queuesForToday.Any() ? queuesForToday.Max(q => q.Position) : 0;
+
+                QueueStatus queueStatus = availabilityStatus switch
+                {
+                    AvailabilityStatus.Available => QueueStatus.Active,
+                    AvailabilityStatus.Busy => QueueStatus.Busy,
+                    AvailabilityStatus.Break => QueueStatus.Inactive,
+                    AvailabilityStatus.Unavailable => QueueStatus.Inactive,
+                    _ => QueueStatus.Active
+                };
+
+                var newQueue = new Queue
+                {
+                    EmployeeId = employeeId,
+                    Position = maxPosition + 1,
+                    Status = queueStatus,
+                    AvailabilityStatus = availabilityStatus,
                     QueueDate = targetDate
                 };
                 Context.Queues.Add(newQueue);

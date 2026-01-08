@@ -18,6 +18,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
         private readonly IJobRepository _jobRepository;
         private readonly IQueueRepository _queueRepository;
         private readonly IWaitingJobRepository _waitingJobRepository;
+        private readonly IEmployeeStatusHistoryRepository _historyRepository;
         private readonly INotificationService _notificationService;
         private readonly IMapper _mapper;
         private readonly ILogger<UpdateStatusHandler> _logger;
@@ -27,6 +28,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
             IJobRepository jobRepository, 
             IQueueRepository queueRepository,
             IWaitingJobRepository waitingJobRepository,
+            IEmployeeStatusHistoryRepository historyRepository,
             INotificationService notificationService,
             IMapper mapper, 
             ILogger<UpdateStatusHandler> logger)
@@ -35,6 +37,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
             _jobRepository = jobRepository;
             _queueRepository = queueRepository;
             _waitingJobRepository = waitingJobRepository;
+            _historyRepository = historyRepository;
             _notificationService = notificationService;
             _mapper = mapper;
             _logger = logger;
@@ -114,7 +117,31 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                     return; // No queue entry exists, skip update
                 }
 
-                QueueStatus? newQueueStatus = null;
+                // Don't override manual status (break/unavailable)
+                // If AvailabilityStatus is Break or Unavailable, it means employee manually set it
+                // We should respect this manual setting and not override it automatically
+                if (queue.AvailabilityStatus == AvailabilityStatus.Break || queue.AvailabilityStatus == AvailabilityStatus.Unavailable)
+                {
+                    _logger.LogInformation(
+                        "AvailabilityStatus is {Status} (manual) for employee {EmployeeId}, skipping automatic status update for job {JobId}",
+                        queue.AvailabilityStatus, job.AssigneeId, job.Id);
+                    
+                    // Still do rotation if job is starting (InProgress) to maintain queue order
+                    // But don't change the status
+                    if (job.Status == JobStatus.InProgress)
+                    {
+                        await _queueRepository.RotateQueueToTailAsync(job.AssigneeId, today, cancellationToken);
+                        await _unitOfWork.Save(cancellationToken);
+                        await _notificationService.SendQueueUpdatedNotificationAsync();
+                        _logger.LogInformation(
+                            "Rotated queue for employee {EmployeeId} but kept AvailabilityStatus as {Status} (manual) for job {JobId}",
+                            job.AssigneeId, queue.AvailabilityStatus, job.Id);
+                    }
+                    return; // Don't override manual status
+                }
+
+                AvailabilityStatus? newAvailabilityStatus = null;
+                var previousAvailabilityStatus = queue.AvailabilityStatus;
 
                 if (job.Status == JobStatus.InProgress)
                 {
@@ -122,8 +149,8 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                     // 1. Rotate queue: move staff to tail (Round-Robin) - MUST happen first
                     await _queueRepository.RotateQueueToTailAsync(job.AssigneeId, today, cancellationToken);
                     
-                    // 2. Set queue status to Busy
-                    newQueueStatus = QueueStatus.Busy;
+                    // 2. Set availability status to Busy
+                    newAvailabilityStatus = AvailabilityStatus.Busy;
                 }
                 else if (job.Status == JobStatus.Done)
                 {
@@ -137,38 +164,52 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                     {
                         // No other InProgress jobs, set to Available
                         // Note: Position stays at tail (already rotated when job was accepted)
-                        newQueueStatus = QueueStatus.Active;
+                        newAvailabilityStatus = AvailabilityStatus.Available;
                     }
                     // If there are other InProgress jobs, keep status as Busy (don't change)
                 }
 
-                // Update queue status if needed
-                if (newQueueStatus.HasValue && queue.Status != newQueueStatus.Value)
+                // Update availability status if needed
+                if (newAvailabilityStatus.HasValue && queue.AvailabilityStatus != newAvailabilityStatus.Value)
                 {
                     // Reload queue to get updated position after rotation
                     queue = await _queueRepository.GetByEmployeeIdAndDateAsync(job.AssigneeId, today, cancellationToken);
                     if (queue != null)
                     {
-                        queue.Status = newQueueStatus.Value;
-                        _queueRepository.Update(queue);
+                        // Update availability status (this will also update QueueStatus)
+                        await _queueRepository.UpdateAvailabilityStatusAsync(job.AssigneeId, today, newAvailabilityStatus.Value, cancellationToken);
+                        
+                        // Create history record (Auto change)
+                        var history = new Domain.Entities.EmployeeStatusHistory
+                        {
+                            EmployeeId = job.AssigneeId,
+                            PreviousStatus = previousAvailabilityStatus,
+                            NewStatus = newAvailabilityStatus.Value,
+                            ChangeReason = ChangeReason.Auto,
+                            ChangedBy = null, // Auto change, no user
+                            ChangedDate = DateTimeOffset.UtcNow,
+                            Notes = $"Auto change due to job {job.JobNumber} status change to {job.Status}"
+                        };
+                        _historyRepository.Create(history);
                     }
                 }
                 
-                // Save all changes (rotation + status update) in single transaction
+                // Save all changes (rotation + status update + history) in single transaction
                 await _unitOfWork.Save(cancellationToken);
 
                 // If staff became Available, try to assign waiting jobs
-                if (newQueueStatus == QueueStatus.Active)
+                if (newAvailabilityStatus == AvailabilityStatus.Available)
                 {
                     await TryAssignWaitingJobsAsync(today, cancellationToken);
                 }
 
                 // Send SignalR notification for queue update
                 await _notificationService.SendQueueUpdatedNotificationAsync();
+                await _notificationService.SendEmployeeStatusChangedNotificationAsync();
                 
                 _logger.LogInformation(
-                    "Updated queue status for employee {EmployeeId} to {Status} and rotated queue based on job {JobId} status {JobStatus}",
-                    job.AssigneeId, newQueueStatus?.ToString() ?? "unchanged", job.Id, job.Status);
+                    "Updated availability status for employee {EmployeeId} from {PreviousStatus} to {NewStatus} based on job {JobId} status {JobStatus}",
+                    job.AssigneeId, previousAvailabilityStatus, newAvailabilityStatus?.ToString() ?? "unchanged", job.Id, job.Status);
             }
             catch (Exception ex)
             {

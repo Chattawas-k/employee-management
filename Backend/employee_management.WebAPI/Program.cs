@@ -170,6 +170,9 @@ builder.Services.AddSignalR(options =>
 // Register NotificationService
 builder.Services.AddScoped<employee_management.Application.Common.Services.INotificationService, employee_management.WebAPI.Services.NotificationService>();
 
+// Register Daily Reset Background Service
+builder.Services.AddHostedService<employee_management.WebAPI.Services.DailyResetBackgroundService>();
+
 // Override Identity's default authentication scheme to use JWT Bearer instead of Cookies
 builder.Services.Configure<Microsoft.AspNetCore.Authentication.AuthenticationOptions>(options =>
 {

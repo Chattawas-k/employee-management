@@ -158,42 +158,48 @@ export class MyTasksComponent implements OnInit, OnDestroy {
         this.myQueuePosition.set(queueInfo.myQueuePosition);
         this.isMyTurn.set(queueInfo.queuesRemaining === 0);
         
-        // Update availability status from queue status
-        // Map backend queue status to frontend availability status
-        const queueStatusLower = queueInfo.queueStatus?.toLowerCase() || '';
+        // Update availability status from queue info
+        // Use AvailabilityStatus from API (stored in database)
+        const availabilityStatusLower = queueInfo.availabilityStatus?.toLowerCase() || '';
         const currentStatus = this.availabilityStatus();
         
-        if (queueStatusLower === 'busy') {
-          // Queue status is Busy → set to busy
+        if (availabilityStatusLower === 'busy') {
+          // AvailabilityStatus is Busy → set to busy
           this.availabilityStatus.set('busy');
-        } else if (queueStatusLower === 'inactive') {
-          // Queue status is Inactive → could be break or unavailable
-          // Check if user previously selected break or unavailable
-          const userSelectedStatus = localStorage.getItem('userSelectedStatus') as 'break' | 'unavailable' | null;
-          if (userSelectedStatus === 'break' || userSelectedStatus === 'unavailable') {
-            // Use the stored user selection
-            this.availabilityStatus.set(userSelectedStatus);
-          } else if (currentStatus === 'break' || currentStatus === 'unavailable') {
-            // Keep current status if it's already break or unavailable
-            // Store it for future reference
-            localStorage.setItem('userSelectedStatus', currentStatus);
-          } else {
-            // Default to unavailable if no previous selection
-            this.availabilityStatus.set('unavailable');
-          }
-        } else if (queueStatusLower === 'active') {
-          // Queue status is Active → check if should be available or busy
-          // If manually set to break/unavailable, keep it
+        } else if (availabilityStatusLower === 'break') {
+          // AvailabilityStatus is Break → set to break
+          this.availabilityStatus.set('break');
+        } else if (availabilityStatusLower === 'unavailable') {
+          // AvailabilityStatus is Unavailable → set to unavailable
+          this.availabilityStatus.set('unavailable');
+        } else if (availabilityStatusLower === 'available') {
+          // AvailabilityStatus is Available → check if should be available or busy
+          // If manually set to break/unavailable, keep it (but this shouldn't happen if status is Available)
           if (currentStatus === 'break' || currentStatus === 'unavailable') {
             // Keep manual status - don't change it
-            // But still update the banner to reflect the current status
+            // But this is unlikely since backend status is Available
           } else {
-            // Check if there are in-progress tasks
+            // Check if there are in-progress tasks (sync with app.component.ts logic)
+            // Use inProgressTasks signal which is updated by mapTasksFromApi()
             if (this.inProgressTasks().length > 0) {
               this.availabilityStatus.set('busy');
             } else {
               this.availabilityStatus.set('available');
             }
+          }
+        } else {
+          // Fallback: use queueStatus for backward compatibility
+          const queueStatusLower = queueInfo.queueStatus?.toLowerCase() || '';
+          if (queueStatusLower === 'busy') {
+            this.availabilityStatus.set('busy');
+          } else if (queueStatusLower === 'active') {
+            if (this.inProgressTasks().length > 0) {
+              this.availabilityStatus.set('busy');
+            } else {
+              this.availabilityStatus.set('available');
+            }
+          } else {
+            this.availabilityStatus.set('unavailable');
           }
         }
         
@@ -261,7 +267,17 @@ export class MyTasksComponent implements OnInit, OnDestroy {
 
     // Update availability status based on InProgress tasks
     // Only update if status is 'available' or 'busy' (don't override 'break' or 'unavailable')
+    // This should sync with queue status from loadQueueInfo()
     const currentStatus = this.availabilityStatus();
+    
+    // Don't override manual status (break/unavailable)
+    if (currentStatus === 'break' || currentStatus === 'unavailable') {
+      // If manually set to break/unavailable, ensure banner is updated
+      this.updateStatusBanner();
+      return; // Don't update status based on tasks
+    }
+    
+    // Only update if status is 'available' or 'busy'
     if (inProgress.length > 0) {
       // Has InProgress tasks → should be 'busy'
       if (currentStatus === 'available') {
@@ -271,10 +287,10 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     } else {
       // No InProgress tasks → should be 'available' (unless manually set to 'break' or 'unavailable')
       if (currentStatus === 'busy') {
+        // Only change from busy to available if queue status is also Active
+        // This will be handled by loadQueueInfo() which syncs with backend
+        // For now, we'll update it here but loadQueueInfo() will override if needed
         this.availabilityStatus.set('available');
-        this.updateStatusBanner();
-      } else if (currentStatus === 'break' || currentStatus === 'unavailable') {
-        // If manually set to break/unavailable, ensure banner is updated
         this.updateStatusBanner();
       }
     }

@@ -132,6 +132,21 @@ namespace employee_management.WebAPI.Services
                 _logger.LogError(ex, "❌ Error sending QueueUpdated notification");
             }
         }
+
+        /// <summary>
+        /// ส่ง notification เมื่อ employee status ถูกเปลี่ยน (break/unavailable/available)
+        /// </summary>
+        public async Task SendEmployeeStatusChangedNotificationAsync()
+        {
+            try
+            {
+                await _hubContext.Clients.All.SendAsync("EmployeeStatusChanged");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error sending EmployeeStatusChanged notification");
+            }
+        }
     }
 }
 

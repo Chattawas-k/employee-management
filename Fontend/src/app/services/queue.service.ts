@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, forkJoin } from 'rxjs';
-import { GetQueuesByDateResponse, QueueSummaryResponse, UpdateMyQueueStatusRequest, UpdateMyQueueStatusResponse, MyQueueInfoResponse } from '../models/queue.model';
+import { GetQueuesByDateResponse, QueueSummaryResponse, UpdateMyQueueStatusRequest, UpdateMyQueueStatusResponse, MyQueueInfoResponse, MigrateInactiveStatusRequest, MigrateInactiveStatusResponse } from '../models/queue.model';
 import { environment } from '../../environments/environment';
 
 @Injectable({
@@ -24,9 +24,14 @@ export class QueueService {
     return this.http.get<QueueSummaryResponse>(`${this.jobApiUrl}/queue-summary`, { params });
   }
 
-  updateMyQueueStatus(status: 'active' | 'busy' | 'inactive'): Observable<UpdateMyQueueStatusResponse> {
+  updateMyQueueStatus(status: 'available' | 'busy' | 'break' | 'unavailable'): Observable<UpdateMyQueueStatusResponse> {
     const requestBody: UpdateMyQueueStatusRequest = { status };
     return this.http.put<UpdateMyQueueStatusResponse>(`${this.apiUrl}/my-status`, requestBody);
+  }
+
+  migrateInactiveStatus(targetStatus: 'Break' | 'Unavailable'): Observable<MigrateInactiveStatusResponse> {
+    const requestBody: MigrateInactiveStatusRequest = { targetStatus };
+    return this.http.post<MigrateInactiveStatusResponse>(`${this.apiUrl}/migrate-inactive-status`, requestBody);
   }
 
   updateQueueOrder(queues: Array<{ id: string; position: number; status: string }>): Observable<any> {

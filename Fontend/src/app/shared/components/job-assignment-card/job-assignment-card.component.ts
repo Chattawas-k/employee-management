@@ -5,11 +5,14 @@ export interface StaffMember {
   name: string;
   role: string;
   avatarUrl: string;
-  status: 'พร้อมรับงาน' | 'ติดลูกค้า' | 'พัก/ลางาน';
+  status: 'พร้อมรับงาน' | 'ติดลูกค้า' | 'พัก' | 'ไม่พร้อมรับงาน';
   statusClass: string;
-  currentTasks: number;
+  currentTasks: number; // งานที่ทำอยู่ (In-Progress)
+  pendingTasks: number; // งานที่ต้องทำ (Pending)
+  totalTasks: number; // งานทั้งหมด
   queuePosition: number;
   employeeId?: string;
+  queueStatus?: 'Active' | 'Busy' | 'Inactive';
 }
 
 @Component({

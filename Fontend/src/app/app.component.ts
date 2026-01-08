@@ -8,13 +8,15 @@ import { ToastContainerComponent } from './shared/components/toast/toast-contain
 import { StatusChangeDialogComponent } from './shared/components/status-change-dialog/status-change-dialog.component';
 import { AuthService } from './services/auth.service';
 import { QueueService } from './services/queue.service';
+import { TaskService } from './services/task.service';
 import { ToastService } from './services/toast.service';
 import { EmployeeService } from './services/employee.service';
 import { SignalRService } from './services/signalr.service';
 import { EmployeeDto } from './models/employee.model';
 import { MyQueueInfoResponse } from './models/queue.model';
 import { catchError } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { getEmployeeIdFromToken } from './utils/jwt.util';
 
 @Component({
   selector: 'app-root',
@@ -80,6 +82,7 @@ export class AppComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private router: Router,
     private queueService: QueueService,
+    private taskService: TaskService,
     private toastService: ToastService,
     private employeeService: EmployeeService,
     private signalRService: SignalRService
@@ -117,12 +120,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.loadMyQueueInfo();
       this.setupSignalR();
       
-      // Load user's selected status from localStorage if exists
-      const userSelectedStatus = localStorage.getItem('userSelectedStatus') as 'break' | 'unavailable' | null;
-      if (userSelectedStatus === 'break' || userSelectedStatus === 'unavailable') {
-        // Don't set it immediately, let loadMyQueueInfo() handle it based on queue status
-        // This ensures consistency with backend
-      }
+      // Status is now stored in database, no need for localStorage
     }
   }
 
@@ -141,50 +139,84 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private loadMyQueueInfo(): void {
     this.isLoadingQueueInfo.set(true);
-    this.queueService.getMyQueueInfo().pipe(
-      catchError(error => {
-        console.error('Error loading queue info:', error);
-        // If employee is not in queue, set to null (will hide the section)
-        this.myQueueInfo.set(null);
-        this.availabilityStatus.set('unavailable'); // Not in queue = unavailable
-        return of(null);
-      })
-    ).subscribe(queueInfo => {
+    
+    // Load both queue info and tasks to check for in-progress tasks
+    const token = this.authService.getToken();
+    const employeeId = getEmployeeIdFromToken(token);
+    
+    if (!employeeId) {
       this.isLoadingQueueInfo.set(false);
+      this.myQueueInfo.set(null);
+      this.availabilityStatus.set('unavailable');
+      return;
+    }
+
+    forkJoin({
+      queueInfo: this.queueService.getMyQueueInfo().pipe(
+        catchError(error => {
+          console.error('Error loading queue info:', error);
+          return of(null);
+        })
+      ),
+      tasks: this.taskService.getMyTasks().pipe(
+        catchError(error => {
+          console.error('Error loading tasks:', error);
+          return of({ jobs: [] });
+        })
+      )
+    }).subscribe(({ queueInfo, tasks }) => {
+      this.isLoadingQueueInfo.set(false);
+      
       if (queueInfo && queueInfo.isInQueue) {
         this.myQueueInfo.set(queueInfo);
         
-        // Update availability status from queue status
-        // Map backend queue status to frontend availability status
-        const queueStatusLower = queueInfo.queueStatus?.toLowerCase() || '';
+        // Update availability status from queue info
+        // Use AvailabilityStatus from API (stored in database)
+        const availabilityStatusLower = queueInfo.availabilityStatus?.toLowerCase() || '';
         const currentStatus = this.availabilityStatus();
         
-        if (queueStatusLower === 'busy') {
-          // Queue status is Busy → set to busy
+        // Check for in-progress tasks
+        const inProgressTasks = tasks.jobs.filter(job => {
+          const status = job.status?.toString().toLowerCase() || '';
+          return status === 'inprogress' || status === 'in_progress' || status === '2';
+        });
+        
+        if (availabilityStatusLower === 'busy') {
+          // AvailabilityStatus is Busy → set to busy
           this.availabilityStatus.set('busy');
-        } else if (queueStatusLower === 'inactive') {
-          // Queue status is Inactive → could be break or unavailable
-          // Check if user previously selected break or unavailable
-          const userSelectedStatus = localStorage.getItem('userSelectedStatus') as 'break' | 'unavailable' | null;
-          if (userSelectedStatus === 'break' || userSelectedStatus === 'unavailable') {
-            // Use the stored user selection
-            this.availabilityStatus.set(userSelectedStatus);
-          } else if (currentStatus === 'break' || currentStatus === 'unavailable') {
-            // Keep current status if it's already break or unavailable
-            // Store it for future reference
-            localStorage.setItem('userSelectedStatus', currentStatus);
-          } else {
-            // Default to unavailable if no previous selection
-            this.availabilityStatus.set('unavailable');
-          }
-        } else if (queueStatusLower === 'active') {
-          // Queue status is Active → check if should be available or busy
-          // If manually set to break/unavailable, keep it
+        } else if (availabilityStatusLower === 'break') {
+          // AvailabilityStatus is Break → set to break
+          this.availabilityStatus.set('break');
+        } else if (availabilityStatusLower === 'unavailable') {
+          // AvailabilityStatus is Unavailable → set to unavailable
+          this.availabilityStatus.set('unavailable');
+        } else if (availabilityStatusLower === 'available') {
+          // AvailabilityStatus is Available → check if should be available or busy
+          // If manually set to break/unavailable, keep it (but this shouldn't happen if status is Available)
           if (currentStatus === 'break' || currentStatus === 'unavailable') {
-            // Keep manual status
+            // Keep manual status - don't change it
+            // But this is unlikely since backend status is Available
           } else {
-            // Set to available (no in-progress tasks check here, that's handled in my-tasks component)
-            this.availabilityStatus.set('available');
+            // Check if there are in-progress tasks (sync with my-tasks component logic)
+            if (inProgressTasks.length > 0) {
+              this.availabilityStatus.set('busy');
+            } else {
+              this.availabilityStatus.set('available');
+            }
+          }
+        } else {
+          // Fallback: use queueStatus for backward compatibility
+          const queueStatusLower = queueInfo.queueStatus?.toLowerCase() || '';
+          if (queueStatusLower === 'busy') {
+            this.availabilityStatus.set('busy');
+          } else if (queueStatusLower === 'active') {
+            if (inProgressTasks.length > 0) {
+              this.availabilityStatus.set('busy');
+            } else {
+              this.availabilityStatus.set('available');
+            }
+          } else {
+            this.availabilityStatus.set('unavailable');
           }
         }
       } else {
@@ -287,24 +319,8 @@ export class AppComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Map frontend status to backend queue status
-    let queueStatus: 'active' | 'busy' | 'inactive';
-    switch (status) {
-      case 'available':
-        queueStatus = 'active';
-        break;
-      case 'busy':
-        queueStatus = 'busy';
-        break;
-      case 'break':
-      case 'unavailable':
-        queueStatus = 'inactive';
-        break;
-      default:
-        return;
-    }
-
-    this.queueService.updateMyQueueStatus(queueStatus).pipe(
+    // Map frontend status to backend availability status
+    this.queueService.updateMyQueueStatus(status).pipe(
       catchError(error => {
         console.error('Error updating queue status:', error);
         this.toastService.error('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
@@ -312,15 +328,14 @@ export class AppComponent implements OnInit, OnDestroy {
       })
     ).subscribe(response => {
       if (response) {
-        this.availabilityStatus.set(status);
-        this.toastService.success('อัปเดตสถานะสำเร็จ');
-        
-        // Store or remove user's selected status in localStorage
-        if (status === 'break' || status === 'unavailable') {
-          localStorage.setItem('userSelectedStatus', status);
+        // Update availability status from response
+        if (response.availabilityStatus) {
+          const availabilityStatus = response.availabilityStatus.toLowerCase() as 'available' | 'busy' | 'break' | 'unavailable';
+          this.availabilityStatus.set(availabilityStatus);
         } else {
-          localStorage.removeItem('userSelectedStatus');
+          this.availabilityStatus.set(status);
         }
+        this.toastService.success('อัปเดตสถานะสำเร็จ');
         
         // Reload queue info to sync with backend
         // This will trigger QueueUpdated notification which will update my-tasks component
