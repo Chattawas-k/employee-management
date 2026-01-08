@@ -295,25 +295,25 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     // Handle string priority from API (camelCase)
     if (typeof priority === 'string') {
       const lowerPriority = priority.toLowerCase();
-      if (lowerPriority === 'urgent') return 'border-orange-300 bg-orange-100 text-orange-800';
-      if (lowerPriority === 'high') return 'border-red-300 bg-red-100 text-red-800';
-      if (lowerPriority === 'normal') return 'border-blue-300 bg-blue-100 text-blue-800';
-      if (lowerPriority === 'low') return 'border-gray-300 bg-gray-100 text-gray-800';
-      return 'border-blue-300 bg-blue-100 text-blue-800';
+      if (lowerPriority === 'urgent') return 'border-orange-200 bg-orange-100 text-orange-700';
+      if (lowerPriority === 'high') return 'border-red-200 bg-red-100 text-red-700';
+      if (lowerPriority === 'normal') return 'border-blue-200 bg-blue-100 text-blue-700';
+      if (lowerPriority === 'low') return 'border-gray-200 bg-gray-100 text-gray-700';
+      return 'border-blue-200 bg-blue-100 text-blue-700';
     }
 
     // Handle enum priority
     switch (priority) {
       case JobPriority.Urgent:
-        return 'border-orange-300 bg-orange-100 text-orange-800';
+        return 'border-orange-200 bg-orange-100 text-orange-700';
       case JobPriority.High:
-        return 'border-red-300 bg-red-100 text-red-800';
+        return 'border-red-200 bg-red-100 text-red-700';
       case JobPriority.Normal:
-        return 'border-blue-300 bg-blue-100 text-blue-800';
+        return 'border-blue-200 bg-blue-100 text-blue-700';
       case JobPriority.Low:
-        return 'border-gray-300 bg-gray-100 text-gray-800';
+        return 'border-gray-200 bg-gray-100 text-gray-700';
       default:
-        return 'border-blue-300 bg-blue-100 text-blue-800';
+        return 'border-blue-200 bg-blue-100 text-blue-700';
     }
   }
 
