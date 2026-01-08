@@ -77,8 +77,8 @@ export class JobAssignmentComponent implements OnInit {
 
   handleAction(staff: StaffMember) {
     if (staff.status !== 'พัก/ลางาน') {
-        this.selectedStaff.set(staff);
-        this.showAssignDialog.set(true);
+      this.selectedStaff.set(staff);
+      this.showAssignDialog.set(true);
     }
   }
 

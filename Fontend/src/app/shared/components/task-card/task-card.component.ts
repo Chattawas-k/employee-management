@@ -40,6 +40,13 @@ export class TaskCardComponent {
     
     try {
       const date = new Date(dateString);
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.error('Invalid date string:', dateString);
+        return '';
+      }
+      
       const day = date.getDate();
       const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
       const month = monthNames[date.getMonth()];
@@ -49,8 +56,8 @@ export class TaskCardComponent {
       
       return `${day} ${month} ${year} (${hours}.${minutes} น.)`;
     } catch (error) {
-      console.error('Error formatting date:', error);
-      return dateString;
+      console.error('Error formatting date:', error, dateString);
+      return '';
     }
   }
 

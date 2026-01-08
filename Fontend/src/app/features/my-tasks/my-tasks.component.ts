@@ -183,9 +183,10 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     const startedLog = job.statusLogs.find(log => log.status === 'InProgress');
     const completedLog = job.statusLogs.find(log => log.status === 'Done' || log.status === 'Rejected');
     
-    const createdAt = createdLog ? this.formatDate(new Date(createdLog.timestamp)) : this.formatDate(new Date(job.createdDate));
-    const startedAt = startedLog ? this.formatDate(new Date(startedLog.timestamp)) : null;
-    const completedAt = completedLog ? this.formatDate(new Date(completedLog.timestamp)) : null;
+    // Pass ISO string to task card component, let it format the date
+    const createdAt = createdLog ? createdLog.timestamp : job.createdDate;
+    const startedAt = startedLog ? startedLog.timestamp : null;
+    const completedAt = completedLog ? completedLog.timestamp : null;
 
     let buttonText = 'เริ่มงาน';
     let buttonIcon: 'refresh' | 'check' | 'cross' = 'refresh';
