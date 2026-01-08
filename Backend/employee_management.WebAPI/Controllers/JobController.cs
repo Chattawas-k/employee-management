@@ -7,6 +7,7 @@ using employee_management.Application.Features.Jobs.Queries.Get;
 using employee_management.Application.Features.Jobs.Queries.GetMyTasks;
 using employee_management.Application.Features.Jobs.Queries.GetSalesReports;
 using employee_management.Application.Features.Jobs.Queries.GetQueueSummary;
+using employee_management.Application.Features.Jobs.Queries.GetWaitingJobs;
 using employee_management.WebAPI.Controllers.Base;
 
 namespace employee_management.WebAPI.Controllers
@@ -70,6 +71,14 @@ namespace employee_management.WebAPI.Controllers
             {
                 return BadRequest("ID in URL does not match ID in body.");
             }
+            var response = await _mediator.Send(request, cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpGet("waiting")]
+        public async Task<ActionResult<GetWaitingJobsResponse>> GetWaitingJobs(CancellationToken cancellationToken)
+        {
+            var request = new GetWaitingJobsRequest();
             var response = await _mediator.Send(request, cancellationToken);
             return Ok(response);
         }

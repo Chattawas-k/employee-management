@@ -26,6 +26,7 @@ namespace employee_management.Persistence.Context
         public DbSet<Department> Departments { get; set; }
         public DbSet<Queue> Queues { get; set; }
         public DbSet<Job> Jobs { get; set; }
+        public DbSet<WaitingJob> WaitingJobs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -71,6 +72,23 @@ namespace employee_management.Persistence.Context
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.CreatedDate);
                 entity.HasIndex(e => e.JobNumber);
+            });
+
+            // Configure WaitingJob entity
+            modelBuilder.Entity<WaitingJob>(entity =>
+            {
+                entity.ToTable("WaitingJobs");
+
+                // Configure relationship with Job
+                entity.HasOne(w => w.Job)
+                    .WithMany()
+                    .HasForeignKey(w => w.JobId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Create indexes
+                entity.HasIndex(w => w.JobId);
+                entity.HasIndex(w => w.CreatedDate);
+                entity.HasIndex(w => w.IsDeleted);
             });
         }
     }

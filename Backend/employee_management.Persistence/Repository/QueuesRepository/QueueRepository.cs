@@ -84,6 +84,85 @@ namespace employee_management.Persistence.Repository.QueuesRepository
                 Context.Queues.Add(newQueue);
             }
         }
+
+        public async Task<Queue?> GetFirstAvailableStaffAsync(DateTime date, CancellationToken cancellationToken)
+        {
+            // Convert to UTC to avoid DateTime Kind issues with PostgreSQL
+            var targetDate = date.Date.ToUniversalTime();
+            var nextDate = targetDate.AddDays(1);
+            
+            return await Context.Queues
+                .Include(q => q.Employee)
+                .ThenInclude(e => e!.Position)
+                .ThenInclude(p => p!.Department)
+                .Where(q => q.QueueDate >= targetDate && q.QueueDate < nextDate && q.Status == QueueStatus.Active && !q.IsDeleted)
+                .OrderBy(q => q.Position) // Order by master position
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        public async Task RotateQueueToTailAsync(Guid employeeId, DateTime date, CancellationToken cancellationToken)
+        {
+            // Convert to UTC to avoid DateTime Kind issues with PostgreSQL
+            var targetDate = date.Date.ToUniversalTime();
+            var nextDate = targetDate.AddDays(1);
+            
+            // Get all queues for the date, ordered by position
+            // Use AsNoTracking to avoid tracking issues, then update explicitly
+            var allQueues = await Context.Queues
+                .Where(q => q.QueueDate >= targetDate && q.QueueDate < nextDate && !q.IsDeleted)
+                .OrderBy(q => q.Position)
+                .ToListAsync(cancellationToken);
+            
+            if (!allQueues.Any())
+            {
+                return; // No queues to rotate
+            }
+            
+            // Find the staff's queue entry
+            var staffQueue = allQueues.FirstOrDefault(q => q.EmployeeId == employeeId);
+            if (staffQueue == null)
+            {
+                return; // Staff not in queue
+            }
+            
+            var currentPosition = staffQueue.Position;
+            var maxPosition = allQueues.Max(q => q.Position);
+            
+            // If already at tail, no rotation needed
+            if (currentPosition == maxPosition)
+            {
+                return;
+            }
+            
+            // Reload staffQueue with tracking for update
+            var staffQueueToUpdate = await Context.Queues
+                .FirstOrDefaultAsync(q => q.Id == staffQueue.Id, cancellationToken);
+            
+            if (staffQueueToUpdate == null)
+            {
+                return;
+            }
+            
+            // Move all staff after this position up by 1
+            var queuesToUpdate = await Context.Queues
+                .Where(q => q.QueueDate >= targetDate && q.QueueDate < nextDate 
+                    && !q.IsDeleted 
+                    && q.Position > currentPosition)
+                .ToListAsync(cancellationToken);
+            
+            foreach (var queue in queuesToUpdate)
+            {
+                queue.Position = queue.Position - 1;
+                Context.Queues.Update(queue);
+            }
+            
+            // Move accepted staff to tail
+            staffQueueToUpdate.Position = maxPosition;
+            Context.Queues.Update(staffQueueToUpdate);
+            
+            // Note: Don't save here - let the calling method save via UnitOfWork
+            // This ensures rotation and status update are in the same transaction
+        }
     }
 }
 

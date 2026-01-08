@@ -73,3 +73,15 @@ export interface ArchiveQueueResponse {
   targetDate: string;
 }
 
+export interface MyQueueInfoResponse {
+  myQueuePosition: number;
+  queuesRemaining: number;
+  currentlyServing: {
+    name: string;
+    queuePosition: number;
+    avatarUrl?: string;
+  } | null;
+  isInQueue: boolean;
+  queueStatus: string; // "Active", "Busy", "Inactive"
+}
+

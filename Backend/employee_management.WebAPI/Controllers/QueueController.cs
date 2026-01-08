@@ -8,6 +8,7 @@ using employee_management.Application.Features.Queues.Commands.ResetDaily;
 using employee_management.Application.Features.Queues.Commands.Update;
 using employee_management.Application.Features.Queues.Commands.UpdateMyStatus;
 using employee_management.Application.Features.Queues.Queries.GetByDate;
+using employee_management.Application.Features.Queues.Queries.GetMyQueueInfo;
 using employee_management.Domain.Enums;
 using employee_management.WebAPI.Controllers.Base;
 
@@ -26,6 +27,21 @@ namespace employee_management.WebAPI.Controllers
         public async Task<ActionResult<List<GetByDateResponse>>> GetByDate(DateTime date, CancellationToken cancellationToken)
         {
             var response = await _mediator.Send(new GetByDateRequest(date), cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpGet("my-info")]
+        public async Task<ActionResult<GetMyQueueInfoResponse>> GetMyQueueInfo(CancellationToken cancellationToken)
+        {
+            // Get EmployeeId from JWT token claims
+            var employeeIdClaim = User.FindFirst("EmployeeId")?.Value;
+            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId))
+            {
+                return BadRequest("EmployeeId not found in token or invalid format.");
+            }
+
+            var request = new GetMyQueueInfoRequest(employeeId);
+            var response = await _mediator.Send(request, cancellationToken);
             return Ok(response);
         }
 

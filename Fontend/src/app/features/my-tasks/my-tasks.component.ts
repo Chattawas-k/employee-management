@@ -9,7 +9,9 @@ import { RejectTaskDialogComponent } from '../../shared/components/reject-task-d
 import { TaskService } from '../../services/task.service';
 import { AuthService } from '../../services/auth.service';
 import { SignalRService } from '../../services/signalr.service';
+import { QueueService } from '../../services/queue.service';
 import { JobDto, JobStatus, JobPriority, UpdateJobStatusRequest, UpdateJobStatusReportDto } from '../../models/task.model';
+import { MyQueueInfoResponse } from '../../models/queue.model';
 import { getEmployeeIdFromToken } from '../../utils/jwt.util';
 import { catchError, finalize } from 'rxjs/operators';
 import { of } from 'rxjs';
@@ -40,20 +42,21 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     private taskService: TaskService,
     private authService: AuthService,
     private toastService: ToastService,
-    private signalRService: SignalRService
+    private signalRService: SignalRService,
+    private queueService: QueueService
   ) {}
-  statusBannerInfo = signal<{ title: string; subtitle: string; borderColor: string; iconContainerBg: string; iconBorder: string; iconColor: string; } | null>(null);
+  statusBannerInfo = signal<{ title: string; subtitle: string; borderColor: string; backgroundColor: string; iconContainerBg: string; iconBorder: string; iconColor: string; } | null>(null);
   
-  isMyTurn = signal(true);
+  isMyTurn = signal(false);
   currentUser = signal('สมศักดิ์ รักงาน (Bob)');
   
-  queuesRemaining = signal(1);
-  myQueuePosition = signal(2);
-  currentlyServing = signal({
-    name: 'สมศักดิ์ รักงาน (Bob)',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop',
-    queuePosition: 1
-  });
+  queuesRemaining = signal(0);
+  myQueuePosition = signal(0);
+  currentlyServing = signal<{
+    name: string;
+    avatarUrl: string;
+    queuePosition: number;
+  } | null>(null);
 
   showStartDialog = signal(false);
   showRejectDialog = signal(false);
@@ -68,11 +71,17 @@ export class MyTasksComponent implements OnInit, OnDestroy {
   completedTasks = signal<Task[]>([]);
 
   isAvailable = computed(() => this.availabilityStatus() === 'available');
+  // Show receive customer button only when status is 'break' or 'unavailable'
+  canReceiveCustomer = computed(() => {
+    const status = this.availabilityStatus();
+    return status === 'break' || status === 'unavailable';
+  });
 
   async ngOnInit(): Promise<void> {
     // Initialize status banner info based on availability status
     this.updateStatusBanner();
     this.loadTasks();
+    this.loadQueueInfo();
 
     // Start SignalR connection for real-time updates
     try {
@@ -80,11 +89,20 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       
       // Subscribe to real-time notifications
       this.signalRService.onJobStatusChanged(() => {
+        // When job status changes, reload tasks to update availability status
         this.loadTasks();
       });
 
       this.signalRService.onQueueUpdated(() => {
+        // When queue status changes, reload tasks and queue info
         this.loadTasks();
+        // Reload queue info which will update availabilityStatus and banner
+        this.loadQueueInfo(); // This will update availabilityStatus from queue status and call updateStatusBanner()
+      });
+
+      this.signalRService.onEmployeeStatusChanged(() => {
+        // When employee status changes, reload queue info to sync status
+        this.loadQueueInfo(); // This will update availabilityStatus from queue status and call updateStatusBanner()
       });
 
       this.signalRService.onJobAssigned((jobId, jobTitle, customer) => {
@@ -103,6 +121,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     // Unsubscribe from SignalR notifications
     this.signalRService.offJobStatusChanged();
     this.signalRService.offQueueUpdated();
+    this.signalRService.offEmployeeStatusChanged();
     this.signalRService.offJobAssigned();
   }
 
@@ -119,6 +138,94 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       // Backend uses camelCase, so response will have 'jobs' property
       const jobs = response.jobs || [];
       this.mapTasksFromApi(jobs);
+    });
+  }
+
+  loadQueueInfo(): void {
+    this.queueService.getMyQueueInfo().pipe(
+      catchError(error => {
+        console.error('Error loading queue info:', error);
+        // If employee is not in queue, set defaults
+        this.queuesRemaining.set(0);
+        this.myQueuePosition.set(0);
+        this.currentlyServing.set(null);
+        this.isMyTurn.set(false);
+        return of(null);
+      })
+    ).subscribe(queueInfo => {
+      if (queueInfo && queueInfo.isInQueue) {
+        this.queuesRemaining.set(queueInfo.queuesRemaining);
+        this.myQueuePosition.set(queueInfo.myQueuePosition);
+        this.isMyTurn.set(queueInfo.queuesRemaining === 0);
+        
+        // Update availability status from queue status
+        // Map backend queue status to frontend availability status
+        const queueStatusLower = queueInfo.queueStatus?.toLowerCase() || '';
+        const currentStatus = this.availabilityStatus();
+        
+        if (queueStatusLower === 'busy') {
+          // Queue status is Busy → set to busy
+          this.availabilityStatus.set('busy');
+        } else if (queueStatusLower === 'inactive') {
+          // Queue status is Inactive → could be break or unavailable
+          // Check if user previously selected break or unavailable
+          const userSelectedStatus = localStorage.getItem('userSelectedStatus') as 'break' | 'unavailable' | null;
+          if (userSelectedStatus === 'break' || userSelectedStatus === 'unavailable') {
+            // Use the stored user selection
+            this.availabilityStatus.set(userSelectedStatus);
+          } else if (currentStatus === 'break' || currentStatus === 'unavailable') {
+            // Keep current status if it's already break or unavailable
+            // Store it for future reference
+            localStorage.setItem('userSelectedStatus', currentStatus);
+          } else {
+            // Default to unavailable if no previous selection
+            this.availabilityStatus.set('unavailable');
+          }
+        } else if (queueStatusLower === 'active') {
+          // Queue status is Active → check if should be available or busy
+          // If manually set to break/unavailable, keep it
+          if (currentStatus === 'break' || currentStatus === 'unavailable') {
+            // Keep manual status - don't change it
+            // But still update the banner to reflect the current status
+          } else {
+            // Check if there are in-progress tasks
+            if (this.inProgressTasks().length > 0) {
+              this.availabilityStatus.set('busy');
+            } else {
+              this.availabilityStatus.set('available');
+            }
+          }
+        }
+        
+        // Always update status banner after status change or when keeping manual status
+        this.updateStatusBanner();
+        
+        if (queueInfo.currentlyServing) {
+          // Generate avatar URL if not provided
+          let avatarUrl = queueInfo.currentlyServing.avatarUrl;
+          if (!avatarUrl) {
+            const firstChar = queueInfo.currentlyServing.name.charAt(0).toUpperCase();
+            // Use a placeholder or generate avatar URL
+            avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(queueInfo.currentlyServing.name)}&background=6366f1&color=fff&size=128`;
+          }
+          
+          this.currentlyServing.set({
+            name: queueInfo.currentlyServing.name,
+            avatarUrl: avatarUrl,
+            queuePosition: queueInfo.currentlyServing.queuePosition
+          });
+        } else {
+          this.currentlyServing.set(null);
+        }
+      } else {
+        // Employee not in queue
+        this.queuesRemaining.set(0);
+        this.myQueuePosition.set(0);
+        this.currentlyServing.set(null);
+        this.isMyTurn.set(false);
+        // Update status banner when not in queue
+        this.updateStatusBanner();
+      }
     });
   }
 
@@ -143,11 +250,6 @@ export class MyTasksComponent implements OnInit, OnDestroy {
         todo.push(task);
       } else if (statusStr === 'inprogress' || statusStr === 'in-progress') {
         inProgress.push(task);
-        // Update availability status if there are in-progress tasks
-        if (this.availabilityStatus() === 'available') {
-          this.availabilityStatus.set('busy');
-          this.updateStatusBanner();
-        }
       } else if (statusStr === 'done' || statusStr === 'rejected') {
         completed.push(task);
       }
@@ -156,6 +258,26 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     this.todoTasks.set(todo);
     this.inProgressTasks.set(inProgress);
     this.completedTasks.set(completed);
+
+    // Update availability status based on InProgress tasks
+    // Only update if status is 'available' or 'busy' (don't override 'break' or 'unavailable')
+    const currentStatus = this.availabilityStatus();
+    if (inProgress.length > 0) {
+      // Has InProgress tasks → should be 'busy'
+      if (currentStatus === 'available') {
+        this.availabilityStatus.set('busy');
+        this.updateStatusBanner();
+      }
+    } else {
+      // No InProgress tasks → should be 'available' (unless manually set to 'break' or 'unavailable')
+      if (currentStatus === 'busy') {
+        this.availabilityStatus.set('available');
+        this.updateStatusBanner();
+      } else if (currentStatus === 'break' || currentStatus === 'unavailable') {
+        // If manually set to break/unavailable, ensure banner is updated
+        this.updateStatusBanner();
+      }
+    }
   }
 
   private getStatusString(status: JobStatus): string {
@@ -340,34 +462,40 @@ export class MyTasksComponent implements OnInit, OnDestroy {
         this.statusBannerInfo.set({
           title: 'คุณกำลังติดลูกค้า',
           subtitle: 'สถานะของคุณจะเปลี่ยนเป็น "พร้อมรับงาน" อัตโนมัติเมื่องานเสร็จ',
-          borderColor: 'border-orange-400',
+          borderColor: 'border-orange-500',
+          backgroundColor: 'bg-orange-50',
           iconContainerBg: 'bg-orange-100',
           iconBorder: 'border-orange-200',
-          iconColor: 'text-orange-500',
+          iconColor: 'text-orange-600',
         });
         break;
       case 'break':
         this.statusBannerInfo.set({
           title: 'คุณกำลังพัก',
           subtitle: 'คุณจะไม่ได้รับคิวใหม่ระหว่างพัก',
-          borderColor: 'border-yellow-400',
+          borderColor: 'border-yellow-500',
+          backgroundColor: 'bg-yellow-50',
           iconContainerBg: 'bg-yellow-100',
           iconBorder: 'border-yellow-200',
-          iconColor: 'text-yellow-500',
+          iconColor: 'text-yellow-600',
         });
         break;
       case 'unavailable':
         this.statusBannerInfo.set({
           title: 'คุณตั้งสถานะเป็น "ไม่พร้อมรับงาน"',
           subtitle: 'คุณจะไม่ได้รับคิวใหม่จนกว่าจะเปลี่ยนสถานะกลับมาเป็น "พร้อมรับงาน"',
-          borderColor: 'border-gray-400',
+          borderColor: 'border-gray-500',
+          backgroundColor: 'bg-gray-50',
           iconContainerBg: 'bg-gray-100',
           iconBorder: 'border-gray-200',
-          iconColor: 'text-gray-500',
+          iconColor: 'text-gray-600',
         });
         break;
+      case 'available':
       default:
+        // When status is 'available', don't show the red banner
         this.statusBannerInfo.set(null);
+        break;
     }
   }
 
@@ -416,9 +544,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       if (response) {
         this.toastService.success('สร้างงานสำเร็จ');
         this.isMyTurn.set(false);
-        // Update availability status to busy
-        this.availabilityStatus.set('busy');
-        this.updateStatusBanner();
+        // availabilityStatus will be updated automatically when loadTasks() completes
       }
     });
   }
@@ -474,9 +600,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     ).subscribe(response => {
       if (response) {
         this.toastService.success('เริ่มงานสำเร็จ');
-        // Update availability status to busy
-        this.availabilityStatus.set('busy');
-        this.updateStatusBanner();
+        // availabilityStatus will be updated automatically when loadTasks() completes
       }
     });
   }
@@ -615,17 +739,9 @@ export class MyTasksComponent implements OnInit, OnDestroy {
         this.isLoading.set(false);
         this.closeSalesReportDialog();
         // Reload tasks after a short delay to ensure backend has updated
+        // mapTasksFromApi() will automatically update availabilityStatus based on InProgress tasks
         setTimeout(() => {
           this.loadTasks();
-          // Update availability status if no more in-progress tasks
-          // Check after reload completes
-          setTimeout(() => {
-            const updatedInProgressTasks = this.inProgressTasks();
-            if (updatedInProgressTasks.length === 0 && this.availabilityStatus() === 'busy') {
-              this.availabilityStatus.set('available');
-              this.updateStatusBanner();
-            }
-          }, 100);
         }, 200);
       })
     ).subscribe(response => {

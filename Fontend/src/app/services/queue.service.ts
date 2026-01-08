@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, forkJoin } from 'rxjs';
-import { GetQueuesByDateResponse, QueueSummaryResponse, UpdateMyQueueStatusRequest, UpdateMyQueueStatusResponse } from '../models/queue.model';
+import { GetQueuesByDateResponse, QueueSummaryResponse, UpdateMyQueueStatusRequest, UpdateMyQueueStatusResponse, MyQueueInfoResponse } from '../models/queue.model';
 import { environment } from '../../environments/environment';
 
 @Injectable({
@@ -75,6 +75,10 @@ export class QueueService {
       status: request.status,
       queueDate: request.queueDate
     });
+  }
+
+  getMyQueueInfo(): Observable<MyQueueInfoResponse> {
+    return this.http.get<MyQueueInfoResponse>(`${this.apiUrl}/my-info`);
   }
 }
 

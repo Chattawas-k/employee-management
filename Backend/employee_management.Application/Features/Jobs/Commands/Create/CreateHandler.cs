@@ -5,6 +5,8 @@ using employee_management.Application.Common.Services;
 using employee_management.Application.Repository;
 using employee_management.Application.Repository.EmployeesRepository;
 using employee_management.Application.Repository.JobsRepository;
+using employee_management.Application.Repository.QueuesRepository;
+using employee_management.Application.Repository.WaitingJobsRepository;
 using employee_management.Domain.Entities;
 using employee_management.Domain.Enums;
 using Microsoft.Extensions.Logging;
@@ -16,6 +18,8 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
         private readonly IUnitOfWork _unitOfWork;
         private readonly IJobRepository _jobRepository;
         private readonly IEmployeeRepository _employeeRepository;
+        private readonly IQueueRepository _queueRepository;
+        private readonly IWaitingJobRepository _waitingJobRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<CreateHandler> _logger;
         private readonly INotificationService _notificationService;
@@ -25,6 +29,8 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
             IUnitOfWork unitOfWork,
             IJobRepository jobRepository,
             IEmployeeRepository employeeRepository,
+            IQueueRepository queueRepository,
+            IWaitingJobRepository waitingJobRepository,
             IMapper mapper,
             ILogger<CreateHandler> logger,
             INotificationService notificationService,
@@ -33,6 +39,8 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
             _unitOfWork = unitOfWork;
             _jobRepository = jobRepository;
             _employeeRepository = employeeRepository;
+            _queueRepository = queueRepository;
+            _waitingJobRepository = waitingJobRepository;
             _mapper = mapper;
             _logger = logger;
             _notificationService = notificationService;
@@ -43,26 +51,20 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
         {
             try
             {
-                // Validate that the assignee exists
-                var employee = await _employeeRepository.Get(request.AssigneeId, cancellationToken);
-                if (employee == null)
-                {
-                    _logger.LogWarning("Employee with Id: {EmployeeId} not found", request.AssigneeId);
-                    throw new NoDataFoundException($"Employee with Id {request.AssigneeId} not found.");
-                }
+                var assigneeId = request.AssigneeId;
 
                 // Generate job number for today
                 var today = DateTime.UtcNow;
                 var jobNumber = await _jobNumberService.GenerateJobNumberAsync(today, cancellationToken);
 
-                // Create new Job entity
+                // Create new Job entity (without assignee initially if auto-assigning)
                 var job = new Job
                 {
                     JobNumber = jobNumber,
                     Title = request.Title,
                     Customer = request.Customer,
                     Description = request.Description,
-                    AssigneeId = request.AssigneeId,
+                    AssigneeId = assigneeId, // May be Guid.Empty if auto-assigning
                     Status = JobStatus.Pending,
                     Priority = request.Priority,
                     StatusLogs = new List<StatusLog>
@@ -77,6 +79,63 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
 
                 _jobRepository.Create(job);
                 await _unitOfWork.Save(cancellationToken);
+
+                // Auto-assign to first Available staff if AssigneeId is not provided (Guid.Empty)
+                if (assigneeId == Guid.Empty)
+                {
+                    var todayDate = today.Date;
+                    var firstAvailableQueue = await _queueRepository.GetFirstAvailableStaffAsync(todayDate, cancellationToken);
+                    
+                    if (firstAvailableQueue == null)
+                    {
+                        // No available staff - create WaitingJob
+                        _logger.LogWarning("No available staff found for auto-assignment, creating waiting job for JobId: {JobId}", job.Id);
+                        
+                        var waitingJob = new WaitingJob
+                        {
+                            JobId = job.Id,
+                            CustomerName = request.Customer,
+                            Title = request.Title,
+                            Priority = request.Priority
+                        };
+                        
+                        _waitingJobRepository.Create(waitingJob);
+                        await _unitOfWork.Save(cancellationToken);
+                        
+                        // Send notification about waiting job
+                        await _notificationService.SendQueueUpdatedNotificationAsync();
+                        
+                        // Return response indicating job is waiting
+                        var waitingJobEntity = await _jobRepository.Get(job.Id, cancellationToken);
+                        if (waitingJobEntity == null)
+                        {
+                            throw new Exception("Failed to retrieve created job.");
+                        }
+                        
+                        return _mapper.Map<CreateResponse>(waitingJobEntity);
+                    }
+
+                    // Assign to first available staff
+                    assigneeId = firstAvailableQueue.EmployeeId;
+                    
+                    // Update job with assignee
+                    job.AssigneeId = assigneeId;
+                    _jobRepository.Update(job);
+                    await _unitOfWork.Save(cancellationToken);
+                    
+                    _logger.LogInformation("Auto-assigned job to employee {EmployeeId} (position {Position})", 
+                        assigneeId, firstAvailableQueue.Position);
+                }
+                else
+                {
+                    // Validate that the assignee exists (if manually assigned)
+                    var employee = await _employeeRepository.Get(assigneeId, cancellationToken);
+                    if (employee == null)
+                    {
+                        _logger.LogWarning("Employee with Id: {EmployeeId} not found", assigneeId);
+                        throw new NoDataFoundException($"Employee with Id {assigneeId} not found.");
+                    }
+                }
 
                 // Reload the job with employee relationship for mapping
                 var createdJob = await _jobRepository.Get(job.Id, cancellationToken);

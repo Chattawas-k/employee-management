@@ -10,7 +10,9 @@ import { AuthService } from './services/auth.service';
 import { QueueService } from './services/queue.service';
 import { ToastService } from './services/toast.service';
 import { EmployeeService } from './services/employee.service';
+import { SignalRService } from './services/signalr.service';
 import { EmployeeDto } from './models/employee.model';
+import { MyQueueInfoResponse } from './models/queue.model';
 import { catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 
@@ -44,6 +46,8 @@ export class AppComponent implements OnInit, OnDestroy {
   isLoginPage = signal(false);
   showStatusChangeDialog = signal(false);
   pendingStatusChange = signal<'available' | 'busy' | 'break' | 'unavailable' | null>(null);
+  myQueueInfo = signal<MyQueueInfoResponse | null>(null);
+  isLoadingQueueInfo = signal(false);
 
   showLayout = computed(() => this.isAuthenticated() && !this.isLoginPage());
 
@@ -77,7 +81,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private router: Router,
     private queueService: QueueService,
     private toastService: ToastService,
-    private employeeService: EmployeeService
+    private employeeService: EmployeeService,
+    private signalRService: SignalRService
   ) {}
 
   ngOnInit(): void {
@@ -99,13 +104,25 @@ export class AppComponent implements OnInit, OnDestroy {
       this.isAuthenticated.set(this.authService.isAuthenticated());
       if (user) {
         this.loadEmployeeInfo();
+        this.loadMyQueueInfo();
+        this.setupSignalR();
       } else {
         this.currentEmployee.set(null);
+        this.myQueueInfo.set(null);
       }
     });
 
     if (this.isAuthenticated()) {
       this.loadEmployeeInfo();
+      this.loadMyQueueInfo();
+      this.setupSignalR();
+      
+      // Load user's selected status from localStorage if exists
+      const userSelectedStatus = localStorage.getItem('userSelectedStatus') as 'break' | 'unavailable' | null;
+      if (userSelectedStatus === 'break' || userSelectedStatus === 'unavailable') {
+        // Don't set it immediately, let loadMyQueueInfo() handle it based on queue status
+        // This ensures consistency with backend
+      }
     }
   }
 
@@ -120,6 +137,84 @@ export class AppComponent implements OnInit, OnDestroy {
         this.currentEmployee.set(employee);
       }
     });
+  }
+
+  private loadMyQueueInfo(): void {
+    this.isLoadingQueueInfo.set(true);
+    this.queueService.getMyQueueInfo().pipe(
+      catchError(error => {
+        console.error('Error loading queue info:', error);
+        // If employee is not in queue, set to null (will hide the section)
+        this.myQueueInfo.set(null);
+        this.availabilityStatus.set('unavailable'); // Not in queue = unavailable
+        return of(null);
+      })
+    ).subscribe(queueInfo => {
+      this.isLoadingQueueInfo.set(false);
+      if (queueInfo && queueInfo.isInQueue) {
+        this.myQueueInfo.set(queueInfo);
+        
+        // Update availability status from queue status
+        // Map backend queue status to frontend availability status
+        const queueStatusLower = queueInfo.queueStatus?.toLowerCase() || '';
+        const currentStatus = this.availabilityStatus();
+        
+        if (queueStatusLower === 'busy') {
+          // Queue status is Busy → set to busy
+          this.availabilityStatus.set('busy');
+        } else if (queueStatusLower === 'inactive') {
+          // Queue status is Inactive → could be break or unavailable
+          // Check if user previously selected break or unavailable
+          const userSelectedStatus = localStorage.getItem('userSelectedStatus') as 'break' | 'unavailable' | null;
+          if (userSelectedStatus === 'break' || userSelectedStatus === 'unavailable') {
+            // Use the stored user selection
+            this.availabilityStatus.set(userSelectedStatus);
+          } else if (currentStatus === 'break' || currentStatus === 'unavailable') {
+            // Keep current status if it's already break or unavailable
+            // Store it for future reference
+            localStorage.setItem('userSelectedStatus', currentStatus);
+          } else {
+            // Default to unavailable if no previous selection
+            this.availabilityStatus.set('unavailable');
+          }
+        } else if (queueStatusLower === 'active') {
+          // Queue status is Active → check if should be available or busy
+          // If manually set to break/unavailable, keep it
+          if (currentStatus === 'break' || currentStatus === 'unavailable') {
+            // Keep manual status
+          } else {
+            // Set to available (no in-progress tasks check here, that's handled in my-tasks component)
+            this.availabilityStatus.set('available');
+          }
+        }
+      } else {
+        this.myQueueInfo.set(null);
+        this.availabilityStatus.set('unavailable'); // Not in queue = unavailable
+      }
+    });
+  }
+
+  private async setupSignalR(): Promise<void> {
+    try {
+      await this.signalRService.startConnection();
+      
+      // Subscribe to queue updates for real-time refresh
+      this.signalRService.onQueueUpdated(() => {
+        this.loadMyQueueInfo();
+      });
+    } catch (error) {
+      console.error('Failed to start SignalR connection:', error);
+      // Continue without real-time updates if SignalR fails
+    }
+  }
+
+  generateAvatar(name: string): string {
+    if (!name) return '';
+    // Generate avatar from first character
+    const firstChar = name.charAt(0).toUpperCase();
+    // In a real implementation, you might use a service like UI Avatars
+    // For now, return empty string and let the template handle it
+    return '';
   }
 
   private checkRoute(url: string): void {
@@ -166,12 +261,17 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   getAvailableStatuses(): Array<{ value: 'available' | 'busy' | 'break' | 'unavailable'; label: string; dotClass: string }> {
-    // Only show busy, break, and unavailable in dropdown (not available)
-    return [
+    // Get all possible statuses
+    const allStatuses: Array<{ value: 'available' | 'busy' | 'break' | 'unavailable'; label: string; dotClass: string }> = [
+      { value: 'available', label: 'พร้อมรับงาน', dotClass: 'bg-green-500' },
       { value: 'busy', label: 'ติดลูกค้า', dotClass: 'bg-orange-500' },
       { value: 'break', label: 'พัก', dotClass: 'bg-yellow-500' },
       { value: 'unavailable', label: 'ไม่พร้อมรับงาน', dotClass: 'bg-gray-400' }
     ];
+    
+    // Filter out current status - don't show the status that's already selected
+    const currentStatus = this.availabilityStatus();
+    return allStatuses.filter(status => status.value !== currentStatus);
   }
 
   setStatus(status: 'available' | 'busy' | 'break' | 'unavailable'): void {
@@ -214,6 +314,21 @@ export class AppComponent implements OnInit, OnDestroy {
       if (response) {
         this.availabilityStatus.set(status);
         this.toastService.success('อัปเดตสถานะสำเร็จ');
+        
+        // Store or remove user's selected status in localStorage
+        if (status === 'break' || status === 'unavailable') {
+          localStorage.setItem('userSelectedStatus', status);
+        } else {
+          localStorage.removeItem('userSelectedStatus');
+        }
+        
+        // Reload queue info to sync with backend
+        // This will trigger QueueUpdated notification which will update my-tasks component
+        this.loadMyQueueInfo();
+        
+        // Also trigger a manual queue update notification to ensure immediate sync
+        // The backend already sends QueueUpdated, but we can also manually trigger it
+        // by calling loadMyQueueInfo which will update the status
       }
       this.showStatusChangeDialog.set(false);
       this.pendingStatusChange.set(null);

@@ -175,6 +175,35 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     const busyStaffList: BusyStaff[] = [];
     const unavailableStaffList: UnavailableStaff[] = [];
 
+    // Filter and sort Available staff by master position
+    const availableQueues = queues
+      .filter(q => {
+        const status = typeof q.status === 'string' 
+          ? q.status.toLowerCase() 
+          : String(q.status || '').toLowerCase();
+        return status === 'active';
+      })
+      .sort((a, b) => a.position - b.position); // Sort by master position
+
+    // Assign relative positions for Ready Queue display (1, 2, 3...)
+    availableQueues.forEach((queue, index) => {
+      const relativePosition = index + 1; // Relative position in Ready Queue
+      const employeeName = queue.employeeName ? `คุณ${queue.employeeName}` : 'ไม่ระบุชื่อ';
+      const avatar = this.generateAvatar(queue.employeeName || '');
+      const servedToday = this.countServedToday(queue.employeeId);
+      const isNext = relativePosition === 1; // First in Ready Queue is "next"
+
+      readyQueueList.push({
+        queue: relativePosition, // Use relative position, not master position
+        name: employeeName,
+        avatar,
+        status: isNext ? 'รับลูกค้าวันนี้' : 'รอรับลูกค้า',
+        servedToday,
+        isNext
+      });
+    });
+
+    // Process Busy and Unavailable staff
     const sortedQueues = [...queues].sort((a, b) => a.position - b.position);
 
     sortedQueues.forEach((queue) => {
@@ -184,17 +213,7 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
 
       const normalizedStatus = typeof queue.status === 'string' ? queue.status.toLowerCase() : String(queue.status || '').toLowerCase();
 
-      if (normalizedStatus === 'active') {
-        const isNext = queue.position === 1;
-        readyQueueList.push({
-          queue: queue.position,
-          name: employeeName,
-          avatar,
-          status: isNext ? 'รับลูกค้าวันนี้' : 'รอรับลูกค้า',
-          servedToday,
-          isNext
-        });
-      } else if (normalizedStatus === 'busy') {
+      if (normalizedStatus === 'busy') {
         const job = this.findActiveJobForEmployee(queue.employeeId);
         const startTime = job ? this.getJobStartTime(job) : Date.now();
         const startTimeFormatted = job ? this.formatStartTime(job) : '';
