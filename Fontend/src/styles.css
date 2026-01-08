@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent horizontal scrollbar on the entire page */
+html, body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -12,6 +24,10 @@
 html {
   font-size: 15px;
   scroll-behavior: smooth; /* Smooth scrolling */
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 body {
@@ -24,6 +40,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility; /* Better text rendering */
   -webkit-text-size-adjust: 100%; /* Prevent font scaling on iOS */
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 /* Ensure minimum font size is 14px for all text elements */

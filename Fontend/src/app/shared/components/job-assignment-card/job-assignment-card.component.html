@@ -13,22 +13,22 @@
     </span>
   </div>
 
-  <div class="grid grid-cols-4 gap-4 my-6 flex-grow bg-gray-50 p-4 rounded-lg">
-    <div class="text-center border-r border-gray-200 last:border-r-0">
-      <p class="text-sm text-gray-500">งานที่ต้องทำ</p>
-      <p class="font-medium text-gray-800 text-3xl">{{ staff.pendingTasks }}</p>
+  <div class="flex flex-row sm:grid sm:grid-cols-4 gap-0 sm:gap-4 my-4 sm:my-6 flex-grow bg-gray-50 p-2 sm:p-4 rounded-lg overflow-x-auto">
+    <div class="text-center flex-1 sm:flex-none min-w-0 px-1 sm:px-2">
+      <p class="text-[10px] sm:text-xs text-gray-500 whitespace-nowrap mb-0.5 sm:mb-1 leading-tight">งานที่ต้องทำ</p>
+      <p class="font-medium text-gray-800 text-[11px] sm:text-2xl leading-tight">{{ staff.pendingTasks }}</p>
     </div>
-    <div class="text-center border-r border-gray-200 last:border-r-0">
-      <p class="text-sm text-gray-500">งานที่ทำอยู่</p>
-      <p class="font-medium text-gray-800 text-3xl">{{ staff.currentTasks }}</p>
+    <div class="text-center border-l border-r border-gray-200 flex-1 sm:flex-none min-w-0 px-1 sm:px-2">
+      <p class="text-[10px] sm:text-xs text-gray-500 whitespace-nowrap mb-0.5 sm:mb-1 leading-tight">งานที่ทำอยู่</p>
+      <p class="font-medium text-gray-800 text-[11px] sm:text-2xl leading-tight">{{ staff.currentTasks }}</p>
     </div>
-    <div class="text-center border-r border-gray-200 last:border-r-0">
-      <p class="text-sm text-gray-500">งานทั้งหมด</p>
-      <p class="font-medium text-gray-800 text-3xl">{{ staff.totalTasks }}</p>
+    <div class="text-center border-r border-gray-200 flex-1 sm:flex-none min-w-0 px-1 sm:px-2">
+      <p class="text-[10px] sm:text-xs text-gray-500 whitespace-nowrap mb-0.5 sm:mb-1 leading-tight">งานทั้งหมด</p>
+      <p class="font-medium text-gray-800 text-[11px] sm:text-2xl leading-tight">{{ staff.totalTasks }}</p>
     </div>
-    <div class="text-center">
-      <p class="text-sm text-gray-500">ลำดับคิว</p>
-      <p class="font-medium text-gray-800 text-3xl">
+    <div class="text-center flex-1 sm:flex-none min-w-0 px-1 sm:px-2">
+      <p class="text-[10px] sm:text-xs text-gray-500 whitespace-nowrap mb-0.5 sm:mb-1 leading-tight">ลำดับคิว</p>
+      <p class="font-medium text-gray-800 text-[11px] sm:text-2xl leading-tight">
         @if (staff.queuePosition > 0) {
           #{{ staff.queuePosition }}
         } @else {

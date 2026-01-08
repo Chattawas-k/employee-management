@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal, computed, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, computed, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { JobAssignmentCardComponent, StaffMember } from '../../shared/components/job-assignment-card/job-assignment-card.component';
@@ -25,7 +25,9 @@ import { getEmployeeIdFromToken } from '../../utils/jwt.util';
   imports: [CommonModule, FormsModule, JobAssignmentCardComponent, OpenJobDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class JobAssignmentComponent implements OnInit, OnDestroy {
+export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit {
+  @ViewChild('tabsNav', { static: false }) tabsNav!: ElementRef<HTMLElement>;
+  
   searchTerm = signal('');
   isLoading = signal(false);
   activeTab = signal<'all' | 'available' | 'busy' | 'break' | 'unavailable' | 'notworking'>('all');
@@ -34,8 +36,12 @@ export class JobAssignmentComponent implements OnInit, OnDestroy {
   selectedStaff = signal<StaffMember | null>(null);
 
   staffMembers = signal<StaffMember[]>([]);
+  
+  showLeftScroll = signal(false);
+  showRightScroll = signal(false);
 
   private currentEmployeeId: string | null = null;
+  private resizeObserver?: ResizeObserver;
 
   constructor(
     private employeeService: EmployeeService,
@@ -55,8 +61,72 @@ export class JobAssignmentComponent implements OnInit, OnDestroy {
     this.loadEmployees();
   }
 
+  ngAfterViewInit(): void {
+    // Check scroll position after view init
+    setTimeout(() => {
+      this.checkScrollPosition();
+      this.setupResizeObserver();
+    }, 100);
+  }
+
   ngOnDestroy(): void {
     // SignalR cleanup is handled by the service
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+  }
+
+  private setupResizeObserver(): void {
+    if (typeof ResizeObserver !== 'undefined' && this.tabsNav?.nativeElement) {
+      this.resizeObserver = new ResizeObserver(() => {
+        this.checkScrollPosition();
+      });
+      this.resizeObserver.observe(this.tabsNav.nativeElement);
+    }
+    
+    // Fallback for browsers without ResizeObserver
+    window.addEventListener('resize', () => {
+      this.checkScrollPosition();
+    });
+  }
+
+  onTabsScroll(): void {
+    this.checkScrollPosition();
+  }
+
+  private checkScrollPosition(): void {
+    if (!this.tabsNav?.nativeElement) {
+      return;
+    }
+
+    const element = this.tabsNav.nativeElement;
+    const scrollLeft = element.scrollLeft;
+    const scrollWidth = element.scrollWidth;
+    const clientWidth = element.clientWidth;
+
+    // Show left scroll indicator if scrolled from start
+    this.showLeftScroll.set(scrollLeft > 0);
+    
+    // Show right scroll indicator if can scroll more
+    this.showRightScroll.set(scrollLeft < scrollWidth - clientWidth - 1);
+  }
+
+  scrollLeft(): void {
+    if (!this.tabsNav?.nativeElement) {
+      return;
+    }
+    const element = this.tabsNav.nativeElement;
+    const scrollAmount = element.clientWidth * 0.8; // Scroll 80% of visible width
+    element.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+  }
+
+  scrollRight(): void {
+    if (!this.tabsNav?.nativeElement) {
+      return;
+    }
+    const element = this.tabsNav.nativeElement;
+    const scrollAmount = element.clientWidth * 0.8; // Scroll 80% of visible width
+    element.scrollBy({ left: scrollAmount, behavior: 'smooth' });
   }
 
   private async setupSignalR(): Promise<void> {

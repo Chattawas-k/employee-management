@@ -1,6 +1,15 @@
 // App component styles
 // Most styles are handled by Tailwind CSS classes in the template
 
+// Prevent horizontal scrollbar on the entire page
+:host {
+  display: block;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
 // Make icons and SVG inherit text color when parent has text-white class
 .text-white app-icon,
 .text-white svg {
