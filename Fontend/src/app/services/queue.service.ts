@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, forkJoin } from 'rxjs';
 import { GetQueuesByDateResponse, QueueSummaryResponse, UpdateMyQueueStatusRequest, UpdateMyQueueStatusResponse } from '../models/queue.model';
 import { environment } from '../../environments/environment';
 
@@ -27,6 +27,54 @@ export class QueueService {
   updateMyQueueStatus(status: 'active' | 'busy' | 'inactive'): Observable<UpdateMyQueueStatusResponse> {
     const requestBody: UpdateMyQueueStatusRequest = { status };
     return this.http.put<UpdateMyQueueStatusResponse>(`${this.apiUrl}/my-status`, requestBody);
+  }
+
+  updateQueueOrder(queues: Array<{ id: string; position: number; status: string }>): Observable<any> {
+    // Map status to backend QueueStatus enum
+    const queueItems = queues.map(queue => {
+      let normalizedStatus: 'Active' | 'Busy' | 'Inactive' = 'Active';
+      if (typeof queue.status === 'string') {
+        const statusLower = queue.status.toLowerCase();
+        if (statusLower === 'busy') normalizedStatus = 'Busy';
+        else if (statusLower === 'inactive') normalizedStatus = 'Inactive';
+        else if (statusLower === 'active') normalizedStatus = 'Active';
+      }
+      
+      return {
+        id: queue.id,
+        position: queue.position,
+        status: normalizedStatus
+      };
+    });
+    
+    return this.http.put(`${this.apiUrl}/bulk-update`, { queues: queueItems });
+  }
+
+  deleteQueue(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  bulkUpdateQueues(queues: Array<{ id: string; position: number; status: string }>): Observable<any> {
+    return this.updateQueueOrder(queues);
+  }
+
+  archiveQueue(sourceDate: Date, targetDate?: Date): Observable<any> {
+    const requestBody: { sourceDate: string; targetDate?: string } = {
+      sourceDate: sourceDate.toISOString().split('T')[0]
+    };
+    if (targetDate) {
+      requestBody.targetDate = targetDate.toISOString().split('T')[0];
+    }
+    return this.http.post(`${this.apiUrl}/archive`, requestBody);
+  }
+
+  createQueue(request: { employeeId: string; position: number; status: 'Active' | 'Busy' | 'Inactive'; queueDate: string }): Observable<any> {
+    return this.http.post(`${this.apiUrl}`, {
+      employeeId: request.employeeId,
+      position: request.position,
+      status: request.status,
+      queueDate: request.queueDate
+    });
   }
 }
 

@@ -47,3 +47,29 @@ export interface UpdateMyQueueStatusResponse {
   updatedDate?: string;
 }
 
+export interface BulkUpdateQueueItem {
+  id: string;
+  position: number;
+  status: 'Active' | 'Busy' | 'Inactive';
+}
+
+export interface BulkUpdateQueueRequest {
+  queues: BulkUpdateQueueItem[];
+}
+
+export interface BulkUpdateQueueResponse {
+  updatedCount: number;
+  updatedDate: string;
+}
+
+export interface ArchiveQueueRequest {
+  sourceDate: string;
+  targetDate?: string;
+}
+
+export interface ArchiveQueueResponse {
+  archivedCount: number;
+  sourceDate: string;
+  targetDate: string;
+}
+

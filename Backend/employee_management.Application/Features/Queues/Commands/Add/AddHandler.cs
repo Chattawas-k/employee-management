@@ -23,6 +23,17 @@ namespace employee_management.Application.Features.Queues.Commands.Add
             CancellationToken cancellationToken)
         {
             var queue = _mapper.Map<Domain.Entities.Queue>(request);
+            
+            // Ensure QueueDate is in UTC for PostgreSQL
+            if (queue.QueueDate.Kind == DateTimeKind.Unspecified)
+            {
+                queue.QueueDate = DateTime.SpecifyKind(queue.QueueDate, DateTimeKind.Utc);
+            }
+            else if (queue.QueueDate.Kind == DateTimeKind.Local)
+            {
+                queue.QueueDate = queue.QueueDate.ToUniversalTime();
+            }
+            
             _queueRepository.Create(queue);
             await _unitOfWork.Save(cancellationToken);
 

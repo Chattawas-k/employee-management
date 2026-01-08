@@ -1,6 +1,9 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using employee_management.Application.Features.Queues.Commands.Add;
+using employee_management.Application.Features.Queues.Commands.Archive;
+using employee_management.Application.Features.Queues.Commands.BulkUpdate;
+using employee_management.Application.Features.Queues.Commands.Delete;
 using employee_management.Application.Features.Queues.Commands.ResetDaily;
 using employee_management.Application.Features.Queues.Commands.Update;
 using employee_management.Application.Features.Queues.Commands.UpdateMyStatus;
@@ -52,6 +55,35 @@ namespace employee_management.WebAPI.Controllers
             return Ok(response);
         }
 
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+        {
+            await _mediator.Send(new DeleteRequest(id), cancellationToken);
+            return NoContent();
+        }
+
+        [HttpPut("bulk-update")]
+        public async Task<ActionResult<BulkUpdateResponse>> BulkUpdate(
+            [FromBody] BulkUpdateRequest request,
+            CancellationToken cancellationToken)
+        {
+            var response = await _mediator.Send(request, cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpPost("archive")]
+        public async Task<ActionResult<ArchiveResponse>> Archive(
+            [FromBody] ArchiveRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            var archiveRequest = new ArchiveRequest(
+                request.SourceDate,
+                request.TargetDate
+            );
+            var response = await _mediator.Send(archiveRequest, cancellationToken);
+            return Ok(response);
+        }
+
         [HttpPut("my-status")]
         public async Task<ActionResult<UpdateMyQueueStatusResponse>> UpdateMyStatus(
             [FromBody] UpdateMyQueueStatusRequestDto request,
@@ -79,6 +111,7 @@ namespace employee_management.WebAPI.Controllers
         }
 
         public sealed record UpdateMyQueueStatusRequestDto(string Status);
+        public sealed record ArchiveRequestDto(DateTime SourceDate, DateTime? TargetDate = null);
     }
 }
 

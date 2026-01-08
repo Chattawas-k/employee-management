@@ -40,6 +40,13 @@ namespace employee_management.Application.Features.Queues.Commands.ResetDaily
 
             // Create new queues
             int position = 1;
+            // Ensure date is in UTC for PostgreSQL
+            var queueDateUtc = request.Date.Kind == DateTimeKind.Unspecified 
+                ? DateTime.SpecifyKind(request.Date.Date, DateTimeKind.Utc)
+                : request.Date.Kind == DateTimeKind.Local 
+                    ? request.Date.Date.ToUniversalTime()
+                    : request.Date.Date;
+            
             foreach (var employee in employeesToQueue)
             {
                 var queue = new Domain.Entities.Queue
@@ -47,14 +54,14 @@ namespace employee_management.Application.Features.Queues.Commands.ResetDaily
                     EmployeeId = employee.Id,
                     Position = position++,
                     Status = QueueStatus.Active,
-                    QueueDate = request.Date.Date
+                    QueueDate = queueDateUtc
                 };
                 _queueRepository.Create(queue);
             }
 
             await _unitOfWork.Save(cancellationToken);
 
-            return new ResetDailyResponse(employeesToQueue.Count, request.Date.Date);
+            return new ResetDailyResponse(employeesToQueue.Count, queueDateUtc);
         }
     }
 }

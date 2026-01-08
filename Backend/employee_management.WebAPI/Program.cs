@@ -310,7 +310,7 @@ using (var scope = app.Services.CreateScope())
         var userManager = services.GetRequiredService<UserManager<User>>();
         var roleManager = services.GetRequiredService<RoleManager<Role>>();
 
-        // Seed in correct order: Departments → Positions → Employees → Roles → Users
+        // Seed in correct order: Departments → Positions → Employees → Roles → Users → Queue History
         await DefaultDepartments.SeedAsync(dbContext);
         await DefaultPositions.SeedAsync(dbContext);
         await DefaultEmployees.SeedAsync(dbContext);
@@ -319,6 +319,8 @@ using (var scope = app.Services.CreateScope())
         await DefaultSuperAdmin.SeedAsync(userManager, roleManager);
         await DefaultAdmin.SeedAsync(userManager, roleManager);
         await DefaultBasicUser.SeedAsync(userManager, roleManager);
+        
+        await QueueHistorySeed.SeedAsync(dbContext);
         
         logger.LogInformation("Database seeding completed successfully.");
     }
