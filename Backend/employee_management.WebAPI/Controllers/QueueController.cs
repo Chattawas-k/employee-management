@@ -120,6 +120,8 @@ namespace employee_management.WebAPI.Controllers
                 "busy" => AvailabilityStatus.Busy,
                 "break" => AvailabilityStatus.Break,
                 "unavailable" => AvailabilityStatus.Unavailable,
+                "notworking" => AvailabilityStatus.NotWorking,
+                "ไม่ได้ทำงาน" => AvailabilityStatus.NotWorking,
                 _ => throw new ArgumentException($"Invalid status: {request.Status}")
             };
 

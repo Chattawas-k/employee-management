@@ -1,3 +1,14 @@
 // App component styles
 // Most styles are handled by Tailwind CSS classes in the template
 
+// Make icons and SVG inherit text color when parent has text-white class
+.text-white app-icon,
+.text-white svg {
+  color: white !important;
+}
+
+.text-white app-icon ::ng-deep lucide-icon,
+.text-white svg {
+  color: white !important;
+}
+

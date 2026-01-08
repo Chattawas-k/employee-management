@@ -6,7 +6,7 @@ export interface QueueDto {
   departmentName?: string;
   position: number;
   status: 'active' | 'inactive' | 'busy' | 'Active' | 'Inactive' | 'Busy';
-  availabilityStatus: 'Available' | 'Busy' | 'Break' | 'Unavailable';
+  availabilityStatus: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking' | 'Available' | 'Busy' | 'Break' | 'Unavailable' | 'NotWorking';
   queueDate: string;
 }
 
@@ -40,18 +40,19 @@ export enum AvailabilityStatus {
   Available = 1,
   Busy = 2,
   Break = 3,
-  Unavailable = 4
+  Unavailable = 4,
+  NotWorking = 5
 }
 
 export interface UpdateMyQueueStatusRequest {
-  status: 'available' | 'busy' | 'break' | 'unavailable';
+  status: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking';
 }
 
 export interface UpdateMyQueueStatusResponse {
   id: string;
   employeeId: string;
   position: number;
-  availabilityStatus: 'Available' | 'Busy' | 'Break' | 'Unavailable';
+  availabilityStatus: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking' | 'Available' | 'Busy' | 'Break' | 'Unavailable' | 'NotWorking';
   status: 'Active' | 'Busy' | 'Inactive';
   updatedDate?: string;
 }
@@ -92,7 +93,7 @@ export interface MyQueueInfoResponse {
   } | null;
   isInQueue: boolean;
   queueStatus: string; // "Active", "Busy", "Inactive" (for backward compatibility)
-  availabilityStatus: string; // "Available", "Busy", "Break", "Unavailable"
+  availabilityStatus: string; // "Available", "Busy", "Break", "Unavailable", "NotWorking"
 }
 
 export interface MigrateInactiveStatusRequest {

@@ -30,7 +30,8 @@ interface BusyStaff {
 interface UnavailableStaff {
   name: string;
   avatar: string;
-  status: 'Break' | 'Offline';
+  status: 'พัก' | 'ไม่พร้อมรับงาน' | 'ไม่ได้ทำงาน';
+  statusClass: string; // CSS classes for status badge
   isAvatarLetter?: boolean;
 }
 
@@ -229,11 +230,28 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
           jobId: jobId ? `#${jobId}` : ''
         });
       } else if (normalizedStatus === 'inactive') {
+        // Use availabilityStatus to determine the actual status
+        const availabilityStatus = queue.availabilityStatus?.toLowerCase() || '';
+        let statusText: 'พัก' | 'ไม่พร้อมรับงาน' | 'ไม่ได้ทำงาน' = 'ไม่พร้อมรับงาน';
+        let statusClass = 'bg-gray-100 text-gray-800';
+        
+        if (availabilityStatus === 'break') {
+          statusText = 'พัก';
+          statusClass = 'bg-yellow-100 text-yellow-800';
+        } else if (availabilityStatus === 'unavailable') {
+          statusText = 'ไม่พร้อมรับงาน';
+          statusClass = 'bg-gray-100 text-gray-800';
+        } else if (availabilityStatus === 'notworking') {
+          statusText = 'ไม่ได้ทำงาน';
+          statusClass = 'bg-red-100 text-red-800';
+        }
+        
         const initial = queue.employeeName ? queue.employeeName.charAt(0).toUpperCase() : '?';
         unavailableStaffList.push({
           name: employeeName,
           avatar: initial,
-          status: 'Offline',
+          status: statusText,
+          statusClass: statusClass,
           isAvatarLetter: true
         });
       }

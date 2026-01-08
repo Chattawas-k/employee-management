@@ -144,9 +144,11 @@
                } @else {
                   <img [src]="staff.avatar" [alt]="staff.name" class="w-10 h-10 rounded-full object-cover">
                }
-               <div>
-                  <p class="font-medium text-gray-800">{{ staff.name }}</p>
-                  <p class="text-sm text-gray-500">{{ staff.status }}</p>
+               <div class="flex-grow min-w-0">
+                  <p class="font-medium text-gray-800 truncate">{{ staff.name }}</p>
+                  <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full {{ staff.statusClass }}">
+                    {{ staff.status }}
+                  </span>
                </div>
             </div>
           }

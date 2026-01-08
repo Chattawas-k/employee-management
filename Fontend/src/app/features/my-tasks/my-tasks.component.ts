@@ -17,7 +17,7 @@ import { catchError, finalize } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { ToastService } from '../../services/toast.service';
 
-export type AvailabilityStatus = 'available' | 'busy' | 'break' | 'unavailable';
+export type AvailabilityStatus = 'available' | 'busy' | 'break' | 'unavailable' | 'notworking';
 
 @Component({
   selector: 'app-my-tasks',
@@ -71,10 +71,10 @@ export class MyTasksComponent implements OnInit, OnDestroy {
   completedTasks = signal<Task[]>([]);
 
   isAvailable = computed(() => this.availabilityStatus() === 'available');
-  // Show receive customer button only when status is 'break' or 'unavailable'
+  // Show receive customer button only when status is 'break', 'unavailable', or 'notworking'
   canReceiveCustomer = computed(() => {
     const status = this.availabilityStatus();
-    return status === 'break' || status === 'unavailable';
+    return status === 'break' || status === 'unavailable' || status === 'notworking';
   });
 
   async ngOnInit(): Promise<void> {
@@ -172,10 +172,16 @@ export class MyTasksComponent implements OnInit, OnDestroy {
         } else if (availabilityStatusLower === 'unavailable') {
           // AvailabilityStatus is Unavailable → set to unavailable
           this.availabilityStatus.set('unavailable');
+        } else if (availabilityStatusLower === 'notworking') {
+          // AvailabilityStatus is NotWorking → set to notworking
+          this.availabilityStatus.set('notworking');
+        } else if (availabilityStatusLower === 'notworking') {
+          // AvailabilityStatus is NotWorking → set to notworking
+          this.availabilityStatus.set('notworking');
         } else if (availabilityStatusLower === 'available') {
           // AvailabilityStatus is Available → check if should be available or busy
-          // If manually set to break/unavailable, keep it (but this shouldn't happen if status is Available)
-          if (currentStatus === 'break' || currentStatus === 'unavailable') {
+          // If manually set to break/unavailable/notworking, keep it (but this shouldn't happen if status is Available)
+          if (currentStatus === 'break' || currentStatus === 'unavailable' || currentStatus === 'notworking') {
             // Keep manual status - don't change it
             // But this is unlikely since backend status is Available
           } else {
@@ -240,6 +246,11 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     const inProgress: Task[] = [];
     const completed: Task[] = [];
 
+    // Get today's date at midnight (start of day) in local timezone
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStart = today.getTime();
+
     jobs.forEach(job => {
       // Skip jobs with invalid IDs
       if (!job.id || job.id === '00000000-0000-0000-0000-000000000000') {
@@ -257,7 +268,17 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       } else if (statusStr === 'inprogress' || statusStr === 'in-progress') {
         inProgress.push(task);
       } else if (statusStr === 'done' || statusStr === 'rejected') {
-        completed.push(task);
+        // Only include completed tasks that were completed today
+        if (task.completedAt) {
+          const completedDate = new Date(task.completedAt);
+          completedDate.setHours(0, 0, 0, 0);
+          const completedDateStart = completedDate.getTime();
+          
+          // Check if completed date is today
+          if (completedDateStart === todayStart) {
+            completed.push(task);
+          }
+        }
       }
     });
 
@@ -270,9 +291,9 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     // This should sync with queue status from loadQueueInfo()
     const currentStatus = this.availabilityStatus();
     
-    // Don't override manual status (break/unavailable)
-    if (currentStatus === 'break' || currentStatus === 'unavailable') {
-      // If manually set to break/unavailable, ensure banner is updated
+    // Don't override manual status (break/unavailable/notworking)
+    if (currentStatus === 'break' || currentStatus === 'unavailable' || currentStatus === 'notworking') {
+      // If manually set to break/unavailable/notworking, ensure banner is updated
       this.updateStatusBanner();
       return; // Don't update status based on tasks
     }
@@ -505,6 +526,17 @@ export class MyTasksComponent implements OnInit, OnDestroy {
           iconContainerBg: 'bg-gray-100',
           iconBorder: 'border-gray-200',
           iconColor: 'text-gray-600',
+        });
+        break;
+      case 'notworking':
+        this.statusBannerInfo.set({
+          title: 'คุณตั้งสถานะเป็น "ไม่ได้ทำงาน"',
+          subtitle: 'คุณจะไม่ได้รับคิวใหม่จนกว่าจะเปลี่ยนสถานะกลับมาเป็น "พร้อมรับงาน"',
+          borderColor: 'border-red-500',
+          backgroundColor: 'bg-red-50',
+          iconContainerBg: 'bg-red-100',
+          iconBorder: 'border-red-200',
+          iconColor: 'text-red-600',
         });
         break;
       case 'available':

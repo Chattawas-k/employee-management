@@ -44,10 +44,10 @@ export class AppComponent implements OnInit, OnDestroy {
   isAuthenticated = signal(false);
   currentUser = signal<any>(null);
   currentEmployee = signal<EmployeeDto | null>(null);
-  availabilityStatus = signal<'available' | 'busy' | 'break' | 'unavailable'>('available');
+  availabilityStatus = signal<'available' | 'busy' | 'break' | 'unavailable' | 'notworking'>('available');
   isLoginPage = signal(false);
   showStatusChangeDialog = signal(false);
-  pendingStatusChange = signal<'available' | 'busy' | 'break' | 'unavailable' | null>(null);
+  pendingStatusChange = signal<'available' | 'busy' | 'break' | 'unavailable' | 'notworking' | null>(null);
   myQueueInfo = signal<MyQueueInfoResponse | null>(null);
   isLoadingQueueInfo = signal(false);
 
@@ -75,8 +75,31 @@ export class AppComponent implements OnInit, OnDestroy {
           text: 'ไม่พร้อมรับงาน',
           dotClass: 'bg-gray-400',
         };
+      case 'notworking':
+        return {
+          text: 'ไม่ได้ทำงาน',
+          dotClass: 'bg-red-500',
+        };
     }
   });
+
+  getStatusTextClass(): string {
+    const status = this.availabilityStatus();
+    switch (status) {
+      case 'available':
+        return 'text-green-600';
+      case 'busy':
+        return 'text-orange-600';
+      case 'break':
+        return 'text-yellow-600';
+      case 'unavailable':
+        return 'text-gray-500';
+      case 'notworking':
+        return 'text-red-600';
+      default:
+        return 'text-gray-500';
+    }
+  }
 
   constructor(
     private authService: AuthService,
@@ -190,10 +213,13 @@ export class AppComponent implements OnInit, OnDestroy {
         } else if (availabilityStatusLower === 'unavailable') {
           // AvailabilityStatus is Unavailable → set to unavailable
           this.availabilityStatus.set('unavailable');
+        } else if (availabilityStatusLower === 'notworking') {
+          // AvailabilityStatus is NotWorking → set to notworking
+          this.availabilityStatus.set('notworking');
         } else if (availabilityStatusLower === 'available') {
           // AvailabilityStatus is Available → check if should be available or busy
-          // If manually set to break/unavailable, keep it (but this shouldn't happen if status is Available)
-          if (currentStatus === 'break' || currentStatus === 'unavailable') {
+          // If manually set to break/unavailable/notworking, keep it (but this shouldn't happen if status is Available)
+          if (currentStatus === 'break' || currentStatus === 'unavailable' || currentStatus === 'notworking') {
             // Keep manual status - don't change it
             // But this is unlikely since backend status is Available
           } else {
@@ -216,6 +242,7 @@ export class AppComponent implements OnInit, OnDestroy {
               this.availabilityStatus.set('available');
             }
           } else {
+            // Default to unavailable if status is unknown
             this.availabilityStatus.set('unavailable');
           }
         }
@@ -292,21 +319,27 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isStatusMenuOpen.update(v => !v);
   }
 
-  getAvailableStatuses(): Array<{ value: 'available' | 'busy' | 'break' | 'unavailable'; label: string; dotClass: string }> {
+  getAvailableStatuses(): Array<{ value: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking'; label: string; dotClass: string }> {
     // Get all possible statuses
-    const allStatuses: Array<{ value: 'available' | 'busy' | 'break' | 'unavailable'; label: string; dotClass: string }> = [
+    const allStatuses: Array<{ value: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking'; label: string; dotClass: string }> = [
       { value: 'available', label: 'พร้อมรับงาน', dotClass: 'bg-green-500' },
       { value: 'busy', label: 'ติดลูกค้า', dotClass: 'bg-orange-500' },
       { value: 'break', label: 'พัก', dotClass: 'bg-yellow-500' },
-      { value: 'unavailable', label: 'ไม่พร้อมรับงาน', dotClass: 'bg-gray-400' }
+      { value: 'unavailable', label: 'ไม่พร้อมรับงาน', dotClass: 'bg-gray-400' },
+      { value: 'notworking', label: 'ไม่ได้ทำงาน', dotClass: 'bg-red-500' }
     ];
     
     // Filter out current status - don't show the status that's already selected
     const currentStatus = this.availabilityStatus();
-    return allStatuses.filter(status => status.value !== currentStatus);
+    const filtered = allStatuses.filter(status => status.value !== currentStatus);
+    
+    // Debug: Log to ensure "ไม่ได้ทำงาน" is included
+    console.log('Available statuses:', filtered.map(s => s.label));
+    
+    return filtered;
   }
 
-  setStatus(status: 'available' | 'busy' | 'break' | 'unavailable'): void {
+  setStatus(status: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking'): void {
     // Show confirmation dialog first
     this.pendingStatusChange.set(status);
     this.showStatusChangeDialog.set(true);
@@ -330,7 +363,7 @@ export class AppComponent implements OnInit, OnDestroy {
       if (response) {
         // Update availability status from response
         if (response.availabilityStatus) {
-          const availabilityStatus = response.availabilityStatus.toLowerCase() as 'available' | 'busy' | 'break' | 'unavailable';
+          const availabilityStatus = response.availabilityStatus.toLowerCase() as 'available' | 'busy' | 'break' | 'unavailable' | 'notworking';
           this.availabilityStatus.set(availabilityStatus);
         } else {
           this.availabilityStatus.set(status);

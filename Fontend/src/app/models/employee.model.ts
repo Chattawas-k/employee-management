@@ -26,8 +26,8 @@ export interface EmployeeStatusHistoryDto {
   id: string;
   employeeId: string;
   employeeName: string;
-  previousStatus: 'Available' | 'Busy' | 'Break' | 'Unavailable' | null;
-  newStatus: 'Available' | 'Busy' | 'Break' | 'Unavailable';
+  previousStatus: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking' | 'Available' | 'Busy' | 'Break' | 'Unavailable' | 'NotWorking' | null;
+  newStatus: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking' | 'Available' | 'Busy' | 'Break' | 'Unavailable' | 'NotWorking';
   changeReason: ChangeReason;
   changedBy: string | null;
   changedByName: string | null;

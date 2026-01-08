@@ -1,2 +1,45 @@
-// Job assignment component styles
+// Job Assignment component styles
 
+// Hide scrollbar but allow scrolling
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+  
+  &::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+}
+
+// Ensure tabs container can scroll horizontally on mobile
+nav {
+  min-width: 0; // Allow flex item to shrink below content size
+  width: 100%;
+  max-width: 100%; // Maximum width equals parent container
+  box-sizing: border-box;
+  
+  // Ensure buttons don't shrink
+  button {
+    flex-shrink: 0;
+    min-width: fit-content;
+    box-sizing: border-box;
+  }
+  
+  // Smooth scrolling on touch devices
+  @media (max-width: 640px) {
+    scroll-snap-type: x proximity;
+    
+    button {
+      scroll-snap-align: start;
+    }
+  }
+}
+
+// Ensure component doesn't exceed viewport
+:host {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}

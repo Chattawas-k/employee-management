@@ -35,7 +35,7 @@ namespace employee_management.Application.Common.Services
                 int resetCount = 0;
                 foreach (var queue in queues)
                 {
-                    // Only reset if not manually set to Break or Unavailable
+                    // Only reset if not manually set to Break, Unavailable, or NotWorking
                     // Or reset all to Available as per requirement
                     if (queue.AvailabilityStatus != AvailabilityStatus.Available)
                     {

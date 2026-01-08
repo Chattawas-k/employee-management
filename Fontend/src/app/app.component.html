@@ -11,42 +11,28 @@
     <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
       <a 
         routerLink="/customer-queue" 
-        routerLinkActive="bg-indigo-50 text-indigo-700"
+        routerLinkActive="bg-indigo-600 text-white"
         class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
         <app-icon name="user-plus" className="w-5 h-5"></app-icon>
         คิวพนักงาน
       </a>
       <a 
         routerLink="/my-tasks" 
-        routerLinkActive="bg-indigo-50 text-indigo-700"
+        routerLinkActive="bg-indigo-600 text-white"
         class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
         <app-icon name="clipboard-list" className="w-5 h-5"></app-icon>
         งานของฉัน
       </a>
       <a 
-        routerLink="/calendar" 
-        routerLinkActive="bg-indigo-50 text-indigo-700"
-        class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-        <app-icon name="calendar" className="w-5 h-5"></app-icon>
-        ปฏิทินงาน
-      </a>
-      <a 
         routerLink="/assign" 
-        routerLinkActive="bg-indigo-50 text-indigo-700"
+        routerLinkActive="bg-indigo-600 text-white"
         class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
         <app-icon name="briefcase" className="w-5 h-5"></app-icon>
         มอบหมายงาน
       </a>
       <a 
-        routerLink="/summary" 
-        routerLinkActive="bg-indigo-50 text-indigo-700"
-        class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-        <app-icon name="chart-bar" className="w-5 h-5"></app-icon>
-        สรุปคิวงาน
-      </a>
-      <a 
         routerLink="/report" 
-        routerLinkActive="bg-indigo-50 text-indigo-700"
+        routerLinkActive="bg-indigo-600 text-white"
         class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
         <app-icon name="file-text" className="w-5 h-5"></app-icon>
         รายงาน
@@ -64,7 +50,7 @@
           <div class="mt-2 space-y-1">
             <a 
               routerLink="/settings/employees" 
-              routerLinkActive="bg-indigo-50 text-indigo-700"
+              routerLinkActive="bg-indigo-600 text-white"
               (click)="isMobileMenuOpen.set(false)"
               class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -74,7 +60,7 @@
             </a>
             <a 
               routerLink="/settings/queue" 
-              routerLinkActive="bg-indigo-50 text-indigo-700"
+              routerLinkActive="bg-indigo-600 text-white"
               (click)="isMobileMenuOpen.set(false)"
               class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -84,7 +70,7 @@
             </a>
             <a 
               routerLink="/settings/users" 
-              routerLinkActive="bg-indigo-50 text-indigo-700"
+              routerLinkActive="bg-indigo-600 text-white"
               (click)="isMobileMenuOpen.set(false)"
               class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -134,7 +120,7 @@
           <p class="text-sm font-semibold text-gray-900">{{ getUserName() }}</p>
           <div class="flex items-center gap-1.5 mt-0.5">
             <span class="h-2 w-2 rounded-full" [class]="statusInfo().dotClass"></span>
-            <p class="text-xs" [class]="statusInfo().text === 'พร้อมรับงาน' ? 'text-green-600' : 'text-gray-500'">{{ statusInfo().text }}</p>
+            <p class="text-xs" [class]="getStatusTextClass()">{{ statusInfo().text }}</p>
           </div>
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 transition-transform" [class]="isStatusMenuOpen() ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
@@ -166,27 +152,19 @@
           </button>
         </div>
         <nav class="space-y-1 flex-1">
-          <a routerLink="/customer-queue" routerLinkActive="bg-indigo-50 text-indigo-700" (click)="isMobileMenuOpen.set(false)" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+          <a routerLink="/customer-queue" routerLinkActive="bg-indigo-600 text-white" (click)="isMobileMenuOpen.set(false)" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
             <app-icon name="user-plus" className="w-5 h-5"></app-icon>
             คิวพนักงาน
           </a>
-          <a routerLink="/my-tasks" routerLinkActive="bg-indigo-50 text-indigo-700" (click)="isMobileMenuOpen.set(false)" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+          <a routerLink="/my-tasks" routerLinkActive="bg-indigo-600 text-white" (click)="isMobileMenuOpen.set(false)" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
             <app-icon name="clipboard-list" className="w-5 h-5"></app-icon>
             งานของฉัน
           </a>
-          <a routerLink="/calendar" routerLinkActive="bg-indigo-50 text-indigo-700" (click)="isMobileMenuOpen.set(false)" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
-            <app-icon name="calendar" className="w-5 h-5"></app-icon>
-            ปฏิทินงาน
-          </a>
-          <a routerLink="/assign" routerLinkActive="bg-indigo-50 text-indigo-700" (click)="isMobileMenuOpen.set(false)" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+          <a routerLink="/assign" routerLinkActive="bg-indigo-600 text-white" (click)="isMobileMenuOpen.set(false)" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
             <app-icon name="briefcase" className="w-5 h-5"></app-icon>
             มอบหมายงาน
           </a>
-          <a routerLink="/summary" routerLinkActive="bg-indigo-50 text-indigo-700" (click)="isMobileMenuOpen.set(false)" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
-            <app-icon name="chart-bar" className="w-5 h-5"></app-icon>
-            สรุปคิวงาน
-          </a>
-          <a routerLink="/report" routerLinkActive="bg-indigo-50 text-indigo-700" (click)="isMobileMenuOpen.set(false)" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+          <a routerLink="/report" routerLinkActive="bg-indigo-600 text-white" (click)="isMobileMenuOpen.set(false)" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
             <app-icon name="file-text" className="w-5 h-5"></app-icon>
             รายงาน
           </a>
@@ -202,7 +180,7 @@
               <div class="mt-2 space-y-1">
                 <a 
                   routerLink="/settings/employees" 
-                  routerLinkActive="bg-indigo-50 text-indigo-700"
+                  routerLinkActive="bg-indigo-600 text-white"
                   (click)="isMobileMenuOpen.set(false)"
                   class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -212,7 +190,7 @@
                 </a>
                 <a 
                   routerLink="/settings/queue" 
-                  routerLinkActive="bg-indigo-50 text-indigo-700"
+                  routerLinkActive="bg-indigo-600 text-white"
                   (click)="isMobileMenuOpen.set(false)"
                   class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -222,7 +200,7 @@
                 </a>
                 <a 
                   routerLink="/settings/users" 
-                  routerLinkActive="bg-indigo-50 text-indigo-700"
+                  routerLinkActive="bg-indigo-600 text-white"
                   (click)="isMobileMenuOpen.set(false)"
                   class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -271,7 +249,7 @@
               <p class="text-sm font-semibold text-gray-900">{{ getUserName() }}</p>
               <div class="flex items-center gap-1.5 mt-0.5">
                 <span class="h-2 w-2 rounded-full" [class]="statusInfo().dotClass"></span>
-                <p class="text-xs" [class]="statusInfo().text === 'พร้อมรับงาน' ? 'text-green-600' : 'text-gray-500'">{{ statusInfo().text }}</p>
+                <p class="text-xs" [class]="getStatusTextClass()">{{ statusInfo().text }}</p>
               </div>
             </div>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 transition-transform" [class]="isStatusMenuOpen() ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">

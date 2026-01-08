@@ -28,6 +28,7 @@ import { getEmployeeIdFromToken } from '../../utils/jwt.util';
 export class JobAssignmentComponent implements OnInit, OnDestroy {
   searchTerm = signal('');
   isLoading = signal(false);
+  activeTab = signal<'all' | 'available' | 'busy' | 'break' | 'unavailable' | 'notworking'>('all');
 
   showAssignDialog = signal(false);
   selectedStaff = signal<StaffMember | null>(null);
@@ -173,7 +174,7 @@ export class JobAssignmentComponent implements OnInit, OnDestroy {
   }
 
   private mapAvailabilityStatusToUIStatus(
-    availabilityStatus: 'Available' | 'Busy' | 'Break' | 'Unavailable' | null
+    availabilityStatus: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking' | 'Available' | 'Busy' | 'Break' | 'Unavailable' | 'NotWorking' | null
   ): { status: StaffMember['status']; statusClass: string } {
     if (!availabilityStatus) {
       return {
@@ -182,26 +183,34 @@ export class JobAssignmentComponent implements OnInit, OnDestroy {
       };
     }
 
-    switch (availabilityStatus) {
-      case 'Available':
+    // Normalize to lowercase for comparison (backend sends camelCase)
+    const normalizedStatus = availabilityStatus.toLowerCase();
+
+    switch (normalizedStatus) {
+      case 'available':
         return {
           status: 'พร้อมรับงาน',
           statusClass: 'bg-green-100 text-green-800'
         };
-      case 'Busy':
+      case 'busy':
         return {
           status: 'ติดลูกค้า',
           statusClass: 'bg-orange-100 text-orange-800'
         };
-      case 'Break':
+      case 'break':
         return {
           status: 'พัก',
           statusClass: 'bg-yellow-100 text-yellow-800'
         };
-      case 'Unavailable':
+      case 'unavailable':
         return {
           status: 'ไม่พร้อมรับงาน',
           statusClass: 'bg-gray-100 text-gray-800'
+        };
+      case 'notworking':
+        return {
+          status: 'ไม่ได้ทำงาน',
+          statusClass: 'bg-red-100 text-red-800'
         };
       default:
         return {
@@ -211,7 +220,8 @@ export class JobAssignmentComponent implements OnInit, OnDestroy {
     }
   }
 
-  filteredStaff = computed(() => {
+  // Filter staff by search term
+  searchedStaff = computed(() => {
     const term = this.searchTerm().toLowerCase();
     if (!term) {
       return this.staffMembers();
@@ -222,9 +232,53 @@ export class JobAssignmentComponent implements OnInit, OnDestroy {
     );
   });
 
+  // Filter staff by active tab
+  filteredStaff = computed(() => {
+    const staff = this.searchedStaff();
+    const tab = this.activeTab();
+    
+    if (tab === 'all') {
+      return staff;
+    }
+    
+    return staff.filter(s => {
+      switch (tab) {
+        case 'available':
+          return s.status === 'พร้อมรับงาน';
+        case 'busy':
+          return s.status === 'ติดลูกค้า';
+        case 'break':
+          return s.status === 'พัก';
+        case 'unavailable':
+          return s.status === 'ไม่พร้อมรับงาน';
+        case 'notworking':
+          return s.status === 'ไม่ได้ทำงาน';
+        default:
+          return true;
+      }
+    });
+  });
+
+  // Count staff by status
+  staffCounts = computed(() => {
+    const staff = this.searchedStaff();
+    return {
+      all: staff.length,
+      available: staff.filter(s => s.status === 'พร้อมรับงาน').length,
+      busy: staff.filter(s => s.status === 'ติดลูกค้า').length,
+      break: staff.filter(s => s.status === 'พัก').length,
+      unavailable: staff.filter(s => s.status === 'ไม่พร้อมรับงาน').length,
+      notworking: staff.filter(s => s.status === 'ไม่ได้ทำงาน').length
+    };
+  });
+
+  setTab(tab: 'all' | 'available' | 'busy' | 'break' | 'unavailable' | 'notworking') {
+    this.activeTab.set(tab);
+  }
+
   handleAction(staff: StaffMember) {
-    // Allow assignment if status is not "ไม่พร้อมรับงาน"
-    if (staff.status !== 'ไม่พร้อมรับงาน') {
+    // Allow assignment only if status is "พร้อมรับงาน"
+    if (staff.status === 'พร้อมรับงาน') {
       this.selectedStaff.set(staff);
       this.showAssignDialog.set(true);
     }

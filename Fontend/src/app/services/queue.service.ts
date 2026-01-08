@@ -24,7 +24,7 @@ export class QueueService {
     return this.http.get<QueueSummaryResponse>(`${this.jobApiUrl}/queue-summary`, { params });
   }
 
-  updateMyQueueStatus(status: 'available' | 'busy' | 'break' | 'unavailable'): Observable<UpdateMyQueueStatusResponse> {
+  updateMyQueueStatus(status: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking'): Observable<UpdateMyQueueStatusResponse> {
     const requestBody: UpdateMyQueueStatusRequest = { status };
     return this.http.put<UpdateMyQueueStatusResponse>(`${this.apiUrl}/my-status`, requestBody);
   }

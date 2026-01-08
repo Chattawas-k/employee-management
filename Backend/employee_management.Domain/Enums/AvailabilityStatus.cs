@@ -5,7 +5,8 @@ namespace employee_management.Domain.Enums
         Available = 1,
         Busy = 2,
         Break = 3,
-        Unavailable = 4
+        Unavailable = 4,
+        NotWorking = 5  // ไม่ได้ทำงาน
     }
 }
 

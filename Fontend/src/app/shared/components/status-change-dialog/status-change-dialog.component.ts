@@ -20,7 +20,8 @@ export class StatusChangeDialogComponent {
       'available': 'พร้อมรับงาน',
       'busy': 'ติดลูกค้า',
       'break': 'พัก',
-      'unavailable': 'ไม่พร้อมรับงาน'
+      'unavailable': 'ไม่พร้อมรับงาน',
+      'notworking': 'ไม่ได้ทำงาน'
     };
     return statusMap[status] || status;
   }
@@ -31,13 +32,15 @@ export class StatusChangeDialogComponent {
       'available': 'bg-green-100',
       'busy': 'bg-orange-100',
       'break': 'bg-yellow-100',
-      'unavailable': 'bg-gray-100'
+      'unavailable': 'bg-gray-100',
+      'notworking': 'bg-red-100'
     };
     const textColorMap: { [key: string]: string } = {
       'available': 'text-green-600',
       'busy': 'text-orange-600',
       'break': 'text-yellow-600',
-      'unavailable': 'text-gray-600'
+      'unavailable': 'text-gray-600',
+      'notworking': 'text-red-600'
     };
     
     const bgColor = bgColorMap[status] || 'bg-blue-100';
@@ -52,7 +55,8 @@ export class StatusChangeDialogComponent {
       'available': 'bg-green-100',
       'busy': 'bg-orange-100',
       'break': 'bg-yellow-100',
-      'unavailable': 'bg-gray-100'
+      'unavailable': 'bg-gray-100',
+      'notworking': 'bg-red-100'
     };
     return bgColorMap[status] || 'bg-blue-100';
   }
@@ -63,7 +67,8 @@ export class StatusChangeDialogComponent {
       'available': 'text-green-600',
       'busy': 'text-orange-600',
       'break': 'text-yellow-600',
-      'unavailable': 'text-gray-600'
+      'unavailable': 'text-gray-600',
+      'notworking': 'text-red-600'
     };
     return textColorMap[status] || 'text-blue-600';
   }

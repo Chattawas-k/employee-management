@@ -1,4 +1,4 @@
-<div class="flex-1 p-4 sm:p-6 lg:p-8 bg-slate-50">
+<div class="flex-1 p-4 sm:p-6 lg:p-8 bg-slate-50 min-w-0" style="box-sizing: border-box; width: 100%; max-width: 100%; overflow-x: hidden;">
   <header class="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center pb-6">
     <div class="flex items-center gap-4">
       <div>
@@ -19,6 +19,106 @@
       >
     </div>
   </header>
+
+  <!-- Status Tabs -->
+  <div class="mb-4 sm:mb-6 border-b border-gray-200 overflow-hidden w-full min-w-0" style="box-sizing: border-box; width: 100%; max-width: 100%;">
+    <nav class="-mb-px flex space-x-3 sm:space-x-6 md:space-x-8 overflow-x-auto scrollbar-hide min-w-0" aria-label="Tabs" style="-webkit-overflow-scrolling: touch; box-sizing: border-box; width: 100%; max-width: 100%;">
+      <button
+        (click)="setTab('all')"
+        [class]="activeTab() === 'all' 
+          ? 'border-indigo-500 text-indigo-600' 
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+        class="whitespace-nowrap py-3 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+        <span>ทั้งหมด</span>
+        <span [class]="activeTab() === 'all' 
+          ? 'bg-indigo-100 text-indigo-600' 
+          : 'bg-gray-100 text-gray-600'"
+          class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
+          {{ staffCounts().all }}
+        </span>
+      </button>
+      
+      <button
+        (click)="setTab('available')"
+        [class]="activeTab() === 'available' 
+          ? 'border-green-500 text-green-600' 
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+        class="whitespace-nowrap py-3 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+        <span class="w-2 h-2 rounded-full bg-green-500"></span>
+        <span>พร้อมรับงาน</span>
+        <span [class]="activeTab() === 'available' 
+          ? 'bg-green-100 text-green-600' 
+          : 'bg-gray-100 text-gray-600'"
+          class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
+          {{ staffCounts().available }}
+        </span>
+      </button>
+      
+      <button
+        (click)="setTab('busy')"
+        [class]="activeTab() === 'busy' 
+          ? 'border-orange-500 text-orange-600' 
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+        class="whitespace-nowrap py-3 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+        <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-orange-500 flex-shrink-0"></span>
+        <span>ติดลูกค้า</span>
+        <span [class]="activeTab() === 'busy' 
+          ? 'bg-orange-100 text-orange-600' 
+          : 'bg-gray-100 text-gray-600'"
+          class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
+          {{ staffCounts().busy }}
+        </span>
+      </button>
+      
+      <button
+        (click)="setTab('break')"
+        [class]="activeTab() === 'break' 
+          ? 'border-yellow-500 text-yellow-600' 
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+        class="whitespace-nowrap py-3 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+        <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-yellow-500 flex-shrink-0"></span>
+        <span>พัก</span>
+        <span [class]="activeTab() === 'break' 
+          ? 'bg-yellow-100 text-yellow-600' 
+          : 'bg-gray-100 text-gray-600'"
+          class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
+          {{ staffCounts().break }}
+        </span>
+      </button>
+      
+      <button
+        (click)="setTab('unavailable')"
+        [class]="activeTab() === 'unavailable' 
+          ? 'border-gray-500 text-gray-600' 
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+        class="whitespace-nowrap py-3 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+        <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-500 flex-shrink-0"></span>
+        <span>ไม่พร้อมรับงาน</span>
+        <span [class]="activeTab() === 'unavailable' 
+          ? 'bg-gray-100 text-gray-600' 
+          : 'bg-gray-100 text-gray-600'"
+          class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
+          {{ staffCounts().unavailable }}
+        </span>
+      </button>
+      
+      <button
+        (click)="setTab('notworking')"
+        [class]="activeTab() === 'notworking' 
+          ? 'border-red-500 text-red-600' 
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+        class="whitespace-nowrap py-3 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+        <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500 flex-shrink-0"></span>
+        <span>ไม่ได้ทำงาน</span>
+        <span [class]="activeTab() === 'notworking' 
+          ? 'bg-red-100 text-red-600' 
+          : 'bg-gray-100 text-gray-600'"
+          class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
+          {{ staffCounts().notworking }}
+        </span>
+      </button>
+    </nav>
+  </div>
 
   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
     @if (isLoading()) {

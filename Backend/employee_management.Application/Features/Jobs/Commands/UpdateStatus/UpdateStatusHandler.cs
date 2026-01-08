@@ -117,10 +117,12 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                     return; // No queue entry exists, skip update
                 }
 
-                // Don't override manual status (break/unavailable)
-                // If AvailabilityStatus is Break or Unavailable, it means employee manually set it
+                // Don't override manual status (break/unavailable/notworking)
+                // If AvailabilityStatus is Break, Unavailable, or NotWorking, it means employee manually set it
                 // We should respect this manual setting and not override it automatically
-                if (queue.AvailabilityStatus == AvailabilityStatus.Break || queue.AvailabilityStatus == AvailabilityStatus.Unavailable)
+                if (queue.AvailabilityStatus == AvailabilityStatus.Break || 
+                    queue.AvailabilityStatus == AvailabilityStatus.Unavailable || 
+                    queue.AvailabilityStatus == AvailabilityStatus.NotWorking)
                 {
                     _logger.LogInformation(
                         "AvailabilityStatus is {Status} (manual) for employee {EmployeeId}, skipping automatic status update for job {JobId}",

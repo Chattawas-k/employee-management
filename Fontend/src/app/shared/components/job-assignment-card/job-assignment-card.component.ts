@@ -5,7 +5,7 @@ export interface StaffMember {
   name: string;
   role: string;
   avatarUrl: string;
-  status: 'พร้อมรับงาน' | 'ติดลูกค้า' | 'พัก' | 'ไม่พร้อมรับงาน';
+  status: 'พร้อมรับงาน' | 'ติดลูกค้า' | 'พัก' | 'ไม่พร้อมรับงาน' | 'ไม่ได้ทำงาน';
   statusClass: string;
   currentTasks: number; // งานที่ทำอยู่ (In-Progress)
   pendingTasks: number; // งานที่ต้องทำ (Pending)

@@ -103,6 +103,7 @@ namespace employee_management.Persistence.Repository.QueuesRepository
                     AvailabilityStatus.Busy => QueueStatus.Busy,
                     AvailabilityStatus.Break => QueueStatus.Inactive,
                     AvailabilityStatus.Unavailable => QueueStatus.Inactive,
+                    AvailabilityStatus.NotWorking => QueueStatus.Inactive,
                     _ => QueueStatus.Active
                 };
                 queue.Status = queueStatus;
