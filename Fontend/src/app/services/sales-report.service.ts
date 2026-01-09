@@ -5,6 +5,7 @@ import { environment } from '../../environments/environment';
 
 export interface SalesReportDto {
   id: string;
+  jobNumber: string;
   customerName: string;
   customerContact: string;
   salesStatus: string;
@@ -30,13 +31,28 @@ export class SalesReportService {
 
   constructor(private http: HttpClient) {}
 
-  getSalesReports(status?: string): Observable<GetSalesReportsResponse> {
+  getSalesReports(status?: string, page?: number, pageSize?: number): Observable<GetSalesReportsResponse> {
     let url = `${this.apiUrl}/sales-reports`;
+    const params: string[] = [];
+    
     if (status && status !== 'All') {
       // Map frontend status to backend status (lowercase)
       const backendStatus = status.toLowerCase();
-      url += `?status=${encodeURIComponent(backendStatus)}`;
+      params.push(`status=${encodeURIComponent(backendStatus)}`);
     }
+    
+    if (page !== undefined && page !== null) {
+      params.push(`pageNumber=${encodeURIComponent(page)}`);
+    }
+    
+    if (pageSize !== undefined && pageSize !== null) {
+      params.push(`pageSize=${encodeURIComponent(pageSize)}`);
+    }
+    
+    if (params.length > 0) {
+      url += `?${params.join('&')}`;
+    }
+    
     return this.http.get<GetSalesReportsResponse>(url, {
       observe: 'body',
       responseType: 'json'

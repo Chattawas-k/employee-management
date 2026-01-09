@@ -8,6 +8,7 @@ export interface QueueDto {
   status: 'active' | 'inactive' | 'busy' | 'Active' | 'Inactive' | 'Busy';
   availabilityStatus: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking' | 'Available' | 'Busy' | 'Break' | 'Unavailable' | 'NotWorking';
   queueDate: string;
+  updatedDate?: string;
 }
 
 export interface GetQueuesByDateResponse extends Array<QueueDto> {}

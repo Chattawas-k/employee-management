@@ -11,7 +11,8 @@ namespace employee_management.Application.Features.Queues.Queries.GetByDate
         int Position,
         QueueStatus Status,
         AvailabilityStatus AvailabilityStatus,
-        DateTime QueueDate
+        DateTime QueueDate,
+        DateTimeOffset? UpdatedDate
     );
 }
 

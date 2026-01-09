@@ -33,6 +33,7 @@ interface UnavailableStaff {
   status: 'พัก' | 'ไม่พร้อมรับงาน' | 'ไม่ได้ทำงาน';
   statusClass: string; // CSS classes for status badge
   isAvatarLetter?: boolean;
+  statusChangedTime?: string; // Formatted time when status was changed
 }
 
 interface SummaryCardData {
@@ -213,8 +214,31 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
       const servedToday = this.countServedToday(queue.employeeId);
 
       const normalizedStatus = typeof queue.status === 'string' ? queue.status.toLowerCase() : String(queue.status || '').toLowerCase();
+      const availabilityStatus = queue.availabilityStatus?.toLowerCase() || '';
 
-      if (normalizedStatus === 'busy') {
+      // Check availabilityStatus first for break/unavailable, regardless of queue status
+      if (availabilityStatus === 'break' || availabilityStatus === 'unavailable') {
+        let statusText: 'พัก' | 'ไม่พร้อมรับงาน' = availabilityStatus === 'break' ? 'พัก' : 'ไม่พร้อมรับงาน';
+        let statusClass = availabilityStatus === 'break' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800';
+        
+        // Format the status changed time
+        const statusChangedTime = queue.updatedDate 
+          ? this.formatStatusChangedTime(queue.updatedDate)
+          : undefined;
+        
+        const initial = queue.employeeName ? queue.employeeName.charAt(0).toUpperCase() : '?';
+        unavailableStaffList.push({
+          name: employeeName,
+          avatar: initial,
+          status: statusText,
+          statusClass: statusClass,
+          isAvatarLetter: true,
+          statusChangedTime: statusChangedTime
+        });
+        return; // Skip further processing for this queue
+      }
+
+      if (normalizedStatus === 'busy' || availabilityStatus === 'busy') {
         const job = this.findActiveJobForEmployee(queue.employeeId);
         const startTime = job ? this.getJobStartTime(job) : Date.now();
         const startTimeFormatted = job ? this.formatStartTime(job) : '';
@@ -228,31 +252,6 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
           duration: '00:00',
           startTimeFormatted,
           jobId: jobId ? `#${jobId}` : ''
-        });
-      } else if (normalizedStatus === 'inactive') {
-        // Use availabilityStatus to determine the actual status
-        const availabilityStatus = queue.availabilityStatus?.toLowerCase() || '';
-        let statusText: 'พัก' | 'ไม่พร้อมรับงาน' | 'ไม่ได้ทำงาน' = 'ไม่พร้อมรับงาน';
-        let statusClass = 'bg-gray-100 text-gray-800';
-        
-        if (availabilityStatus === 'break') {
-          statusText = 'พัก';
-          statusClass = 'bg-yellow-100 text-yellow-800';
-        } else if (availabilityStatus === 'unavailable') {
-          statusText = 'ไม่พร้อมรับงาน';
-          statusClass = 'bg-gray-100 text-gray-800';
-        } else if (availabilityStatus === 'notworking') {
-          statusText = 'ไม่ได้ทำงาน';
-          statusClass = 'bg-red-100 text-red-800';
-        }
-        
-        const initial = queue.employeeName ? queue.employeeName.charAt(0).toUpperCase() : '?';
-        unavailableStaffList.push({
-          name: employeeName,
-          avatar: initial,
-          status: statusText,
-          statusClass: statusClass,
-          isAvatarLetter: true
         });
       }
     });
@@ -359,6 +358,18 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
     return `${hours}:${minutes} น.`;
+  }
+
+  private formatStatusChangedTime(updatedDate: string): string {
+    try {
+      const date = new Date(updatedDate);
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes} น.`;
+    } catch (error) {
+      console.warn('Error formatting status changed time:', error);
+      return '';
+    }
   }
 
   private updateSummaryData(queues: QueueDto[], jobs: QueueSummaryJobDto[]): void {

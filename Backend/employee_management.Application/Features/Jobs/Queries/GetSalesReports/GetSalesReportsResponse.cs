@@ -7,6 +7,7 @@ namespace employee_management.Application.Features.Jobs.Queries.GetSalesReports
     public sealed class SalesReportDto
     {
         public Guid Id { get; set; }
+        public string JobNumber { get; set; } = string.Empty;
         public string CustomerName { get; set; } = string.Empty;
         public string CustomerContact { get; set; } = string.Empty;
         public string SalesStatus { get; set; } = string.Empty;

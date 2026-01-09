@@ -30,6 +30,7 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   private resizeObserver?: ResizeObserver;
   isLoading = signal(false);
   allReports = signal<SalesReport[]>([]);
+  totalCount = signal(0); // Total count from API for pagination
   
   constructor(
     private salesReportService: SalesReportService,
@@ -137,8 +138,10 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   */
 
   ngOnInit(): void {
-    // Always load all data to calculate counts correctly
-    this.loadSalesReports('All');
+    // Load initial data with current tab and page
+    this.loadSalesReports(this.activeTab(), this.currentPage());
+    // Load counts separately to show in tabs
+    this.loadCounts();
   }
 
   ngAfterViewInit(): void {
@@ -208,11 +211,12 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
     element.scrollBy({ left: scrollAmount, behavior: 'smooth' });
   }
 
-  loadSalesReports(status: ReportStatus | 'All' = 'All'): void {
+  loadSalesReports(status: ReportStatus | 'All' = 'All', page: number = 1): void {
     this.isLoading.set(true);
-    // Always load all reports (no status filter) so counts() can calculate correctly
-    // The filtering by status will be done in filteredReports computed property
-    this.salesReportService.getSalesReports(undefined).pipe(
+    const pageSize = this.itemsPerPage();
+    // Map 'All' to undefined for API
+    const apiStatus = status === 'All' ? undefined : status;
+    this.salesReportService.getSalesReports(apiStatus, page, pageSize).pipe(
       catchError(error => {
         console.error('Error loading sales reports:', error);
         console.error('Error details:', {
@@ -248,6 +252,18 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
         const reports = this.mapApiDataToSalesReports(response.reports || []);
         console.log('Mapped reports:', reports);
         this.allReports.set(reports);
+        // If backend returns totalCount in response, use it
+        // Otherwise, if we have full page of data, estimate totalCount
+        // TODO: Update when backend returns pagination metadata (totalCount, totalPages)
+        const pageSize = this.itemsPerPage();
+        if (reports.length === pageSize) {
+          // Likely more data available, but we don't know exact count
+          // Set to at least current page size * current page
+          this.totalCount.set(Math.max(reports.length, this.currentPage() * pageSize));
+        } else {
+          // Last page or empty, totalCount is current page start + current items
+          this.totalCount.set((this.currentPage() - 1) * pageSize + reports.length);
+        }
       },
       error: (error) => {
         console.error('Unexpected error in subscribe:', error);
@@ -339,6 +355,7 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
 
       const report: SalesReport = {
         id: id,
+        jobNumber: apiReport.jobNumber || '',
         customerName: apiReport.customerName || '',
         contactInfo: apiReport.customerContact || '',
         status: status,
@@ -367,6 +384,7 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   activeTab = signal<ReportStatus | 'All'>('All');
   showDetailDialog = signal(false);
   selectedReport = signal<SalesReport | null>(null);
+  countsData = signal<Record<ReportStatus | 'All', number>>({ All: 0, Success: 0, Pending: 0, Failed: 0 });
 
   // Edit dialog state
   showEditReportDialog = signal(false);
@@ -415,26 +433,32 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   ];
 
   counts = computed(() => {
-    const reports = this.allReports();
-    const result = reports.reduce((acc, report) => {
-      acc[report.status] = (acc[report.status] || 0) + 1;
-      return acc;
-    }, { All: reports.length } as Record<ReportStatus | 'All', number>);
-    return result;
+    return this.countsData();
   });
 
-  sortedReports = computed(() => {
-    return this.allReports().sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
-  });
+  private loadCounts(): void {
+    // Load all reports without pagination to get counts
+    this.salesReportService.getSalesReports(undefined).pipe(
+      catchError(error => {
+        console.error('Error loading counts:', error);
+        return of({ reports: [] });
+      })
+    ).subscribe({
+      next: (response) => {
+        const reports = this.mapApiDataToSalesReports(response.reports || []);
+        const result = reports.reduce((acc, report) => {
+          acc[report.status] = (acc[report.status] || 0) + 1;
+          return acc;
+        }, { All: reports.length } as Record<ReportStatus | 'All', number>);
+        this.countsData.set(result);
+      }
+    });
+  }
 
+  // Reports are already filtered and paginated by API, just apply search filter
   filteredReports = computed(() => {
     const term = this.searchTerm().toLowerCase();
-    const tab = this.activeTab();
-    let reports = this.sortedReports();
-
-    if (tab !== 'All') {
-      reports = reports.filter(report => report.status === tab);
-    }
+    const reports = this.allReports();
 
     if (!term) {
       return reports;
@@ -443,53 +467,95 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
     return reports.filter(report =>
       report.customerName.toLowerCase().includes(term) ||
       report.contactInfo.toLowerCase().includes(term) ||
-      report.id.toLowerCase().includes(term) ||
+      report.jobNumber.toLowerCase().includes(term) ||
       report.interestedProducts.some(p => p.toLowerCase().includes(term))
     );
   });
   
   totalPages = computed(() => {
-    if (this.filteredReports().length === 0) return 1;
-    return Math.ceil(this.filteredReports().length / this.itemsPerPage());
+    const total = this.totalCount();
+    if (total === 0) return 1;
+    return Math.ceil(total / this.itemsPerPage());
   });
   
   pages = computed(() => {
-    return Array.from({ length: this.totalPages() }, (_, i) => i + 1);
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: number[] = [];
+    
+    // Show max 5 pages around current page
+    let start = Math.max(1, current - 2);
+    let end = Math.min(total, current + 2);
+    
+    // Adjust if we're near the start
+    if (current <= 3) {
+      start = 1;
+      end = Math.min(5, total);
+    }
+    
+    // Adjust if we're near the end
+    if (current >= total - 2) {
+      start = Math.max(1, total - 4);
+      end = total;
+    }
+    
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    
+    return pages;
   });
 
   paginatedReports = computed(() => {
-    const reports = this.filteredReports();
-    const page = this.currentPage();
-    const perPage = this.itemsPerPage();
-    const start = (page - 1) * perPage;
-    const end = start + perPage;
-    return reports.slice(start, end);
+    // If search is active, filter locally; otherwise use API data directly
+    return this.filteredReports();
   });
 
   onSearchTermChange(term: string) {
     this.searchTerm.set(term);
-    this.currentPage.set(1);
+    // Search is done locally, no need to reload API
   }
 
   setTab(tab: ReportStatus | 'All') {
     this.activeTab.set(tab);
     this.currentPage.set(1);
-    // No need to reload data - filtering is done in filteredReports computed property
-    // Data is already loaded in ngOnInit with all reports
+    // Reload data with new tab filter
+    this.loadSalesReports(tab, 1);
   }
 
   goToPage(page: number) {
     if (page >= 1 && page <= this.totalPages()) {
       this.currentPage.set(page);
+      // Reload data with new page
+      this.loadSalesReports(this.activeTab(), page);
+    }
+  }
+
+  firstPage() {
+    if (this.currentPage() > 1) {
+      this.goToPage(1);
+    }
+  }
+
+  previousPage() {
+    const prevPage = this.currentPage() - 1;
+    if (prevPage >= 1) {
+      this.goToPage(prevPage);
     }
   }
 
   nextPage() {
-    this.goToPage(this.currentPage() + 1);
+    const nextPage = this.currentPage() + 1;
+    if (nextPage <= this.totalPages()) {
+      this.goToPage(nextPage);
+    }
   }
 
-  previousPage() {
-    this.goToPage(this.currentPage() - 1);
+  lastPage() {
+    const last = this.totalPages();
+    if (this.currentPage() < last) {
+      this.goToPage(last);
+    }
   }
 
   openDetailDialog(report: SalesReport) {
@@ -601,5 +667,54 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
     const thaiTime = new Intl.DateTimeFormat('th-TH', timeOptions).format(d);
     
     return `${thaiDate} (${thaiTime} น.)`;
+  }
+
+  getCustomerInitials(customerName: string): string {
+    if (!customerName || customerName.trim().length === 0) {
+      return '?';
+    }
+    
+    // Remove common prefixes like "คุณ", "บริษัท", "โครงการ"
+    const cleaned = customerName
+      .replace(/^(คุณ|บริษัท|โครงการ)\s+/i, '')
+      .trim();
+    
+    if (cleaned.length === 0) {
+      return customerName.substring(0, 2).toUpperCase();
+    }
+    
+    // Get first 1-2 characters (Thai characters are single-width)
+    if (cleaned.length >= 2) {
+      return cleaned.substring(0, 2);
+    }
+    return cleaned.substring(0, 1);
+  }
+
+  getCustomerAvatarColor(customerName: string): string {
+    if (!customerName || customerName.trim().length === 0) {
+      return 'bg-gray-500';
+    }
+    
+    // Simple hash function to generate consistent color from name
+    let hash = 0;
+    for (let i = 0; i < customerName.length; i++) {
+      hash = customerName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    // Map hash to one of the colors: green, purple, blue, pink
+    const colors = ['bg-green-500', 'bg-purple-500', 'bg-blue-500', 'bg-pink-500'];
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  }
+
+  getStatusIcon(status: ReportStatus): { color: string, text: string } {
+    switch (status) {
+      case 'Success':
+        return { color: 'bg-green-500', text: 'สำเร็จ' };
+      case 'Pending':
+        return { color: 'bg-yellow-500', text: 'รอตัดสินใจ' };
+      case 'Failed':
+        return { color: 'bg-red-500', text: 'ไม่สำเร็จ' };
+    }
   }
 }

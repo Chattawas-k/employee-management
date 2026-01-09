@@ -16,7 +16,8 @@ namespace employee_management.Application.Features.Queues.Queries.GetByDate
                 .ForCtorParam(nameof(GetByDateResponse.Position), opt => opt.MapFrom(src => src.Position))
                 .ForCtorParam(nameof(GetByDateResponse.Status), opt => opt.MapFrom(src => src.Status))
                 .ForCtorParam(nameof(GetByDateResponse.AvailabilityStatus), opt => opt.MapFrom(src => src.AvailabilityStatus))
-                .ForCtorParam(nameof(GetByDateResponse.QueueDate), opt => opt.MapFrom(src => src.QueueDate));
+                .ForCtorParam(nameof(GetByDateResponse.QueueDate), opt => opt.MapFrom(src => src.QueueDate))
+                .ForCtorParam(nameof(GetByDateResponse.UpdatedDate), opt => opt.MapFrom(src => src.UpdatedDate));
         }
     }
 }

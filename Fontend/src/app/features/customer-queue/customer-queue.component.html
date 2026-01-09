@@ -146,6 +146,13 @@
                     {{ staff.status }}
                   </span>
                </div>
+               @if(staff.statusChangedTime) {
+                 <div class="flex-shrink-0">
+                   <div class="px-2 py-1 border border-red-500 rounded text-xs text-red-600 font-medium">
+                     {{ staff.statusChangedTime }}
+                   </div>
+                 </div>
+               }
             </div>
           }
         </div>
