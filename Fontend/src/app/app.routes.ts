@@ -9,6 +9,7 @@ import { LoginComponent } from './features/login/login.component';
 import { EmployeeManagementComponent } from './features/employee-management/employee-management.component';
 import { QueueSettingsComponent } from './features/queue-settings/queue-settings.component';
 import { UsersPermissionsComponent } from './features/users-permissions/users-permissions.component';
+import { MyAccountComponent } from './features/my-account/my-account.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -23,6 +24,7 @@ export const routes: Routes = [
   { path: 'settings/employees', component: EmployeeManagementComponent, canActivate: [authGuard] },
   { path: 'settings/queue', component: QueueSettingsComponent, canActivate: [authGuard] },
   { path: 'settings/users', component: UsersPermissionsComponent, canActivate: [authGuard] },
+  { path: 'my-account', component: MyAccountComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '/my-tasks' }
 ];
 

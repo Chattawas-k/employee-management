@@ -52,6 +52,25 @@ export class AppComponent implements OnInit, OnDestroy {
   isLoadingQueueInfo = signal(false);
 
   showLayout = computed(() => this.isAuthenticated() && !this.isLoginPage());
+  
+  // Check if user is employee (has Basic role)
+  isEmployee = computed(() => {
+    const user = this.currentUser();
+    if (!user || !user.roles) return false;
+    // Check if roles array contains "Basic" or "พนักงาน"
+    const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
+    
+    // Debug: log roles to console
+    console.log('Current user roles:', roles);
+    
+    return roles.some((role: string) => {
+      const roleLower = role.toLowerCase();
+      return roleLower === 'basic' || 
+             role === 'Basic' ||
+             role === 'พนักงาน' ||
+             roleLower.includes('basic');
+    });
+  });
 
   statusInfo = computed(() => {
     switch (this.availabilityStatus()) {

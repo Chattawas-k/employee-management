@@ -41,7 +41,7 @@
       <div class="pt-4 mt-4 border-t border-slate-100">
         <button 
           (click)="isSettingsOpen.set(!isSettingsOpen())"
-          class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors bg-slate-50">
+          class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors ">
           <app-icon name="settings" className="w-5 h-5 text-indigo-600"></app-icon>
           <span class="flex-1 text-left">ตั้งค่า</span>
           <app-icon [name]="isSettingsOpen() ? 'chevron-up' : 'chevron-down'" className="w-4 h-4"></app-icon>
@@ -276,10 +276,207 @@
       </div>
     </header>
     <!-- Page Content -->
-    <div class="flex-1 overflow-y-auto overflow-x-hidden min-w-0" style="box-sizing: border-box; width: 100%; max-width: 100%;">
+    <div class="flex-1 overflow-y-auto overflow-x-hidden min-w-0 pb-20 lg:pb-0" [class.pb-20]="isEmployee()" style="box-sizing: border-box; width: 100%; max-width: 100%;">
       <router-outlet></router-outlet>
     </div>
   </main>
+  
+  <!-- Bottom Navigation Bar - Employee Only (Mobile) -->
+  @if (isEmployee()) {
+    <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg z-50">
+      <div class="flex items-center justify-around px-2 py-2">
+        <!-- คิวพนักงาน -->
+        <a 
+          routerLink="/customer-queue" 
+          routerLinkActive="active"
+          #customerQueueLink="routerLinkActive"
+          class="flex flex-col items-center justify-center flex-1 py-1 px-1 transition-all">
+          <div 
+            class="rounded-full flex items-center justify-center mb-1 transition-all duration-200"
+            [class.w-12]="customerQueueLink.isActive"
+            [class.h-12]="customerQueueLink.isActive"
+            [class.w-8]="!customerQueueLink.isActive"
+            [class.h-8]="!customerQueueLink.isActive"
+            [class.bg-blue-600]="customerQueueLink.isActive"
+            [class.-mt-2]="customerQueueLink.isActive"
+            [class.shadow-md]="customerQueueLink.isActive">
+            <svg xmlns="http://www.w3.org/2000/svg" 
+              class="transition-all"
+              [class.h-6]="customerQueueLink.isActive"
+              [class.w-6]="customerQueueLink.isActive"
+              [class.h-5]="!customerQueueLink.isActive"
+              [class.w-5]="!customerQueueLink.isActive"
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor" 
+              stroke-width="2"
+              [class.text-white]="customerQueueLink.isActive"
+              [class.text-gray-500]="!customerQueueLink.isActive">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <span 
+            class="text-xs font-medium transition-colors"
+            [class.text-blue-600]="customerQueueLink.isActive"
+            [class.text-gray-500]="!customerQueueLink.isActive">
+            คิวพนักงาน
+          </span>
+        </a>
+        
+        <!-- งานของฉัน -->
+        <a 
+          routerLink="/my-tasks" 
+          routerLinkActive="active"
+          #myTasksLink="routerLinkActive"
+          class="flex flex-col items-center justify-center flex-1 py-1 px-1 transition-all">
+          <div 
+            class="rounded-full flex items-center justify-center mb-1 transition-all duration-200"
+            [class.w-12]="myTasksLink.isActive"
+            [class.h-12]="myTasksLink.isActive"
+            [class.w-8]="!myTasksLink.isActive"
+            [class.h-8]="!myTasksLink.isActive"
+            [class.bg-blue-600]="myTasksLink.isActive"
+            [class.-mt-2]="myTasksLink.isActive"
+            [class.shadow-md]="myTasksLink.isActive">
+            <svg xmlns="http://www.w3.org/2000/svg" 
+              class="transition-all"
+              [class.h-6]="myTasksLink.isActive"
+              [class.w-6]="myTasksLink.isActive"
+              [class.h-5]="!myTasksLink.isActive"
+              [class.w-5]="!myTasksLink.isActive"
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor" 
+              stroke-width="2"
+              [class.text-white]="myTasksLink.isActive"
+              [class.text-gray-500]="!myTasksLink.isActive">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <span 
+            class="text-xs font-medium transition-colors"
+            [class.text-blue-600]="myTasksLink.isActive"
+            [class.text-gray-500]="!myTasksLink.isActive">
+            งานของฉัน
+          </span>
+        </a>
+        
+        <!-- กดรับงาน -->
+        <a 
+          routerLink="/assign" 
+          routerLinkActive="active"
+          #assignLink="routerLinkActive"
+          class="flex flex-col items-center justify-center flex-1 py-1 px-1 transition-all">
+          <div 
+            class="rounded-full flex items-center justify-center mb-1 transition-all duration-200"
+            [class.w-12]="assignLink.isActive"
+            [class.h-12]="assignLink.isActive"
+            [class.w-8]="!assignLink.isActive"
+            [class.h-8]="!assignLink.isActive"
+            [class.bg-blue-600]="assignLink.isActive"
+            [class.-mt-2]="assignLink.isActive"
+            [class.shadow-md]="assignLink.isActive">
+            <svg xmlns="http://www.w3.org/2000/svg" 
+              class="transition-all"
+              [class.h-6]="assignLink.isActive"
+              [class.w-6]="assignLink.isActive"
+              [class.h-5]="!assignLink.isActive"
+              [class.w-5]="!assignLink.isActive"
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor" 
+              stroke-width="2"
+              [class.text-white]="assignLink.isActive"
+              [class.text-gray-500]="!assignLink.isActive">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <span 
+            class="text-xs font-medium transition-colors"
+            [class.text-blue-600]="assignLink.isActive"
+            [class.text-gray-500]="!assignLink.isActive">
+            กดรับงาน
+          </span>
+        </a>
+        
+        <!-- รายงาน -->
+        <a 
+          routerLink="/report" 
+          routerLinkActive="active"
+          #reportLink="routerLinkActive"
+          class="flex flex-col items-center justify-center flex-1 py-1 px-1 transition-all">
+          <div 
+            class="rounded-full flex items-center justify-center mb-1 transition-all duration-200"
+            [class.w-12]="reportLink.isActive"
+            [class.h-12]="reportLink.isActive"
+            [class.w-8]="!reportLink.isActive"
+            [class.h-8]="!reportLink.isActive"
+            [class.bg-blue-600]="reportLink.isActive"
+            [class.-mt-2]="reportLink.isActive"
+            [class.shadow-md]="reportLink.isActive">
+            <svg xmlns="http://www.w3.org/2000/svg" 
+              class="transition-all"
+              [class.h-6]="reportLink.isActive"
+              [class.w-6]="reportLink.isActive"
+              [class.h-5]="!reportLink.isActive"
+              [class.w-5]="!reportLink.isActive"
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor" 
+              stroke-width="2"
+              [class.text-white]="reportLink.isActive"
+              [class.text-gray-500]="!reportLink.isActive">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <span 
+            class="text-xs font-medium transition-colors"
+            [class.text-blue-600]="reportLink.isActive"
+            [class.text-gray-500]="!reportLink.isActive">
+            รายงาน
+          </span>
+        </a>
+        
+        <!-- บัญชีของฉัน -->
+        <a 
+          routerLink="/my-account" 
+          routerLinkActive="active"
+          #myAccountLink="routerLinkActive"
+          class="flex flex-col items-center justify-center flex-1 py-1 px-1 transition-all">
+          <div 
+            class="rounded-full flex items-center justify-center mb-1 transition-all duration-200"
+            [class.w-12]="myAccountLink.isActive"
+            [class.h-12]="myAccountLink.isActive"
+            [class.w-8]="!myAccountLink.isActive"
+            [class.h-8]="!myAccountLink.isActive"
+            [class.bg-blue-600]="myAccountLink.isActive"
+            [class.-mt-2]="myAccountLink.isActive"
+            [class.shadow-md]="myAccountLink.isActive">
+            <svg xmlns="http://www.w3.org/2000/svg" 
+              class="transition-all"
+              [class.h-6]="myAccountLink.isActive"
+              [class.w-6]="myAccountLink.isActive"
+              [class.h-5]="!myAccountLink.isActive"
+              [class.w-5]="!myAccountLink.isActive"
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor" 
+              stroke-width="2"
+              [class.text-white]="myAccountLink.isActive"
+              [class.text-gray-500]="!myAccountLink.isActive">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <span 
+            class="text-xs font-medium transition-colors"
+            [class.text-blue-600]="myAccountLink.isActive"
+            [class.text-gray-500]="!myAccountLink.isActive">
+            บัญชีของฉัน
+          </span>
+        </a>
+      </div>
+    </nav>
+  }
 </div>
 } @else {
   <!-- Show only router outlet when not authenticated -->
