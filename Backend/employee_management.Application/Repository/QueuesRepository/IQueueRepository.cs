@@ -9,7 +9,7 @@ namespace employee_management.Application.Repository.QueuesRepository
         Task<Queue?> GetByEmployeeIdAndDateAsync(Guid employeeId, DateTime date, CancellationToken cancellationToken);
         Task<List<Queue>> GetActiveQueuesByDateAsync(DateTime date, CancellationToken cancellationToken);
         Task UpdateQueueStatusAsync(Guid employeeId, DateTime date, QueueStatus status, CancellationToken cancellationToken);
-        Task UpdateAvailabilityStatusAsync(Guid employeeId, DateTime date, AvailabilityStatus availabilityStatus, CancellationToken cancellationToken);
+        Task<Queue> UpdateAvailabilityStatusAsync(Guid employeeId, DateTime date, AvailabilityStatus availabilityStatus, CancellationToken cancellationToken);
         Task<Queue?> GetFirstAvailableStaffAsync(DateTime date, CancellationToken cancellationToken);
         Task RotateQueueToTailAsync(Guid employeeId, DateTime date, CancellationToken cancellationToken);
     }

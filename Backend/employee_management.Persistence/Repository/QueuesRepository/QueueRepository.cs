@@ -86,7 +86,7 @@ namespace employee_management.Persistence.Repository.QueuesRepository
             }
         }
 
-        public async Task UpdateAvailabilityStatusAsync(Guid employeeId, DateTime date, AvailabilityStatus availabilityStatus, CancellationToken cancellationToken)
+        public async Task<Queue> UpdateAvailabilityStatusAsync(Guid employeeId, DateTime date, AvailabilityStatus availabilityStatus, CancellationToken cancellationToken)
         {
             // Convert to UTC to avoid DateTime Kind issues with PostgreSQL
             var targetDate = date.Date.ToUniversalTime();
@@ -109,6 +109,7 @@ namespace employee_management.Persistence.Repository.QueuesRepository
                 queue.Status = queueStatus;
                 
                 Context.Queues.Update(queue);
+                return queue;
             }
             else
             {
@@ -122,6 +123,7 @@ namespace employee_management.Persistence.Repository.QueuesRepository
                     AvailabilityStatus.Busy => QueueStatus.Busy,
                     AvailabilityStatus.Break => QueueStatus.Inactive,
                     AvailabilityStatus.Unavailable => QueueStatus.Inactive,
+                    AvailabilityStatus.NotWorking => QueueStatus.Inactive,
                     _ => QueueStatus.Active
                 };
 
@@ -134,6 +136,7 @@ namespace employee_management.Persistence.Repository.QueuesRepository
                     QueueDate = targetDate
                 };
                 Context.Queues.Add(newQueue);
+                return newQueue;
             }
         }
 

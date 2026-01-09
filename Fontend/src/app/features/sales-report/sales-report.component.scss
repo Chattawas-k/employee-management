@@ -1,2 +1,81 @@
 // Sales report component styles
 
+// Hide scrollbar but allow scrolling
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+  
+  &::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+}
+
+// Ensure tabs container can scroll horizontally on mobile
+nav {
+  min-width: 0; // Allow flex item to shrink below content size
+  width: 100%;
+  max-width: 100%; // Maximum width equals parent container
+  box-sizing: border-box;
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  
+  // Ensure buttons don't shrink
+  button {
+    flex-shrink: 0;
+    min-width: fit-content;
+    box-sizing: border-box;
+  }
+  
+  // Smooth scrolling on touch devices
+  @media (max-width: 640px) {
+    scroll-snap-type: x proximity;
+    
+    button {
+      scroll-snap-align: start;
+    }
+  }
+}
+
+// Tabs container wrapper
+div[class*="border-b border-gray-200"] {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+}
+
+// Scroll indicator buttons
+button[aria-label="Scroll left"],
+button[aria-label="Scroll right"] {
+  pointer-events: auto;
+  cursor: pointer;
+  
+  &:hover {
+    svg {
+      transform: scale(1.1);
+    }
+  }
+  
+  svg {
+    transition: transform 0.2s ease;
+  }
+}
+
+// Ensure component doesn't exceed viewport
+:host {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden !important;
+  overflow-y: visible;
+  box-sizing: border-box;
+}
+
+// Prevent any child from causing horizontal overflow
+:host > * {
+  max-width: 100%;
+  box-sizing: border-box;
+}

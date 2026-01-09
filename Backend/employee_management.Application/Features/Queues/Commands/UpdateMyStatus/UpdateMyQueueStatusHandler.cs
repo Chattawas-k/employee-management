@@ -41,13 +41,13 @@ namespace employee_management.Application.Features.Queues.Commands.UpdateMyStatu
                 var previousStatus = currentQueue?.AvailabilityStatus;
 
                 // Update availability status (this will also update QueueStatus)
-                await _queueRepository.UpdateAvailabilityStatusAsync(request.EmployeeId, today, request.Status, cancellationToken);
+                // The method now returns the updated/created queue
+                var queue = await _queueRepository.UpdateAvailabilityStatusAsync(request.EmployeeId, today, request.Status, cancellationToken);
                 
-                // Get the updated queue
-                var queue = await _queueRepository.GetByEmployeeIdAndDateAsync(request.EmployeeId, today, cancellationToken);
                 if (queue == null)
                 {
-                    throw new InvalidOperationException("Queue not found after update");
+                    _logger.LogError("UpdateAvailabilityStatusAsync returned null for EmployeeId: {EmployeeId}, Date: {Date}", request.EmployeeId, today);
+                    throw new InvalidOperationException($"Failed to update or create queue for employee {request.EmployeeId} on {today:yyyy-MM-dd}");
                 }
 
                 // Create history record (Manual change)

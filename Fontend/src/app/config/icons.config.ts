@@ -34,6 +34,10 @@ export {
   RefreshCw,
   Check,
   XCircle,
-  ChartBar
+  ChartBar,
+  Home,
+  Compass,
+  MapPin,
+  Flag
 } from 'lucide-angular';
 

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal, computed, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, computed, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SalesReportDetailDialogComponent } from '../../shared/components/sales-report-detail-dialog/sales-report-detail-dialog.component';
@@ -21,7 +21,13 @@ export type { SalesReport } from '../../models/sales-report.model';
   styleUrls: ['./sales-report.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class SalesReportComponent implements OnInit {
+export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('tabsNav', { static: false }) tabsNav!: ElementRef<HTMLElement>;
+  
+  showLeftScroll = signal(false);
+  showRightScroll = signal(false);
+  
+  private resizeObserver?: ResizeObserver;
   isLoading = signal(false);
   allReports = signal<SalesReport[]>([]);
   
@@ -133,6 +139,73 @@ export class SalesReportComponent implements OnInit {
   ngOnInit(): void {
     // Always load all data to calculate counts correctly
     this.loadSalesReports('All');
+  }
+
+  ngAfterViewInit(): void {
+    // Check scroll position after view init
+    setTimeout(() => {
+      this.checkScrollPosition();
+      this.setupResizeObserver();
+    }, 100);
+  }
+
+  ngOnDestroy(): void {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+  }
+
+  private setupResizeObserver(): void {
+    if (typeof ResizeObserver !== 'undefined' && this.tabsNav?.nativeElement) {
+      this.resizeObserver = new ResizeObserver(() => {
+        this.checkScrollPosition();
+      });
+      this.resizeObserver.observe(this.tabsNav.nativeElement);
+    }
+    
+    // Fallback for browsers without ResizeObserver
+    window.addEventListener('resize', () => {
+      this.checkScrollPosition();
+    });
+  }
+
+  onTabsScroll(): void {
+    this.checkScrollPosition();
+  }
+
+  private checkScrollPosition(): void {
+    if (!this.tabsNav?.nativeElement) {
+      return;
+    }
+
+    const element = this.tabsNav.nativeElement;
+    const scrollLeft = element.scrollLeft;
+    const scrollWidth = element.scrollWidth;
+    const clientWidth = element.clientWidth;
+
+    // Show left scroll indicator if scrolled from start
+    this.showLeftScroll.set(scrollLeft > 0);
+    
+    // Show right scroll indicator if can scroll more
+    this.showRightScroll.set(scrollLeft < scrollWidth - clientWidth - 1);
+  }
+
+  scrollLeft(): void {
+    if (!this.tabsNav?.nativeElement) {
+      return;
+    }
+    const element = this.tabsNav.nativeElement;
+    const scrollAmount = element.clientWidth * 0.8; // Scroll 80% of visible width
+    element.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+  }
+
+  scrollRight(): void {
+    if (!this.tabsNav?.nativeElement) {
+      return;
+    }
+    const element = this.tabsNav.nativeElement;
+    const scrollAmount = element.clientWidth * 0.8; // Scroll 80% of visible width
+    element.scrollBy({ left: scrollAmount, behavior: 'smooth' });
   }
 
   loadSalesReports(status: ReportStatus | 'All' = 'All'): void {

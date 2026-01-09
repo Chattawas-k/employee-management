@@ -33,19 +33,98 @@
   </header>
 
   <!-- Tabs -->
-  <div class="border-b border-gray-200">
-    <nav class="-mb-px flex flex-wrap gap-x-8 gap-y-2" aria-label="Tabs">
-      <button (click)="setTab('All')" [class]="activeTab() === 'All' ? 'border-indigo-600 text-indigo-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'" class="whitespace-nowrap py-3 px-1 border-b-2 text-base flex items-center gap-2">
-        ทั้งหมด <span class="px-2 py-0.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600">{{ counts()['All'] || 0 }}</span>
+  <div class="mb-4 sm:mb-6 border-b border-gray-200 relative w-full min-w-0 overflow-hidden" style="box-sizing: border-box; width: 100%; max-width: 100%;">
+    <!-- Left Scroll Indicator -->
+    <button 
+      *ngIf="showLeftScroll()"
+      (click)="scrollLeft()"
+      class="absolute left-0 top-0 bottom-0 z-10 w-12 bg-gradient-to-r from-slate-50 via-slate-50/80 to-transparent flex items-center justify-center hover:from-slate-100 transition-all duration-200 pointer-events-auto"
+      type="button"
+      aria-label="Scroll left">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+      </svg>
+    </button>
+    
+    <!-- Right Scroll Indicator -->
+    <button 
+      *ngIf="showRightScroll()"
+      (click)="scrollRight()"
+      class="absolute right-0 top-0 bottom-0 z-10 w-12 bg-gradient-to-l from-slate-50 via-slate-50/80 to-transparent flex items-center justify-center hover:from-slate-100 transition-all duration-200 pointer-events-auto"
+      type="button"
+      aria-label="Scroll right">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
+    
+    <nav 
+      #tabsNav
+      class="-mb-px flex space-x-3 sm:space-x-6 md:space-x-8 overflow-x-auto scrollbar-hide min-w-0" 
+      aria-label="Tabs" 
+      style="-webkit-overflow-scrolling: touch; box-sizing: border-box; width: 100%; max-width: 100%; scroll-behavior: smooth;"
+      (scroll)="onTabsScroll()">
+      <button
+        (click)="setTab('All')"
+        [class]="activeTab() === 'All' 
+          ? 'border-indigo-500 text-indigo-600' 
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+        class="whitespace-nowrap py-3 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+        <span>ทั้งหมด</span>
+        <span [class]="activeTab() === 'All' 
+          ? 'bg-indigo-100 text-indigo-600' 
+          : 'bg-gray-100 text-gray-600'"
+          class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
+          {{ counts()['All'] || 0 }}
+        </span>
       </button>
-      <button (click)="setTab('Success')" [class]="activeTab() === 'Success' ? 'border-indigo-600 text-indigo-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'" class="whitespace-nowrap py-3 px-1 border-b-2 text-base flex items-center gap-2">
-        สำเร็จ <span class="px-2 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-700">{{ counts()['Success'] || 0 }}</span>
+      
+      <button
+        (click)="setTab('Success')"
+        [class]="activeTab() === 'Success' 
+          ? 'border-green-500 text-green-600' 
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+        class="whitespace-nowrap py-3 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+        <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+        <span>สำเร็จ</span>
+        <span [class]="activeTab() === 'Success' 
+          ? 'bg-green-100 text-green-600' 
+          : 'bg-gray-100 text-gray-600'"
+          class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
+          {{ counts()['Success'] || 0 }}
+        </span>
       </button>
-      <button (click)="setTab('Pending')" [class]="activeTab() === 'Pending' ? 'border-indigo-600 text-indigo-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'" class="whitespace-nowrap py-3 px-1 border-b-2 text-base flex items-center gap-2">
-        รอตัดสินใจ <span class="px-2 py-0.5 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700">{{ counts()['Pending'] || 0 }}</span>
+      
+      <button
+        (click)="setTab('Pending')"
+        [class]="activeTab() === 'Pending' 
+          ? 'border-yellow-500 text-yellow-600' 
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+        class="whitespace-nowrap py-3 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+        <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-yellow-500 flex-shrink-0"></span>
+        <span>รอตัดสินใจ</span>
+        <span [class]="activeTab() === 'Pending' 
+          ? 'bg-yellow-100 text-yellow-600' 
+          : 'bg-gray-100 text-gray-600'"
+          class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
+          {{ counts()['Pending'] || 0 }}
+        </span>
       </button>
-      <button (click)="setTab('Failed')" [class]="activeTab() === 'Failed' ? 'border-indigo-600 text-indigo-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'" class="whitespace-nowrap py-3 px-1 border-b-2 text-base flex items-center gap-2">
-        ไม่สำเร็จ <span class="px-2 py-0.5 rounded-full text-sm font-medium bg-red-100 text-red-700">{{ counts()['Failed'] || 0 }}</span>
+      
+      <button
+        (click)="setTab('Failed')"
+        [class]="activeTab() === 'Failed' 
+          ? 'border-red-500 text-red-600' 
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+        class="whitespace-nowrap py-3 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+        <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500 flex-shrink-0"></span>
+        <span>ไม่สำเร็จ</span>
+        <span [class]="activeTab() === 'Failed' 
+          ? 'bg-red-100 text-red-600' 
+          : 'bg-gray-100 text-gray-600'"
+          class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
+          {{ counts()['Failed'] || 0 }}
+        </span>
       </button>
     </nav>
   </div>
