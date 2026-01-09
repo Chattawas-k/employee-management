@@ -20,12 +20,28 @@ export class PositionService {
 
   constructor(private http: HttpClient) {}
 
-  getAll(departmentId?: string): Observable<PositionDto[]> {
+  getAll(departmentId?: string, forceRefresh: boolean = false): Observable<PositionDto[]> {
     let params = new HttpParams();
     if (departmentId) {
       params = params.set('departmentId', departmentId);
     }
+    // Add cache busting parameter if force refresh
+    if (forceRefresh) {
+      params = params.set('_t', Date.now().toString());
+    }
     return this.http.get<PositionDto[]>(`${this.apiUrl}`, { params });
+  }
+
+  create(position: Omit<PositionDto, 'id'>): Observable<PositionDto> {
+    return this.http.post<PositionDto>(`${this.apiUrl}`, position);
+  }
+
+  update(id: string, position: Partial<PositionDto>): Observable<PositionDto> {
+    return this.http.put<PositionDto>(`${this.apiUrl}/${id}`, { ...position, id });
+  }
+
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 }
 

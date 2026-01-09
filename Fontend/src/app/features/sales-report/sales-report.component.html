@@ -311,7 +311,8 @@
     <!-- Pagination -->
     @if (filteredReports().length > 0) {
       <div class="p-4 border-t border-gray-200 flex items-center justify-end">
-        <nav class="flex items-center space-x-1">
+        <div class="p-2">
+          <nav class="flex items-center space-x-1">
           <!-- First Page Button -->
           <button 
             (click)="firstPage()" 
@@ -363,7 +364,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
             </svg>
           </button>
-        </nav>
+          </nav>
+        </div>
       </div>
     }
   </div>

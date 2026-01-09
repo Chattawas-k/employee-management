@@ -100,3 +100,19 @@ export interface UpdateJobStatusResponse {
   report?: UpdateJobStatusReportDto;
 }
 
+
+export interface JobGetResponse {
+  id: string;
+  jobNumber: string;
+  title: string;
+  customer: string;
+  description: string;
+  assigneeId: string;
+  assigneeName?: string;
+  status: JobStatus | string;
+  priority: JobPriority | string;
+  createdDate: string;
+  updatedDate?: string;
+  statusLogs: MyTaskStatusLogDto[];
+  report?: MyTaskJobReportDto;
+}

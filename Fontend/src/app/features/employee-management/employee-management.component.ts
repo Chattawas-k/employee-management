@@ -2,19 +2,24 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EmployeeService } from '../../services/employee.service';
+import { PositionService, PositionDto } from '../../services/position.service';
 import { EmployeeSearchItem, EmployeeSearchRequest, EmployeeSearchResponse } from '../../models/employee.model';
 import { EmployeeDialogComponent } from '../../shared/components/employee-dialog/employee-dialog.component';
+import { PositionDialogComponent } from '../../shared/components/position-dialog/position-dialog.component';
 import { ToastService } from '../../services/toast.service';
 import { catchError, debounceTime, distinctUntilChanged, Subject, switchMap, of, Observable } from 'rxjs';
 
 @Component({
   selector: 'app-employee-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, EmployeeDialogComponent],
+  imports: [CommonModule, FormsModule, EmployeeDialogComponent, PositionDialogComponent],
   templateUrl: './employee-management.component.html',
   styleUrls: ['./employee-management.component.scss']
 })
 export class EmployeeManagementComponent implements OnInit {
+  activeTab = signal<'employees' | 'positions'>('employees');
+  
+  // Employees
   employees = signal<EmployeeSearchItem[]>([]);
   isLoading = signal(false);
   searchTerm = signal('');
@@ -26,14 +31,22 @@ export class EmployeeManagementComponent implements OnInit {
   selectedEmployee = signal<EmployeeSearchItem | null>(null);
   isDialogOpen = signal(false);
   
+  // Positions
+  positions = signal<PositionDto[]>([]);
+  isLoadingPositions = signal(false);
+  selectedPosition = signal<PositionDto | null>(null);
+  isPositionDialogOpen = signal(false);
+  
   private searchSubject = new Subject<string>();
 
   constructor(
     private employeeService: EmployeeService,
+    private positionService: PositionService,
     private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
+    // Load initial data based on default tab (employees)
     this.loadEmployees();
     
     // Setup debounced search
@@ -60,12 +73,23 @@ export class EmployeeManagementComponent implements OnInit {
     });
   }
 
+  setActiveTab(tab: 'employees' | 'positions'): void {
+    // Always reload data when clicking tab, even if it's the same tab
+    if (tab === 'employees') {
+      this.activeTab.set(tab);
+      this.loadEmployees(true); // Force refresh to get latest data
+    } else if (tab === 'positions') {
+      this.activeTab.set(tab);
+      this.loadPositions(true); // Force refresh to get latest data
+    }
+  }
+
   onSearchChange(term: string): void {
     this.searchSubject.next(term);
   }
 
-  loadEmployees(): void {
-    this.loadEmployeesInternal().subscribe({
+  loadEmployees(forceRefresh: boolean = false): void {
+    this.loadEmployeesInternal(forceRefresh).subscribe({
       next: (response) => {
         this.employees.set(response.items);
         this.totalCount.set(response.totalCount);
@@ -80,7 +104,7 @@ export class EmployeeManagementComponent implements OnInit {
     });
   }
 
-  private loadEmployeesInternal(): Observable<EmployeeSearchResponse> {
+  private loadEmployeesInternal(forceRefresh: boolean = false): Observable<EmployeeSearchResponse> {
     this.isLoading.set(true);
     
     const request: EmployeeSearchRequest = {
@@ -91,7 +115,7 @@ export class EmployeeManagementComponent implements OnInit {
       sortDirection: 'asc' // เรียงตามชื่อพนักงานจาก A-Z
     };
 
-    return this.employeeService.search(request).pipe(
+    return this.employeeService.search(request, forceRefresh).pipe(
       catchError(error => {
         console.error('Error loading employees:', error);
         this.toastService.error('เกิดข้อผิดพลาดในการโหลดข้อมูลพนักงาน');
@@ -170,6 +194,76 @@ export class EmployeeManagementComponent implements OnInit {
     if (words.length === 0) return '';
     if (words.length === 1) return words[0].charAt(0).toUpperCase();
     return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
+  }
+
+  // Position methods
+  loadPositions(forceRefresh: boolean = false): void {
+    this.isLoadingPositions.set(true);
+    this.positionService.getAll(undefined, forceRefresh).pipe(
+      catchError(error => {
+        console.error('Error loading positions:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการโหลดข้อมูลตำแหน่ง');
+        this.isLoadingPositions.set(false);
+        return of([]);
+      })
+    ).subscribe({
+      next: (positions) => {
+        this.positions.set(positions);
+        this.isLoadingPositions.set(false);
+      }
+    });
+  }
+
+  onAddPosition(): void {
+    this.selectedPosition.set(null);
+    this.isPositionDialogOpen.set(true);
+  }
+
+  onEditPosition(position: PositionDto): void {
+    this.selectedPosition.set(position);
+    this.isPositionDialogOpen.set(true);
+  }
+
+  onDeletePosition(position: PositionDto): void {
+    if (confirm(`คุณต้องการลบตำแหน่ง "${position.name}" ใช่หรือไม่?`)) {
+      this.positionService.delete(position.id).subscribe({
+        next: () => {
+          this.toastService.success('ลบตำแหน่งสำเร็จ');
+          this.loadPositions(true); // Force refresh
+        },
+        error: (error) => {
+          console.error('Error deleting position:', error);
+          this.toastService.error('เกิดข้อผิดพลาดในการลบตำแหน่ง');
+        }
+      });
+    }
+  }
+
+  onPositionDialogClose(): void {
+    this.isPositionDialogOpen.set(false);
+    this.selectedPosition.set(null);
+  }
+
+  onPositionDialogSaved(): void {
+    // Force refresh to bypass cache
+    this.loadPositions(true);
+  }
+  
+  loadPositions(forceRefresh: boolean = false): void {
+    this.isLoadingPositions.set(true);
+    this.positionService.getAll(undefined, forceRefresh).pipe(
+      catchError(error => {
+        console.error('Error loading positions:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการโหลดข้อมูลตำแหน่ง');
+        this.isLoadingPositions.set(false);
+        return of([]);
+      })
+    ).subscribe({
+      next: (positions) => {
+        this.positions.set(positions);
+        this.isLoadingPositions.set(false);
+      }
+    });
   }
 
   Math = Math; // Expose Math to template

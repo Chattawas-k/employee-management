@@ -17,7 +17,7 @@ namespace employee_management.Persistence.Repository.PositionsRepository
         {
             return await Context.Positions
                 .Include(p => p.Department)
-                .Where(p => p.IsActive && !p.IsDeleted)
+                .Where(p => !p.IsDeleted)
                 .OrderBy(p => p.Name)
                 .ToListAsync(cancellationToken);
         }
@@ -26,9 +26,17 @@ namespace employee_management.Persistence.Repository.PositionsRepository
         {
             return await Context.Positions
                 .Include(p => p.Department)
-                .Where(p => p.DepartmentId == departmentId && p.IsActive && !p.IsDeleted)
+                .Where(p => p.DepartmentId == departmentId && !p.IsDeleted)
                 .OrderBy(p => p.Name)
                 .ToListAsync(cancellationToken);
+        }
+
+        public new async Task<Position?> Get(Guid id, CancellationToken cancellationToken)
+        {
+            return await Context.Positions
+                .Include(p => p.Department)
+                .Where(p => !p.IsDeleted)
+                .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
         }
     }
 }

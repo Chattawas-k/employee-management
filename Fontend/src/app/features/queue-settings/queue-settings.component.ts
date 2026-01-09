@@ -60,10 +60,12 @@ export class QueueSettingsComponent implements OnInit {
   }
 
   setTab(tab: 'current' | 'past'): void {
-    this.activeTab.set(tab);
+    // Always reload data when clicking tab, even if it's the same tab
     if (tab === 'current') {
+      this.activeTab.set(tab);
       this.loadCurrentQueues();
     } else {
+      this.activeTab.set(tab);
       this.loadPastQueues();
     }
   }

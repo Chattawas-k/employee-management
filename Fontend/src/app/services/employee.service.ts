@@ -24,7 +24,7 @@ export class EmployeeService {
     return this.http.get<EmployeeDropdownDto[]>(`${this.apiUrl}/dropdown-list`, { params });
   }
 
-  search(request: EmployeeSearchRequest): Observable<EmployeeSearchResponse> {
+  search(request: EmployeeSearchRequest, forceRefresh: boolean = false): Observable<EmployeeSearchResponse> {
     let params = new HttpParams();
     
     if (request.pageNumber !== undefined) {
@@ -51,6 +51,11 @@ export class EmployeeService {
     }
     if (request.positionId) {
       params = params.set('positionId', request.positionId);
+    }
+    
+    // Add cache busting parameter if force refresh
+    if (forceRefresh) {
+      params = params.set('_t', Date.now().toString());
     }
 
     return this.http.get<EmployeeSearchResponse>(`${this.apiUrl}/search`, { params });

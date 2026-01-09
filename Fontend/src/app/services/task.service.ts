@@ -6,7 +6,8 @@ import {
   CreateJobRequest, 
   CreateJobResponse, 
   UpdateJobStatusRequest, 
-  UpdateJobStatusResponse 
+  UpdateJobStatusResponse,
+  JobGetResponse
 } from '../models/task.model';
 import { environment } from '../../environments/environment';
 
@@ -20,6 +21,10 @@ export class TaskService {
 
   getMyTasks(): Observable<GetMyTasksResponse> {
     return this.http.get<GetMyTasksResponse>(`${this.apiUrl}/my-tasks`);
+  }
+
+  getJobById(id: string): Observable<JobGetResponse> {
+    return this.http.get<JobGetResponse>(`${this.apiUrl}/${id}`);
   }
 
   createJob(request: CreateJobRequest): Observable<CreateJobResponse> {

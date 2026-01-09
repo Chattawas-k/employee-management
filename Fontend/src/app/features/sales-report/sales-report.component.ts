@@ -31,6 +31,7 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   isLoading = signal(false);
   allReports = signal<SalesReport[]>([]);
   totalCount = signal(0); // Total count from API for pagination
+  private maxSeenCount = 0; // Track maximum count we've seen to improve estimation
   
   constructor(
     private salesReportService: SalesReportService,
@@ -252,18 +253,49 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
         const reports = this.mapApiDataToSalesReports(response.reports || []);
         console.log('Mapped reports:', reports);
         this.allReports.set(reports);
-        // If backend returns totalCount in response, use it
-        // Otherwise, if we have full page of data, estimate totalCount
-        // TODO: Update when backend returns pagination metadata (totalCount, totalPages)
+        
+        // Calculate estimated totalCount based on current tab's data
         const pageSize = this.itemsPerPage();
-        if (reports.length === pageSize) {
-          // Likely more data available, but we don't know exact count
-          // Set to at least current page size * current page
-          this.totalCount.set(Math.max(reports.length, this.currentPage() * pageSize));
+        const currentPage = this.currentPage();
+        const itemsInCurrentPage = reports.length;
+        const activeTab = this.activeTab();
+        
+        // Get expected count from counts() for the current tab
+        // This is the actual total count for this tab from the API
+        const expectedCount = this.counts()[activeTab] || 0;
+        
+        // Calculate minimum total count based on current page
+        const minTotalCount = (currentPage - 1) * pageSize + itemsInCurrentPage;
+        
+        // If we have expectedCount from counts(), use it as it's the actual total
+        if (expectedCount > 0) {
+          // Use the expected count as it's the actual total for this tab
+          this.totalCount.set(expectedCount);
+          this.maxSeenCount = Math.max(this.maxSeenCount, expectedCount);
         } else {
-          // Last page or empty, totalCount is current page start + current items
-          this.totalCount.set((this.currentPage() - 1) * pageSize + reports.length);
+          // Fallback: estimate based on current page data
+          if (itemsInCurrentPage === pageSize) {
+            // We know there are at least currentPage * pageSize items
+            const estimatedMinCount = currentPage * pageSize;
+            this.maxSeenCount = Math.max(this.maxSeenCount, estimatedMinCount);
+            this.totalCount.set(this.maxSeenCount);
+          } else {
+            // Last page or empty - we know the exact count
+            this.maxSeenCount = Math.max(this.maxSeenCount, minTotalCount);
+            this.totalCount.set(minTotalCount);
+          }
         }
+        
+        console.log('Pagination debug:', {
+          currentPage,
+          itemsInCurrentPage,
+          pageSize,
+          minTotalCount,
+          maxSeenCount: this.maxSeenCount,
+          totalCount: this.totalCount(),
+          totalPages: this.totalPages(),
+          calculatedPages: Math.ceil(this.totalCount() / pageSize)
+        });
       },
       error: (error) => {
         console.error('Unexpected error in subscribe:', error);
@@ -474,8 +506,23 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   
   totalPages = computed(() => {
     const total = this.totalCount();
+    const pageSize = this.itemsPerPage();
+    const currentPage = this.currentPage();
+    const currentItems = this.allReports().length;
+    
     if (total === 0) return 1;
-    return Math.ceil(total / this.itemsPerPage());
+    
+    // Calculate total pages based on total count
+    let calculatedPages = Math.ceil(total / pageSize);
+    
+    // If we have a full page of data, there's likely at least one more page
+    // So ensure we show at least currentPage + 1 pages if we have full page
+    if (currentItems === pageSize && calculatedPages <= currentPage) {
+      calculatedPages = currentPage + 1;
+    }
+    
+    // Ensure at least 1 page
+    return Math.max(1, calculatedPages);
   });
   
   pages = computed(() => {
@@ -483,20 +530,29 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
     const current = this.currentPage();
     const pages: number[] = [];
     
+    // Ensure current page is within valid range
+    const validCurrent = Math.min(Math.max(1, current), total);
+    
     // Show max 5 pages around current page
-    let start = Math.max(1, current - 2);
-    let end = Math.min(total, current + 2);
+    let start = Math.max(1, validCurrent - 2);
+    let end = Math.min(total, validCurrent + 2);
     
     // Adjust if we're near the start
-    if (current <= 3) {
+    if (validCurrent <= 3) {
       start = 1;
       end = Math.min(5, total);
     }
     
     // Adjust if we're near the end
-    if (current >= total - 2) {
+    if (validCurrent >= total - 2 && total > 0) {
       start = Math.max(1, total - 4);
       end = total;
+    }
+    
+    // Ensure we have at least one page
+    if (start > end) {
+      start = 1;
+      end = Math.max(1, total);
     }
     
     for (let i = start; i <= end; i++) {
@@ -519,12 +575,18 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   setTab(tab: ReportStatus | 'All') {
     this.activeTab.set(tab);
     this.currentPage.set(1);
+    // Reset maxSeenCount and totalCount when changing tabs
+    this.maxSeenCount = 0;
+    this.totalCount.set(0);
     // Reload data with new tab filter
     this.loadSalesReports(tab, 1);
   }
 
   goToPage(page: number) {
-    if (page >= 1 && page <= this.totalPages()) {
+    const totalPages = this.totalPages();
+    // Allow going to page even if it might be beyond current estimate
+    // The API will return empty or partial data if page doesn't exist
+    if (page >= 1) {
       this.currentPage.set(page);
       // Reload data with new page
       this.loadSalesReports(this.activeTab(), page);

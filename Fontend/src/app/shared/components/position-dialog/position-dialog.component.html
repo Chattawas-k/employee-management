@@ -1,0 +1,104 @@
+@if (isOpen) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" (click)="onClose()">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4" (click)="$event.stopPropagation()">
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-900">
+          {{ position ? 'แก้ไขข้อมูลตำแหน่ง' : 'เพิ่มตำแหน่งใหม่' }}
+        </h2>
+        <button 
+          (click)="onClose()" 
+          class="text-gray-400 hover:text-gray-600 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSave()" class="p-6 space-y-4">
+        <!-- Name -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            ชื่อตำแหน่ง <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            formControlName="name"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            [class.border-red-500]="form.get('name')?.invalid && form.get('name')?.touched">
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <p class="mt-1 text-sm text-red-500">กรุณากรอกชื่อตำแหน่ง</p>
+          }
+        </div>
+
+        <!-- Department -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            แผนก <span class="text-red-500">*</span>
+          </label>
+          <select
+            formControlName="departmentId"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            [class.border-red-500]="form.get('departmentId')?.invalid && form.get('departmentId')?.touched">
+            <option value="">เลือกแผนก</option>
+            @for (department of departments(); track department.id) {
+              <option [value]="department.id">{{ department.name }}</option>
+            }
+          </select>
+          @if (form.get('departmentId')?.invalid && form.get('departmentId')?.touched) {
+            <p class="mt-1 text-sm text-red-500">กรุณาเลือกแผนก</p>
+          }
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            คำอธิบาย
+          </label>
+          <textarea
+            formControlName="description"
+            rows="3"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+        </div>
+
+        <!-- Status -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            สถานะ <span class="text-red-500">*</span>
+          </label>
+          <select
+            formControlName="isActive"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            <option [value]="true">ใช้งาน</option>
+            <option [value]="false">ไม่ใช้งาน</option>
+          </select>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex gap-3 pt-4">
+          <button
+            type="button"
+            (click)="onClose()"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+            ยกเลิก
+          </button>
+          <button
+            type="submit"
+            [disabled]="isSaving()"
+            class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            @if (isSaving()) {
+              <span class="flex items-center justify-center gap-2">
+                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                กำลังบันทึก...
+              </span>
+            } @else {
+              บันทึก
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

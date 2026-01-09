@@ -106,4 +106,36 @@ export class TaskDetailDialogComponent {
   setActiveTab(tab: 'details' | 'history') {
     this.activeTab.set(tab);
   }
+
+  formatThaiDateTime(dateString?: string | null): string {
+    if (!dateString) {
+      return '-';
+    }
+    try {
+      const d = new Date(dateString);
+      if (isNaN(d.getTime())) {
+        return dateString; // Return original if invalid
+      }
+      const dateOptions: Intl.DateTimeFormatOptions = {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      };
+      const timeOptions: Intl.DateTimeFormatOptions = {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      };
+      const thaiDate = new Intl.DateTimeFormat('th-TH', dateOptions).format(d);
+      const thaiTime = new Intl.DateTimeFormat('th-TH', timeOptions).format(d);
+      
+      // Replace colon with dot in time (21:38 -> 21.38)
+      const timeWithDot = thaiTime.replace(':', '.');
+      
+      return `${thaiDate} (${timeWithDot} น.)`;
+    } catch (error) {
+      console.warn('Error formatting date:', dateString, error);
+      return dateString;
+    }
+  }
 }

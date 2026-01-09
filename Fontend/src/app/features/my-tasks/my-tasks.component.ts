@@ -10,7 +10,7 @@ import { TaskService } from '../../services/task.service';
 import { AuthService } from '../../services/auth.service';
 import { SignalRService } from '../../services/signalr.service';
 import { QueueService } from '../../services/queue.service';
-import { JobDto, JobStatus, JobPriority, UpdateJobStatusRequest, UpdateJobStatusReportDto } from '../../models/task.model';
+import { JobDto, JobStatus, JobPriority, UpdateJobStatusRequest, UpdateJobStatusReportDto, JobGetResponse, MyTaskStatusLogDto } from '../../models/task.model';
 import { MyQueueInfoResponse } from '../../models/queue.model';
 import { getEmployeeIdFromToken } from '../../utils/jwt.util';
 import { catchError, finalize } from 'rxjs/operators';
@@ -332,15 +332,15 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     }
   }
 
-  private mapJobDtoToTask(job: JobDto): Task {
+  private mapJobGetResponseToTask(job: JobGetResponse): Task {
     const priorityText = this.getPriorityText(job.priority);
     const priorityClass = this.getPriorityClass(job.priority);
     const status = this.mapJobStatusToTaskStatus(job.status);
     
     // Get timestamps from status logs
-    const createdLog = job.statusLogs.find(log => log.status === 'Pending');
-    const startedLog = job.statusLogs.find(log => log.status === 'InProgress');
-    const completedLog = job.statusLogs.find(log => log.status === 'Done' || log.status === 'Rejected');
+    const createdLog = job.statusLogs.find((log: MyTaskStatusLogDto) => log.status === 'Pending');
+    const startedLog = job.statusLogs.find((log: MyTaskStatusLogDto) => log.status === 'InProgress');
+    const completedLog = job.statusLogs.find((log: MyTaskStatusLogDto) => log.status === 'Done' || log.status === 'Rejected');
     
     // Pass ISO string to task card component, let it format the date
     const createdAt = createdLog ? createdLog.timestamp : job.createdDate;
@@ -393,7 +393,73 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       customerName: job.customer,
       details: job.description,
       status,
-      rejectionReason: job.statusLogs.find(log => log.status.includes('Rejected'))?.status.split(':')[1]?.trim(),
+      rejectionReason: job.statusLogs.find((log: MyTaskStatusLogDto) => log.status.includes('Rejected'))?.status.split(':')[1]?.trim(),
+      salesReportData
+    };
+  }
+
+  private mapJobDtoToTask(job: JobDto): Task {
+    const priorityText = this.getPriorityText(job.priority);
+    const priorityClass = this.getPriorityClass(job.priority);
+    const status = this.mapJobStatusToTaskStatus(job.status);
+    
+    // Get timestamps from status logs
+    const createdLog = job.statusLogs.find((log: MyTaskStatusLogDto) => log.status === 'Pending');
+    const startedLog = job.statusLogs.find((log: MyTaskStatusLogDto) => log.status === 'InProgress');
+    const completedLog = job.statusLogs.find((log: MyTaskStatusLogDto) => log.status === 'Done' || log.status === 'Rejected');
+    
+    // Pass ISO string to task card component, let it format the date
+    const createdAt = createdLog ? createdLog.timestamp : job.createdDate;
+    const startedAt = startedLog ? startedLog.timestamp : null;
+    const completedAt = completedLog ? completedLog.timestamp : null;
+
+    let buttonText = 'เริ่มงาน';
+    let buttonIcon: 'refresh' | 'check' | 'cross' = 'refresh';
+    let buttonClass = 'bg-indigo-600 hover:bg-indigo-700 text-white';
+
+    if (status === 'in-progress') {
+      buttonText = 'ปิดงาน';
+      buttonIcon = 'check';
+      buttonClass = 'bg-emerald-600 hover:bg-emerald-700 text-white';
+    } else if (status === 'completed') {
+      buttonText = 'เสร็จสิ้น';
+      buttonIcon = 'check';
+      buttonClass = 'bg-gray-200 text-gray-500 cursor-not-allowed';
+    } else if (status === 'rejected') {
+      buttonText = 'ปฏิเสธแล้ว';
+      buttonIcon = 'cross';
+      buttonClass = 'bg-red-100 text-red-600 cursor-not-allowed border border-red-200';
+    }
+
+    // Map sales report data
+    let salesReportData: any = null;
+    if (job.report) {
+      salesReportData = {
+        status: this.mapSalesStatus(job.report.salesStatus),
+        customerName: job.report.customerName,
+        contactInfo: job.report.customerContact,
+        reasons: job.report.reasons,
+        productCategory: job.report.productCategory,
+        description: job.report.description
+      };
+    }
+
+    return {
+      id: job.id,
+      jobNumber: job.jobNumber,
+      createdAt,
+      priority: priorityText,
+      priorityClass,
+      buttonText,
+      buttonIcon,
+      buttonClass,
+      startedAt,
+      completedAt,
+      jobTitle: job.title,
+      customerName: job.customer,
+      details: job.description,
+      status,
+      rejectionReason: job.statusLogs.find((log: MyTaskStatusLogDto) => log.status.includes('Rejected'))?.status.split(':')[1]?.trim(),
       salesReportData
     };
   }
@@ -610,8 +676,31 @@ export class MyTasksComponent implements OnInit, OnDestroy {
   }
 
   showTaskDetails(task: Task) {
+    // Set the basic task info first for immediate display
     this.selectedTask.set(task);
     this.showTaskDetailDialog.set(true);
+    
+    // Load full details from API
+    if (!task.id || task.id === '00000000-0000-0000-0000-000000000000') {
+      console.warn('Invalid task ID:', task);
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.taskService.getJobById(task.id).pipe(
+      catchError(error => {
+        console.error('Error loading task details:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการโหลดรายละเอียดงาน');
+        return of(null);
+      }),
+      finalize(() => this.isLoading.set(false))
+    ).subscribe(response => {
+      if (response) {
+        // Map the full job details to Task format
+        const fullTask = this.mapJobGetResponseToTask(response);
+        this.selectedTask.set(fullTask);
+      }
+    });
   }
 
   closeTaskDetailDialog() {
