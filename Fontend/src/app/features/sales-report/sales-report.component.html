@@ -32,6 +32,27 @@
     </div>
   </header>
 
+  <!-- Alert: "ถึงคิวคุณแล้ว" when it's my turn -->
+  @if (isMyTurn()) {
+    <div class="p-4 bg-green-50 border-l-4 border-green-500 rounded-r-xl flex items-center gap-4 mb-6 shadow-sm">
+      <div class="flex-shrink-0 w-10 h-10 bg-white rounded-full flex items-center justify-center border-2 border-green-200">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+      </div>
+      <div class="flex-1">
+        <h2 class="text-lg font-medium text-green-800">ถึงคิวคุณแล้ว เชิญรับลูกค้าได้เลย!</h2>
+        <p class="text-sm text-green-700">มีลูกค้ากำลังรอรับบริการอยู่ที่หน้าร้าน</p>
+      </div>
+      <button (click)="acceptCustomer()" class="flex-shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 bg-green-600 text-white text-sm font-medium rounded-xl shadow-md hover:bg-green-700 hover:shadow-lg transition-all duration-300">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+        </svg>
+        <span>รับลูกค้า</span>
+      </button>
+    </div>
+  }
+
   <!-- Tabs -->
   <div class="mb-4 sm:mb-6 border-b border-gray-200 relative w-full min-w-0 overflow-hidden" style="box-sizing: border-box; width: 100%; max-width: 100%;">
     <!-- Left Scroll Indicator -->
@@ -386,4 +407,11 @@
     (save)="handleSaveReport($event)"
     (close)="closeEditReportDialog()">
   </app-sales-report-dialog>
+}
+
+@if (showOpenJobDialog()) {
+  <app-open-job-dialog
+    (close)="closeOpenJobDialog()"
+    (confirm)="confirmOpenJob($event)">
+  </app-open-job-dialog>
 }

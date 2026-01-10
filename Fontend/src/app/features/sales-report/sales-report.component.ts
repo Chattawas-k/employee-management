@@ -3,9 +3,17 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SalesReportDetailDialogComponent } from '../../shared/components/sales-report-detail-dialog/sales-report-detail-dialog.component';
 import { SalesReportDialogComponent } from '../../shared/components/sales-report-dialog/sales-report-dialog.component';
+import { OpenJobDialogComponent } from '../../shared/components/open-job-dialog/open-job-dialog.component';
 import { SalesReport, ReportStatus } from '../../models/sales-report.model';
 import { SalesReportService } from '../../services/sales-report.service';
-import { catchError, finalize } from 'rxjs/operators';
+import { QueueService } from '../../services/queue.service';
+import { TaskService } from '../../services/task.service';
+import { AuthService } from '../../services/auth.service';
+import { SignalRService } from '../../services/signalr.service';
+import { MyQueueInfoResponse } from '../../models/queue.model';
+import { JobPriority, JobStatus } from '../../models/task.model';
+import { getEmployeeIdFromToken } from '../../utils/jwt.util';
+import { catchError, finalize, switchMap, map } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { ToastService } from '../../services/toast.service';
 
@@ -16,7 +24,7 @@ export type { SalesReport } from '../../models/sales-report.model';
 @Component({
   selector: 'app-sales-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, SalesReportDetailDialogComponent, SalesReportDialogComponent],
+  imports: [CommonModule, FormsModule, SalesReportDetailDialogComponent, SalesReportDialogComponent, OpenJobDialogComponent],
   templateUrl: './sales-report.component.html',
   styleUrls: ['./sales-report.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -33,8 +41,15 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   totalCount = signal(0); // Total count from API for pagination
   private maxSeenCount = 0; // Track maximum count we've seen to improve estimation
   
+  isMyTurn = signal(false);
+  showOpenJobDialog = signal(false);
+
   constructor(
     private salesReportService: SalesReportService,
+    private queueService: QueueService,
+    private taskService: TaskService,
+    private authService: AuthService,
+    private signalRService: SignalRService,
     private toastService: ToastService
   ) {}
   
@@ -139,6 +154,8 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   */
 
   ngOnInit(): void {
+    this.loadQueueInfo();
+    this.setupSignalR();
     // Load initial data with current tab and page
     this.loadSalesReports(this.activeTab(), this.currentPage());
     // Load counts separately to show in tabs
@@ -157,6 +174,103 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
+    this.signalRService.stopConnection();
+    this.signalRService.offQueueUpdated();
+    this.signalRService.offJobStatusChanged();
+    this.signalRService.offEmployeeStatusChanged();
+  }
+
+  private setupSignalR(): void {
+    this.signalRService.startConnection().then(() => {
+      this.signalRService.onQueueUpdated(() => {
+        this.loadQueueInfo();
+      });
+      this.signalRService.onJobStatusChanged(() => {
+        this.loadQueueInfo();
+      });
+      this.signalRService.onEmployeeStatusChanged(() => {
+        this.loadQueueInfo();
+      });
+    }).catch(err => console.error('SignalR Connection Error in SalesReportComponent: ', err));
+  }
+
+  loadQueueInfo(): void {
+    this.queueService.getMyQueueInfo().pipe(
+      catchError(error => {
+        console.error('Error loading queue info:', error);
+        this.isMyTurn.set(false);
+        return of(null);
+      })
+    ).subscribe(queueInfo => {
+      if (queueInfo && queueInfo.isInQueue) {
+        this.isMyTurn.set(queueInfo.queuesRemaining === 0);
+      } else {
+        this.isMyTurn.set(false);
+      }
+    });
+  }
+
+  acceptCustomer() {
+    this.showOpenJobDialog.set(true);
+  }
+
+  closeOpenJobDialog() {
+    this.showOpenJobDialog.set(false);
+  }
+
+  confirmOpenJob(jobData: any) {
+    const token = this.authService.getToken();
+    const employeeId = getEmployeeIdFromToken(token);
+    
+    if (!employeeId) {
+      this.toastService.error('ไม่พบข้อมูลพนักงาน');
+      return;
+    }
+
+    const priority = jobData.priority === 'Urgent' ? JobPriority.Urgent : JobPriority.Normal;
+    
+    this.isLoading.set(true);
+    this.taskService.createJob({
+      title: jobData.jobTitle,
+      customer: jobData.customerName,
+      description: jobData.details || '',
+      assigneeId: employeeId,
+      priority,
+      channel: jobData.channel || 'Walk-in',
+      productCategoryId: jobData.productCategoryId || undefined
+    }).pipe(
+      // After creating job, immediately update status to InProgress
+      switchMap(createResponse => {
+        if (!createResponse) {
+          return of(null);
+        }
+        // Update status to InProgress automatically
+        return this.taskService.updateJobStatus(createResponse.id, {
+          id: createResponse.id,
+          status: JobStatus.InProgress
+        }).pipe(
+          map(updateResponse => ({ createResponse, updateResponse }))
+        );
+      }),
+      catchError(error => {
+        console.error('Error creating or updating job:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการสร้างงาน');
+        return of(null);
+      }),
+      finalize(() => {
+        this.isLoading.set(false);
+        this.closeOpenJobDialog();
+        // Reload queue info after a short delay to ensure backend has updated
+        setTimeout(() => {
+          this.loadQueueInfo();
+        }, 200);
+      })
+    ).subscribe(response => {
+      if (response) {
+        this.toastService.success('สร้างงานและเริ่มงานสำเร็จ');
+        this.isMyTurn.set(false);
+      }
+    });
   }
 
   private setupResizeObserver(): void {

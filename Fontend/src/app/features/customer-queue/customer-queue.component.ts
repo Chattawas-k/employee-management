@@ -1,12 +1,17 @@
 import { ChangeDetectionStrategy, Component, signal, OnInit, OnDestroy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SummaryCardComponent } from '../../shared/components/summary-card/summary-card.component';
+import { OpenJobDialogComponent } from '../../shared/components/open-job-dialog/open-job-dialog.component';
 import { QueueService } from '../../services/queue.service';
+import { TaskService } from '../../services/task.service';
+import { AuthService } from '../../services/auth.service';
 import { SignalRService } from '../../services/signalr.service';
 import { ToastService } from '../../services/toast.service';
-import { QueueDto, QueueSummaryJobDto } from '../../models/queue.model';
+import { QueueDto, QueueSummaryJobDto, MyQueueInfoResponse } from '../../models/queue.model';
+import { JobPriority, JobStatus } from '../../models/task.model';
+import { getEmployeeIdFromToken } from '../../utils/jwt.util';
 import { forkJoin, of } from 'rxjs';
-import { catchError, finalize } from 'rxjs/operators';
+import { catchError, finalize, switchMap, map } from 'rxjs/operators';
 
 interface ReadyQueueStaff {
   queue: number;
@@ -51,7 +56,7 @@ interface SummaryCardData {
 @Component({
   selector: 'app-customer-queue',
   standalone: true,
-  imports: [CommonModule, SummaryCardComponent],
+  imports: [CommonModule, SummaryCardComponent, OpenJobDialogComponent],
   templateUrl: './customer-queue.component.html',
   styleUrls: ['./customer-queue.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -62,8 +67,13 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
   isLoading = signal(false);
   allJobs: QueueSummaryJobDto[] = [];
 
+  isMyTurn = signal(false);
+  showOpenJobDialog = signal(false);
+
   constructor(
     private queueService: QueueService,
+    private taskService: TaskService,
+    private authService: AuthService,
     private toastService: ToastService,
     private signalRService: SignalRService
   ) {}
@@ -104,11 +114,13 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadQueueData();
+    this.loadQueueInfo();
     this.setupSignalR();
 
     // Auto-refresh every 30 seconds (fallback if SignalR fails)
     this.refreshTimerId = window.setInterval(() => {
       this.loadQueueData();
+      this.loadQueueInfo();
     }, 30000);
 
     // Update busy staff durations every second
@@ -134,14 +146,97 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     this.signalRService.startConnection().then(() => {
       this.signalRService.onQueueUpdated(() => {
         this.loadQueueData();
+        this.loadQueueInfo();
       });
       this.signalRService.onJobStatusChanged(() => {
         this.loadQueueData();
+        this.loadQueueInfo();
       });
       this.signalRService.onEmployeeStatusChanged(() => {
         this.loadQueueData();
+        this.loadQueueInfo();
       });
     }).catch(err => console.error('SignalR Connection Error in CustomerQueueComponent: ', err));
+  }
+
+  loadQueueInfo(): void {
+    this.queueService.getMyQueueInfo().pipe(
+      catchError(error => {
+        console.error('Error loading queue info:', error);
+        this.isMyTurn.set(false);
+        return of(null);
+      })
+    ).subscribe(queueInfo => {
+      if (queueInfo && queueInfo.isInQueue) {
+        this.isMyTurn.set(queueInfo.queuesRemaining === 0);
+      } else {
+        this.isMyTurn.set(false);
+      }
+    });
+  }
+
+  acceptCustomer() {
+    this.showOpenJobDialog.set(true);
+  }
+
+  closeOpenJobDialog() {
+    this.showOpenJobDialog.set(false);
+  }
+
+  confirmOpenJob(jobData: any) {
+    const token = this.authService.getToken();
+    const employeeId = getEmployeeIdFromToken(token);
+    
+    if (!employeeId) {
+      this.toastService.error('ไม่พบข้อมูลพนักงาน');
+      return;
+    }
+
+    const priority = jobData.priority === 'Urgent' ? JobPriority.Urgent : JobPriority.Normal;
+    
+    this.isLoading.set(true);
+    this.taskService.createJob({
+      title: jobData.jobTitle,
+      customer: jobData.customerName,
+      description: jobData.details || '',
+      assigneeId: employeeId,
+      priority,
+      channel: jobData.channel || 'Walk-in',
+      productCategoryId: jobData.productCategoryId || undefined
+    }).pipe(
+      // After creating job, immediately update status to InProgress
+      switchMap(createResponse => {
+        if (!createResponse) {
+          return of(null);
+        }
+        // Update status to InProgress automatically
+        return this.taskService.updateJobStatus(createResponse.id, {
+          id: createResponse.id,
+          status: JobStatus.InProgress
+        }).pipe(
+          map(updateResponse => ({ createResponse, updateResponse }))
+        );
+      }),
+      catchError(error => {
+        console.error('Error creating or updating job:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการสร้างงาน');
+        return of(null);
+      }),
+      finalize(() => {
+        this.isLoading.set(false);
+        this.closeOpenJobDialog();
+        // Reload queue data after a short delay to ensure backend has updated
+        setTimeout(() => {
+          this.loadQueueData();
+          this.loadQueueInfo();
+        }, 200);
+      })
+    ).subscribe(response => {
+      if (response) {
+        this.toastService.success('สร้างงานและเริ่มงานสำเร็จ');
+        this.isMyTurn.set(false);
+      }
+    });
   }
 
   loadQueueData(): void {

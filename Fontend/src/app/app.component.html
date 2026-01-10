@@ -390,42 +390,7 @@
           </span>
         </a>
         
-        <!-- กดรับงาน - Elevated Center Button (Hidden for Employee) -->
-        @if (hasAdminAccess()) {
-          <div class="flex-1 flex justify-center h-full relative">
-            <div class="absolute -top-8 flex flex-col items-center">
-              <a 
-                routerLink="/assign" 
-                routerLinkActive="active"
-                #assignLink="routerLinkActive"
-                class="flex flex-col items-center group">
-                <div class="relative">
-                  <!-- Main Button -->
-                  <div class="relative w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center shadow-lg border-4 border-white transition-transform duration-300 group-hover:scale-105">
-                    <svg xmlns="http://www.w3.org/2000/svg" 
-                      class="w-7 h-7 text-white" 
-                      fill="none" 
-                      viewBox="0 0 24 24" 
-                      stroke="currentColor" 
-                      stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <span 
-                  class="text-[10px] font-medium mt-2 transition-colors duration-300"
-                  [class.text-blue-600]="assignLink.isActive"
-                  [class.text-gray-500]="!assignLink.isActive">
-                  กดรับงาน
-                </span>
-              </a>
-            </div>
-          </div>
-        } @else {
-          <!-- Empty space to maintain layout -->
-          <div class="flex-1"></div>
-        }
+ 
         
         <!-- รายงาน -->
         <a 
