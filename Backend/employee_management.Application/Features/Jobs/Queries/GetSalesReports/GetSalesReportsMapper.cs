@@ -20,9 +20,9 @@ namespace employee_management.Application.Features.Jobs.Queries.GetSalesReports
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Report != null ? src.Report.Description : string.Empty))
                 .ForMember(dest => dest.SubmittedAt, opt => opt.MapFrom(src => src.CreatedDate))
                 .ForMember(dest => dest.SaleDate, opt => opt.MapFrom(src => 
-                    src.Status == JobStatus.Done && src.Report != null && src.StatusLogs != null && 
-                    src.StatusLogs.Any(log => log.Status == "Done") ? 
-                    src.StatusLogs.First(log => log.Status == "Done").Timestamp : 
+                    (src.Status == JobStatus.ClosedWon || src.Status == JobStatus.ClosedLost) && src.Report != null && src.StatusLogs != null && 
+                    (src.StatusLogs.Any(log => log.Status == "ClosedWon") || src.StatusLogs.Any(log => log.Status == "ClosedLost")) ? 
+                    src.StatusLogs.First(log => log.Status == "ClosedWon" || log.Status == "ClosedLost").Timestamp : 
                     (DateTimeOffset?)null))
                 .ForMember(dest => dest.AssigneeId, opt => opt.MapFrom(src => src.AssigneeId))
                 .ForMember(dest => dest.AssigneeName, opt => opt.MapFrom(src => src.Employee != null ? src.Employee.Name : null))

@@ -54,8 +54,27 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                     throw new NoDataFoundException($"Job with Id {request.Id} not found.");
                 }
 
-                // Update status
+                // Update status and set related dates
+                var previousStatus = job.Status;
                 job.Status = request.Status;
+
+                // Set AssignedDate when transitioning to Assigned
+                if (request.Status == JobStatus.Assigned && !job.AssignedDate.HasValue)
+                {
+                    job.AssignedDate = DateTime.UtcNow;
+                }
+
+                // Set StartedDate when transitioning to InProgress
+                if (request.Status == JobStatus.InProgress && !job.StartedDate.HasValue)
+                {
+                    job.StartedDate = DateTime.UtcNow;
+                }
+
+                // Set ClosedDate when transitioning to ClosedWon or ClosedLost
+                if ((request.Status == JobStatus.ClosedWon || request.Status == JobStatus.ClosedLost) && !job.ClosedDate.HasValue)
+                {
+                    job.ClosedDate = DateTime.UtcNow;
+                }
 
                 // Add status log entry
                 var statusLogs = job.StatusLogs;
@@ -73,13 +92,13 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                     job.Report = report;
                 }
 
-                // If rejected, store reject reason in description or create a special log entry
-                if (request.Status == JobStatus.Rejected && !string.IsNullOrWhiteSpace(request.RejectReason))
+                // If cancelled, store cancel reason in description or create a special log entry
+                if (request.Status == JobStatus.Cancelled && !string.IsNullOrWhiteSpace(request.RejectReason))
                 {
-                    // Add reject reason to status log
+                    // Add cancel reason to status log
                     statusLogs.Add(new StatusLog
                     {
-                        Status = $"Rejected: {request.RejectReason}",
+                        Status = $"Cancelled: {request.RejectReason}",
                         Timestamp = DateTimeOffset.UtcNow
                     });
                     job.StatusLogs = statusLogs;
@@ -154,9 +173,9 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                     // 2. Set availability status to Busy
                     newAvailabilityStatus = AvailabilityStatus.Busy;
                 }
-                else if (job.Status == JobStatus.Done)
+                else if (job.Status == JobStatus.ClosedWon || job.Status == JobStatus.ClosedLost)
                 {
-                    // When job is completed (Done), check if employee has other InProgress jobs
+                    // When job is closed (ClosedWon or ClosedLost), check if employee has other InProgress jobs
                     // Only set to Available if no other InProgress jobs exist
                     var employeeJobs = await _jobRepository.GetMyTasksAsync(job.AssigneeId, cancellationToken);
                     var hasOtherInProgressJobs = employeeJobs

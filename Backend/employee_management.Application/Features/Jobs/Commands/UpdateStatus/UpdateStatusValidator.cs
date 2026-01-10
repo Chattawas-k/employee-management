@@ -15,13 +15,13 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
 
             RuleFor(x => x.RejectReason)
                 .NotEmpty()
-                .When(x => x.Status == JobStatus.Rejected)
-                .WithMessage("Reject reason is required when status is Rejected.");
+                .When(x => x.Status == JobStatus.Cancelled)
+                .WithMessage("Reject reason is required when status is Cancelled.");
 
             RuleFor(x => x.Report)
                 .NotNull()
-                .When(x => x.Status == JobStatus.Done)
-                .WithMessage("Report is required when status is Done.");
+                .When(x => x.Status == JobStatus.ClosedWon || x.Status == JobStatus.ClosedLost)
+                .WithMessage("Report is required when status is ClosedWon or ClosedLost.");
 
             When(x => x.Report != null, () =>
             {

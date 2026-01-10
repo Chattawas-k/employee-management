@@ -1,0 +1,77 @@
+<div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+  <div class="p-5 border-b border-gray-200 flex items-center justify-between">
+    <h3 class="text-lg font-semibold text-gray-900">สถานะทีมงาน (Team Status)</h3>
+    <a routerLink="/manager/staff" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+      ดูทั้งหมด →
+    </a>
+  </div>
+
+  @if (isLoading) {
+    <div class="p-5 space-y-4">
+      @for (item of [1,2,3,4,5]; track item) {
+        <div class="animate-pulse">
+          <div class="h-24 bg-gray-200 rounded-lg"></div>
+        </div>
+      }
+    </div>
+  } @else if (staff.length === 0) {
+    <div class="p-10 text-center">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+      </svg>
+      <p class="text-gray-500 text-sm">ไม่มีข้อมูลทีมงานในขณะนี้</p>
+    </div>
+  } @else {
+    <div class="max-h-96 overflow-y-auto p-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        @for (staffMember of staff; track staffMember.id) {
+          <div 
+            (click)="onStaffClick(staffMember)"
+            class="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md cursor-pointer transition-all duration-150 bg-white">
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold text-lg">
+                {{ getInitials(staffMember.name) }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="font-semibold text-gray-900 text-sm truncate">{{ staffMember.name }}</h4>
+                  <span class="px-2 py-0.5 text-xs font-medium rounded border flex-shrink-0 {{ getStatusColor(staffMember.status) }}">
+                    {{ staffMember.status }}
+                  </span>
+                </div>
+                <div class="space-y-1.5 text-xs text-gray-600">
+                  <div class="flex items-center justify-between">
+                    <span>ภาระงาน:</span>
+                    <span class="font-medium">{{ staffMember.activeLoad }} งาน</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span>สถานะ:</span>
+                    <span>{{ formatTimeInStatus(staffMember.timeInCurrentStatus) }}</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span>วันนี้:</span>
+                    <span class="font-medium">ทำ {{ staffMember.todayHandled }} งาน, ชนะ {{ staffMember.todayWon }}</span>
+                  </div>
+                  @if (staffMember.categoryTags && staffMember.categoryTags.length > 0) {
+                    <div class="flex flex-wrap gap-1 mt-2">
+                      @for (tag of staffMember.categoryTags.slice(0, 3); track tag) {
+                        <span class="px-1.5 py-0.5 text-xs rounded bg-blue-50 text-blue-700 border border-blue-200">
+                          {{ tag }}
+                        </span>
+                      }
+                      @if (staffMember.categoryTags.length > 3) {
+                        <span class="px-1.5 py-0.5 text-xs rounded bg-gray-100 text-gray-600">
+                          +{{ staffMember.categoryTags.length - 3 }}
+                        </span>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

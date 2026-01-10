@@ -1,0 +1,59 @@
+// Manager Dashboard Styles
+// Most styling is handled by Tailwind CSS
+// Add custom styles here if needed
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+// Smooth scrolling for panels
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
+
+    &:hover {
+      background-color: rgba(156, 163, 175, 0.7);
+    }
+  }
+}
+
+// Loading skeleton animation
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+// Chart container responsive adjustments
+@media (max-width: 768px) {
+  .chart-container {
+    height: 250px !important;
+  }
+}
+
+// Ensure proper spacing on mobile
+@media (max-width: 640px) {
+  section {
+    margin-bottom: 1.5rem;
+  }
+}

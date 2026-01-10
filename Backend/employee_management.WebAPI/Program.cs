@@ -9,6 +9,7 @@ using System.Text;
 using Microsoft.AspNetCore.Identity;
 using employee_management.Domain.Entities;
 using employee_management.Persistence.Seeds;
+using DefaultProductCategories = employee_management.Persistence.Seeds.DefaultProductCategories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -187,6 +188,7 @@ builder.Services.AddAuthorization(options =>
     // Add role-based policies
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin", "SuperAdmin"));
     options.AddPolicy("SuperAdminOnly", policy => policy.RequireRole("SuperAdmin"));
+    options.AddPolicy("ManagerOnly", policy => policy.RequireRole("Manager", "Admin", "SuperAdmin"));
 });
 
 builder.Services.ConfigureApiBehavior();
@@ -317,6 +319,7 @@ using (var scope = app.Services.CreateScope())
         await DefaultDepartments.SeedAsync(dbContext);
         await DefaultPositions.SeedAsync(dbContext);
         await DefaultEmployees.SeedAsync(dbContext);
+        await DefaultProductCategories.SeedAsync(dbContext);
         
         await DefaultRoles.SeedAsync(userManager, roleManager);
         await DefaultSuperAdmin.SeedAsync(userManager, roleManager);

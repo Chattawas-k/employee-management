@@ -1,0 +1,286 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Header Section -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div class="px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Dashboard ผู้บริหาร</h1>
+          @if (lastUpdated()) {
+            <p class="text-sm text-gray-500 mt-1">
+              อัปเดตล่าสุด: {{ formatLastUpdated() }}
+            </p>
+          }
+        </div>
+        <div class="flex items-center gap-3">
+          <!-- Date Filter -->
+          <div class="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+            <button
+              (click)="onDateFilterChange('today')"
+              [class.bg-white]="selectedDateFilter() === 'today'"
+              [class.text-blue-600]="selectedDateFilter() === 'today'"
+              [class.shadow-sm]="selectedDateFilter() === 'today'"
+              class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150">
+              วันนี้
+            </button>
+            <button
+              (click)="onDateFilterChange('yesterday')"
+              [class.bg-white]="selectedDateFilter() === 'yesterday'"
+              [class.text-blue-600]="selectedDateFilter() === 'yesterday'"
+              [class.shadow-sm]="selectedDateFilter() === 'yesterday'"
+              class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150">
+              เมื่อวาน
+            </button>
+            <button
+              (click)="onDateFilterChange('last7days')"
+              [class.bg-white]="selectedDateFilter() === 'last7days'"
+              [class.text-blue-600]="selectedDateFilter() === 'last7days'"
+              [class.shadow-sm]="selectedDateFilter() === 'last7days'"
+              class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150">
+              7 วัน
+            </button>
+            <button
+              (click)="onDateFilterChange('last30days')"
+              [class.bg-white]="selectedDateFilter() === 'last30days'"
+              [class.text-blue-600]="selectedDateFilter() === 'last30days'"
+              [class.shadow-sm]="selectedDateFilter() === 'last30days'"
+              class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150">
+              30 วัน
+            </button>
+            <button
+              (click)="onDateFilterChange('thismonth')"
+              [class.bg-white]="selectedDateFilter() === 'thismonth'"
+              [class.text-blue-600]="selectedDateFilter() === 'thismonth'"
+              [class.shadow-sm]="selectedDateFilter() === 'thismonth'"
+              class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150">
+              เดือนนี้
+            </button>
+          </div>
+          <!-- Refresh Button -->
+          <button
+            (click)="refreshDashboard()"
+            [disabled]="isLoading()"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-150 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+            <span class="text-sm font-medium">รีเฟรช</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <!-- Alerts Banner (if any) -->
+    @if (hasAlerts()) {
+      <div class="bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4">
+        <div class="flex items-start justify-between">
+          <div class="flex items-start gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+            <div>
+              <h3 class="text-lg font-semibold text-red-800 mb-1">
+                มีการแจ้งเตือน {{ criticalAlerts().length }} รายการ
+              </h3>
+              <p class="text-sm text-red-700">
+                กรุณาตรวจสอบและดำเนินการทันที
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- KPI Cards Grid -->
+    <section>
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">ตัวชี้วัดสำคัญ (KPIs)</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        @if (kpis(); as kpiData) {
+          <!-- Customers Waiting Now -->
+          <app-kpi-card
+            title="ลูกค้ารอรับบริการ"
+            [value]="kpiData.customersWaitingNow"
+            unit="คน"
+            icon="users"
+            iconColor="blue"
+            [badge]="kpiData.customersWaitingNow > 10 ? 'At Risk' : undefined"
+            badgeColor="red"
+            [isLoading]="isLoading()">
+          </app-kpi-card>
+
+          <!-- Avg Wait Time -->
+          <app-kpi-card
+            title="เวลารอเฉลี่ย"
+            [value]="getRoundedWaitTime(kpiData.avgWaitTimeMinutes)"
+            unit="นาที"
+            icon="clock"
+            iconColor="orange"
+            [isLoading]="isLoading()">
+          </app-kpi-card>
+
+          <!-- Ready Staff Count -->
+          <app-kpi-card
+            title="ทีมงานพร้อม"
+            [value]="kpiData.readyStaffCount"
+            unit="คน"
+            icon="user-check"
+            iconColor="green"
+            [badge]="kpiData.readyStaffCount < 3 ? 'Low' : undefined"
+            badgeColor="yellow"
+            [isLoading]="isLoading()">
+          </app-kpi-card>
+
+          <!-- Active Conversations -->
+          <app-kpi-card
+            title="งานที่กำลังดำเนินการ"
+            [value]="kpiData.activeConversations"
+            unit="งาน"
+            icon="message"
+            iconColor="purple"
+            [isLoading]="isLoading()">
+          </app-kpi-card>
+
+          <!-- Sales Today -->
+          <app-kpi-card
+            title="ยอดขายวันนี้"
+            [value]="kpiData.salesToday"
+            unit="฿"
+            icon="currency"
+            iconColor="green"
+            [isLoading]="isLoading()">
+          </app-kpi-card>
+
+          <!-- Conversion Today -->
+          <app-kpi-card
+            title="อัตรา Conversion"
+            [value]="getFormattedConversion(kpiData.conversionToday)"
+            unit="%"
+            icon="trending-up"
+            iconColor="blue"
+            [isLoading]="isLoading()">
+          </app-kpi-card>
+
+          <!-- SLA Breach Count -->
+          <app-kpi-card
+            title="SLA Breach"
+            [value]="kpiData.slaBreachCount"
+            unit="รายการ"
+            icon="alert"
+            iconColor="red"
+            [badge]="kpiData.slaBreachCount > 0 ? 'Critical' : undefined"
+            badgeColor="red"
+            [isLoading]="isLoading()">
+          </app-kpi-card>
+
+          <!-- Top Category Today -->
+          <app-kpi-card
+            title="หมวดหมู่ยอดนิยม"
+            [value]="kpiData.topCategoryToday"
+            unit=""
+            icon="tag"
+            iconColor="indigo"
+            [isLoading]="isLoading()">
+          </app-kpi-card>
+        } @else {
+          @for (item of [1,2,3,4,5,6,7,8]; track item) {
+            <app-kpi-card
+              title="Loading..."
+              [value]="0"
+              [isLoading]="true">
+            </app-kpi-card>
+          }
+        }
+      </div>
+    </section>
+
+    <!-- Live Panels Grid -->
+    <section>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Queue Snapshot Panel -->
+        <app-queue-snapshot-panel
+          [tickets]="queueSnapshot()"
+          [isLoading]="isLoading()"
+          (ticketClick)="onTicketClick($event)">
+        </app-queue-snapshot-panel>
+
+        <!-- Staff Snapshot Panel -->
+        <app-staff-snapshot-panel
+          [staff]="staffSnapshot()"
+          [isLoading]="isLoading()"
+          (staffClick)="onStaffClick($event)">
+        </app-staff-snapshot-panel>
+      </div>
+    </section>
+
+    <!-- Alerts Panel (if any) -->
+    @if (hasAlerts()) {
+      <section>
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">การแจ้งเตือน (Alerts)</h2>
+        <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+          <div class="p-5 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">การแจ้งเตือนที่ใช้งานอยู่</h3>
+          </div>
+          <div class="p-5 space-y-3 max-h-64 overflow-y-auto">
+            @for (alert of alerts(); track alert.id) {
+              <app-alert-badge
+                [alert]="alert"
+                (alertClick)="onAlertClick($event)"
+                (dismiss)="onAlertDismiss($event)">
+              </app-alert-badge>
+            }
+          </div>
+        </div>
+      </section>
+    }
+
+    <!-- Charts Section -->
+    <section>
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">กราฟและสถิติ (Charts & Analytics)</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        @if (charts(); as chartData) {
+          <!-- Queue Trend Chart -->
+          <app-chart-card
+            title="แนวโน้มคิว (Queue Trend)"
+            chartType="line"
+            [data]="chartData.queueTrend"
+            [isLoading]="isLoading()">
+          </app-chart-card>
+
+          <!-- Conversion Funnel Chart -->
+          <app-chart-card
+            title="Conversion Funnel"
+            chartType="funnel"
+            [data]="chartData.conversionFunnel"
+            [isLoading]="isLoading()">
+          </app-chart-card>
+
+          <!-- Category Mix Chart -->
+          <app-chart-card
+            title="หมวดหมู่ยอดขาย (Category Mix)"
+            chartType="doughnut"
+            [data]="chartData.categoryMix"
+            [isLoading]="isLoading()">
+          </app-chart-card>
+
+          <!-- Staff Leaderboard Chart -->
+          <app-chart-card
+            title="อันดับทีมงาน (Staff Leaderboard)"
+            chartType="bar"
+            [data]="chartData.staffLeaderboard"
+            [isLoading]="isLoading()">
+          </app-chart-card>
+        } @else {
+          @for (item of [1,2,3,4]; track item) {
+            <app-chart-card
+              title="Loading..."
+              chartType="line"
+              [isLoading]="true">
+            </app-chart-card>
+          }
+        }
+      </div>
+    </section>
+  </main>
+</div>

@@ -381,7 +381,9 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
       customer: jobData.customerName || 'ลูกค้าทั่วไป',
       description: jobData.details || 'บริการลูกค้าหน้าร้าน',
       assigneeId: staff.employeeId,
-      priority: priority
+      priority: priority,
+      channel: jobData.channel || 'Walk-in',
+      productCategoryId: jobData.productCategoryId || undefined
     };
 
     this.isLoading.set(true);

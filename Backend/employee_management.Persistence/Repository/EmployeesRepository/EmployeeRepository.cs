@@ -71,6 +71,40 @@ namespace employee_management.Persistence.Repository.EmployeesRepository
 
             return await PaginatedList<Employee>.CreateAsync(query, pageNumber, pageSize);
         }
+
+        // Manager-specific queries
+        public async Task<List<Employee>> GetStaffWithAvailabilityAsync(CancellationToken cancellationToken)
+        {
+            return await Context.Employees
+                .Include(e => e.Position)
+                .ThenInclude(p => p!.Department)
+                .Where(e => !e.IsDeleted && e.Status == EmployeeStatus.Active)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<int> GetReadyStaffCountAsync(CancellationToken cancellationToken)
+        {
+            // Convert to UTC to avoid DateTimeKind errors with PostgreSQL
+            var today = DateTime.Today;
+            var utcToday = DateTime.SpecifyKind(today, DateTimeKind.Utc);
+            var utcTomorrow = DateTime.SpecifyKind(today.AddDays(1), DateTimeKind.Utc);
+            
+            return await Context.Queues
+                .Where(q => !q.IsDeleted && 
+                    q.QueueDate >= utcToday &&
+                    q.QueueDate < utcTomorrow &&
+                    q.AvailabilityStatus == AvailabilityStatus.Available)
+                .CountAsync(cancellationToken);
+        }
+
+        public async Task<List<Employee>> GetStaffWithPerformanceAsync(DateTime dateFrom, DateTime dateTo, CancellationToken cancellationToken)
+        {
+            return await Context.Employees
+                .Include(e => e.Position)
+                .ThenInclude(p => p!.Department)
+                .Where(e => !e.IsDeleted && e.Status == EmployeeStatus.Active)
+                .ToListAsync(cancellationToken);
+        }
     }
 }
 

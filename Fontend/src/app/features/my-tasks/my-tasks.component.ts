@@ -13,7 +13,7 @@ import { QueueService } from '../../services/queue.service';
 import { JobDto, JobStatus, JobPriority, UpdateJobStatusRequest, UpdateJobStatusReportDto, JobGetResponse, MyTaskStatusLogDto } from '../../models/task.model';
 import { MyQueueInfoResponse } from '../../models/queue.model';
 import { getEmployeeIdFromToken } from '../../utils/jwt.util';
-import { catchError, finalize } from 'rxjs/operators';
+import { catchError, finalize, switchMap, map } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { ToastService } from '../../services/toast.service';
 
@@ -267,7 +267,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
         todo.push(task);
       } else if (statusStr === 'inprogress' || statusStr === 'in-progress') {
         inProgress.push(task);
-      } else if (statusStr === 'done' || statusStr === 'rejected') {
+      } else if (statusStr === 'closedwon' || statusStr === 'closedlost' || statusStr === 'cancelled') {
         // Only include completed tasks that were completed today
         if (task.completedAt) {
           const completedDate = new Date(task.completedAt);
@@ -321,12 +321,16 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     switch (status) {
       case JobStatus.Pending:
         return 'pending';
+      case JobStatus.Assigned:
+        return 'assigned';
       case JobStatus.InProgress:
         return 'inprogress';
-      case JobStatus.Done:
-        return 'done';
-      case JobStatus.Rejected:
-        return 'rejected';
+      case JobStatus.ClosedWon:
+        return 'closedwon';
+      case JobStatus.ClosedLost:
+        return 'closedlost';
+      case JobStatus.Cancelled:
+        return 'cancelled';
       default:
         return 'pending';
     }
@@ -393,7 +397,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       customerName: job.customer,
       details: job.description,
       status,
-      rejectionReason: job.statusLogs.find((log: MyTaskStatusLogDto) => log.status.includes('Rejected'))?.status.split(':')[1]?.trim(),
+      rejectionReason: job.statusLogs.find((log: MyTaskStatusLogDto) => log.status.includes('Cancelled'))?.status.split(':')[1]?.trim(),
       salesReportData
     };
   }
@@ -459,7 +463,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       customerName: job.customer,
       details: job.description,
       status,
-      rejectionReason: job.statusLogs.find((log: MyTaskStatusLogDto) => log.status.includes('Rejected'))?.status.split(':')[1]?.trim(),
+      rejectionReason: job.statusLogs.find((log: MyTaskStatusLogDto) => log.status.includes('Cancelled'))?.status.split(':')[1]?.trim(),
       salesReportData
     };
   }
@@ -468,22 +472,24 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     // Handle string status from API (camelCase)
     if (typeof status === 'string') {
       const lowerStatus = status.toLowerCase();
-      if (lowerStatus === 'pending') return 'pending';
+      if (lowerStatus === 'pending' || lowerStatus === 'assigned') return 'pending';
       if (lowerStatus === 'inprogress' || lowerStatus === 'in-progress') return 'in-progress';
-      if (lowerStatus === 'done') return 'completed';
-      if (lowerStatus === 'rejected') return 'rejected';
+      if (lowerStatus === 'closedwon' || lowerStatus === 'closedlost') return 'completed';
+      if (lowerStatus === 'cancelled') return 'rejected';
       return 'pending';
     }
 
     // Handle enum status
     switch (status) {
       case JobStatus.Pending:
+      case JobStatus.Assigned:
         return 'pending';
       case JobStatus.InProgress:
         return 'in-progress';
-      case JobStatus.Done:
+      case JobStatus.ClosedWon:
+      case JobStatus.ClosedLost:
         return 'completed';
-      case JobStatus.Rejected:
+      case JobStatus.Cancelled:
         return 'rejected';
       default:
         return 'pending';
@@ -639,10 +645,25 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       customer: jobData.customerName,
       description: jobData.details || '',
       assigneeId: employeeId,
-      priority
+      priority,
+      channel: jobData.channel || 'Walk-in',
+      productCategoryId: jobData.productCategoryId || undefined
     }).pipe(
+      // After creating job, immediately update status to InProgress
+      switchMap(createResponse => {
+        if (!createResponse) {
+          return of(null);
+        }
+        // Update status to InProgress automatically
+        return this.taskService.updateJobStatus(createResponse.id, {
+          id: createResponse.id,
+          status: JobStatus.InProgress
+        }).pipe(
+          map(updateResponse => ({ createResponse, updateResponse }))
+        );
+      }),
       catchError(error => {
-        console.error('Error creating job:', error);
+        console.error('Error creating or updating job:', error);
         this.toastService.error('เกิดข้อผิดพลาดในการสร้างงาน');
         return of(null);
       }),
@@ -656,7 +677,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       })
     ).subscribe(response => {
       if (response) {
-        this.toastService.success('สร้างงานสำเร็จ');
+        this.toastService.success('สร้างงานและเริ่มงานสำเร็จ');
         this.isMyTurn.set(false);
         // availabilityStatus will be updated automatically when loadTasks() completes
       }
@@ -758,7 +779,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     this.isLoading.set(true);
     this.taskService.updateJobStatus(taskToReject.id, {
       id: taskToReject.id,
-      status: JobStatus.Rejected,
+      status: JobStatus.Cancelled,
       rejectReason: rejectionData.reason
     }).pipe(
       catchError(error => {
@@ -831,25 +852,34 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       });
     }
 
+    // reportData.interestedProducts can be either:
+    // 1. An array of category names (from sales-report-dialog with ProductCategory master data)
+    // 2. An object with controlName keys (legacy format)
     const productCategories: string[] = [];
     if (reportData.interestedProducts) {
-      const productControls = reportData.interestedProducts;
-      const productMap: { [key: string]: string } = {
-        livingRoom: 'โซฟาและห้องนั่งเล่น',
-        bedroom: 'ชุดห้องนอน',
-        dining: 'โต๊ะอาหาร',
-        kitchen: 'ชุดครัว',
-        office: 'เฟอร์นิเจอร์สำนักงาน',
-        outdoor: 'เฟอร์นิเจอร์นอกบ้าน',
-        lighting: 'โคมไฟและของตกแต่ง',
-        storage: 'ตู้และชั้นวางของ',
-        kids: 'เฟอร์นิเจอร์เด็ก'
-      };
-      Object.keys(productControls).forEach(key => {
-        if (productControls[key] && productMap[key]) {
-          productCategories.push(productMap[key]);
-        }
-      });
+      if (Array.isArray(reportData.interestedProducts)) {
+        // New format: array of category names
+        productCategories.push(...reportData.interestedProducts);
+      } else if (typeof reportData.interestedProducts === 'object') {
+        // Legacy format: object with controlName keys (for backward compatibility)
+        const productControls = reportData.interestedProducts;
+        const productMap: { [key: string]: string } = {
+          livingRoom: 'โซฟาและห้องนั่งเล่น',
+          bedroom: 'ชุดห้องนอน',
+          dining: 'โต๊ะอาหาร',
+          kitchen: 'ชุดครัว',
+          office: 'เฟอร์นิเจอร์สำนักงาน',
+          outdoor: 'เฟอร์นิเจอร์นอกบ้าน',
+          lighting: 'โคมไฟและของตกแต่ง',
+          storage: 'ตู้และชั้นวางของ',
+          kids: 'เฟอร์นิเจอร์เด็ก'
+        };
+        Object.keys(productControls).forEach(key => {
+          if (productControls[key] && productMap[key]) {
+            productCategories.push(productMap[key]);
+          }
+        });
+      }
     }
 
     const report: UpdateJobStatusReportDto = {
@@ -861,10 +891,13 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       description: reportData.additionalInfo || ''
     };
 
+    // Determine status based on sales status
+    const finalStatus = reportData.status?.toLowerCase() === 'success' ? JobStatus.ClosedWon : JobStatus.ClosedLost;
+    
     this.isLoading.set(true);
     this.taskService.updateJobStatus(taskToMove.id, {
       id: taskToMove.id,
-      status: JobStatus.Done,
+      status: finalStatus,
       report
     }).pipe(
       catchError(error => {

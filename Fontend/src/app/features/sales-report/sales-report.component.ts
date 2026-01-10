@@ -427,18 +427,7 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   itemsPerPage = signal(8);
   currentPage = signal(1);
 
-  // Duplicated from sales-report-dialog for data transformation
-  private readonly interestedProductsList = [
-    { controlName: 'livingRoom', label: 'โซฟาและห้องนั่งเล่น' },
-    { controlName: 'bedroom', label: 'ชุดห้องนอน' },
-    { controlName: 'dining', label: 'โต๊ะอาหาร' },
-    { controlName: 'kitchen', label: 'ชุดครัว' },
-    { controlName: 'office', label: 'เฟอร์นิเจอร์สำนักงาน' },
-    { controlName: 'outdoor', label: 'เฟอร์นิเจอร์นอกบ้าน' },
-    { controlName: 'lighting', label: 'โคมไฟและของตกแต่ง' },
-    { controlName: 'storage', label: 'ตู้และชั้นวางของ' },
-    { controlName: 'kids', label: 'เฟอร์นิเจอร์เด็ก' }
-  ];
+  // Product categories are now loaded from master data, no need for hardcoded list
   private readonly pendingReasons = [
     { controlName: 'wantsToDecide', label: 'ขอไปตัดสินใจก่อน' },
     { controlName: 'waitingForPromo', label: 'รอโปรโมชั่น' },
@@ -641,12 +630,13 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
     const reportToUpdate = this.reportToEdit();
     if (!reportToUpdate) return;
 
-    const interestedProducts = this.interestedProductsList
-      .filter(p => formData.interestedProducts[p.controlName])
-      .map(p => p.label);
+    // formData.interestedProducts is now an array of category names (from sales-report-dialog)
+    const interestedProducts = Array.isArray(formData.interestedProducts) 
+      ? formData.interestedProducts 
+      : [];
     
     const reasons = [...this.pendingReasons, ...this.failedReasons]
-      .filter(r => formData.reasons[r.controlName])
+      .filter(r => formData.reasons && formData.reasons[r.controlName])
       .map(r => r.label);
 
     const updatedReport: SalesReport = {

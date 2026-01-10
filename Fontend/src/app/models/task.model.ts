@@ -1,8 +1,10 @@
 export enum JobStatus {
   Pending = 1,
-  InProgress = 2,
-  Done = 3,
-  Rejected = 4
+  Assigned = 2,
+  InProgress = 3,
+  ClosedWon = 4,
+  ClosedLost = 5,
+  Cancelled = 6
 }
 
 export enum JobPriority {
@@ -52,6 +54,9 @@ export interface CreateJobRequest {
   description: string;
   assigneeId: string;
   priority: JobPriority;
+  channel?: string; // "Phone", "Chat", "Walk-in", "Email"
+  productCategoryId?: string; // Product category ID
+  category?: string; // Deprecated: Keep for backward compatibility
 }
 
 export interface CreateJobResponse {
@@ -99,7 +104,6 @@ export interface UpdateJobStatusResponse {
   statusLogs: MyTaskStatusLogDto[];
   report?: UpdateJobStatusReportDto;
 }
-
 
 export interface JobGetResponse {
   id: string;

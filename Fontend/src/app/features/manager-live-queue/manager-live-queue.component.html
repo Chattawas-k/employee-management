@@ -1,0 +1,137 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div class="px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Live Queue - จัดการคิว</h1>
+          <p class="text-sm text-gray-500 mt-1">ดูและจัดการ Tickets ทั้งหมด</p>
+        </div>
+        <button
+          (click)="loadTickets()"
+          [disabled]="isLoading()"
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+          </svg>
+          <span class="text-sm font-medium">รีเฟรช</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <!-- Filter Bar -->
+    <app-filter-bar
+      [config]="{
+        showDateRange: true,
+        showQuickFilters: true,
+        showStatusFilter: true,
+        showChannelFilter: true,
+        showCategoryFilter: true,
+        showStaffFilter: false,
+        showSearch: false
+      }"
+      [statusOptions]="statusOptions"
+      [channelOptions]="channelOptions"
+      [categoryOptions]="categoryOptions"
+      (filterChange)="onFilterChange($event)"
+      (quickFilterSelect)="onQuickFilterSelect($event)">
+    </app-filter-bar>
+
+    <!-- Additional Quick Filters -->
+    <div class="flex items-center gap-3 flex-wrap">
+      <button
+        (click)="isSlaAtRisk.set(isSlaAtRisk() === true ? null : true); loadTickets()"
+        [class.bg-red-100]="isSlaAtRisk() === true"
+        [class.text-red-700]="isSlaAtRisk() === true"
+        [class.border-red-300]="isSlaAtRisk() === true"
+        class="px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+        SLA Risk
+      </button>
+      <button
+        (click)="isEscalated.set(isEscalated() === true ? null : true); loadTickets()"
+        [class.bg-orange-100]="isEscalated() === true"
+        [class.text-orange-700]="isEscalated() === true"
+        [class.border-orange-300]="isEscalated() === true"
+        class="px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+        Escalated
+      </button>
+    </div>
+
+    <!-- Tickets Table -->
+    <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+      <app-data-table
+        [columns]="columns"
+        [data]="getTableData()"
+        [isLoading]="isLoading()"
+        [sortConfig]="null"
+        [rowClickable]="true"
+        (rowClick)="onTicketClick($event)"
+        (actionClick)="handleTableAction($event)">
+      </app-data-table>
+
+      <!-- Pagination -->
+      @if (totalPages() > 1) {
+        <app-pagination
+          [currentPage]="currentPage()"
+          [totalPages]="totalPages()"
+          [pageSize]="pageSize()"
+          [totalCount]="totalCount()"
+          (pageChange)="onPageChange($event)">
+        </app-pagination>
+      }
+    </div>
+  </main>
+
+  <!-- Ticket Detail Drawer -->
+  <app-ticket-detail-drawer
+    [ticket]="selectedTicket()"
+    [isOpen]="showTicketDrawer()"
+    (close)="onTicketDrawerClose()"
+    (forceAssign)="onForceAssignClick(selectedTicket()!)"
+    (transfer)="onTransferClick(selectedTicket()!)"
+    (escalate)="onEscalateConfirm($event)"
+    (cancel)="onCancelConfirm($event)">
+  </app-ticket-detail-drawer>
+
+  <!-- Action Dialogs -->
+  @if (showForceAssignDialog() && actionTicketId()) {
+    <app-force-assign-dialog
+      [jobId]="actionTicketId()"
+      [jobNumber]="actionTicketNumber()"
+      [currentAssignee]="actionTicketAssignee()"
+      (confirm)="onForceAssignConfirm($event); showForceAssignDialog.set(false)"
+      (close)="showForceAssignDialog.set(false)">
+    </app-force-assign-dialog>
+  }
+
+  @if (showTransferDialog() && actionTicketId()) {
+    <app-transfer-dialog
+      [jobId]="actionTicketId()"
+      [jobNumber]="actionTicketNumber()"
+      [currentAssignee]="actionTicketAssigneeId()"
+      (confirm)="onTransferConfirm($event); showTransferDialog.set(false)"
+      (close)="showTransferDialog.set(false)">
+    </app-transfer-dialog>
+  }
+
+  @if (showEscalateDialog() && actionTicketId()) {
+    <app-escalate-dialog
+      [jobId]="actionTicketId()"
+      [jobNumber]="actionTicketNumber()"
+      (confirm)="onEscalateConfirm($event); showEscalateDialog.set(false)"
+      (close)="showEscalateDialog.set(false)">
+    </app-escalate-dialog>
+  }
+
+  @if (showCancelDialog() && actionTicketId()) {
+    <app-cancel-dialog
+      [jobId]="actionTicketId()"
+      [jobNumber]="actionTicketNumber()"
+      (confirm)="onCancelConfirm($event); showCancelDialog.set(false)"
+      (close)="showCancelDialog.set(false)">
+    </app-cancel-dialog>
+  }
+</div>

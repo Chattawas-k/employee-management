@@ -40,12 +40,8 @@ namespace employee_management.Application.Features.Queues.Commands.ResetDaily
 
             // Create new queues
             int position = 1;
-            // Ensure date is in UTC for PostgreSQL
-            var queueDateUtc = request.Date.Kind == DateTimeKind.Unspecified 
-                ? DateTime.SpecifyKind(request.Date.Date, DateTimeKind.Utc)
-                : request.Date.Kind == DateTimeKind.Local 
-                    ? request.Date.Date.ToUniversalTime()
-                    : request.Date.Date;
+            // Ensure date is in UTC for PostgreSQL (use SpecifyKind for consistency)
+            var queueDateUtc = DateTime.SpecifyKind(request.Date.Date, DateTimeKind.Utc);
             
             foreach (var employee in employeesToQueue)
             {

@@ -147,6 +147,66 @@ namespace employee_management.WebAPI.Services
                 _logger.LogError(ex, "❌ Error sending EmployeeStatusChanged notification");
             }
         }
+
+        /// <summary>
+        /// Send dashboard KPI update to managers
+        /// </summary>
+        public async Task SendDashboardUpdateNotificationAsync(object kpiData)
+        {
+            try
+            {
+                await _hubContext.Clients.Group("Managers").SendAsync("DashboardUpdate", kpiData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error sending DashboardUpdate notification to managers");
+            }
+        }
+
+        /// <summary>
+        /// Send queue update to managers
+        /// </summary>
+        public async Task SendQueueUpdateNotificationToManagersAsync()
+        {
+            try
+            {
+                await _hubContext.Clients.Group("Managers").SendAsync("QueueUpdate");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error sending QueueUpdate notification to managers");
+            }
+        }
+
+        /// <summary>
+        /// Send staff status update to managers
+        /// </summary>
+        public async Task SendStaffStatusUpdateNotificationToManagersAsync()
+        {
+            try
+            {
+                await _hubContext.Clients.Group("Managers").SendAsync("StaffStatusUpdate");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error sending StaffStatusUpdate notification to managers");
+            }
+        }
+
+        /// <summary>
+        /// Send alert to managers
+        /// </summary>
+        public async Task SendAlertToManagersAsync(string alertType, string message, string severity)
+        {
+            try
+            {
+                await _hubContext.Clients.Group("Managers").SendAsync("Alert", alertType, message, severity);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error sending Alert notification to managers");
+            }
+        }
     }
 }
 

@@ -28,6 +28,9 @@ namespace employee_management.Persistence.Context
         public DbSet<Job> Jobs { get; set; }
         public DbSet<WaitingJob> WaitingJobs { get; set; }
         public DbSet<EmployeeStatusHistory> EmployeeStatusHistories { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<QueueRule> QueueRules { get; set; }
+        public DbSet<ProductCategory> ProductCategories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -68,8 +71,15 @@ namespace employee_management.Persistence.Context
                     .HasForeignKey(e => e.AssigneeId)
                     .OnDelete(DeleteBehavior.Restrict);
 
+                // Configure relationship with ProductCategory
+                entity.HasOne(e => e.ProductCategory)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductCategoryId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
                 // Create indexes
                 entity.HasIndex(e => e.AssigneeId);
+                entity.HasIndex(e => e.ProductCategoryId);
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.CreatedDate);
                 entity.HasIndex(e => e.JobNumber);
@@ -113,6 +123,39 @@ namespace employee_management.Persistence.Context
                 entity.HasIndex(e => e.EmployeeId);
                 entity.HasIndex(e => e.ChangedDate);
                 entity.HasIndex(e => e.ChangeReason);
+                entity.HasIndex(e => e.IsDeleted);
+            });
+
+            // Configure AuditLog entity
+            modelBuilder.Entity<AuditLog>(entity =>
+            {
+                entity.ToTable("AuditLogs");
+
+                // Create indexes
+                entity.HasIndex(e => e.ActorId);
+                entity.HasIndex(e => e.ActionType);
+                entity.HasIndex(e => e.EntityType);
+                entity.HasIndex(e => e.EntityId);
+                entity.HasIndex(e => e.Timestamp);
+            });
+
+            // Configure QueueRule entity
+            modelBuilder.Entity<QueueRule>(entity =>
+            {
+                entity.ToTable("QueueRules");
+
+                // Only one active rule at a time
+                entity.HasIndex(e => e.IsActive);
+            });
+
+            // Configure ProductCategory entity
+            modelBuilder.Entity<ProductCategory>(entity =>
+            {
+                entity.ToTable("ProductCategories");
+
+                // Create indexes
+                entity.HasIndex(e => e.Name);
+                entity.HasIndex(e => e.IsActive);
                 entity.HasIndex(e => e.IsDeleted);
             });
         }

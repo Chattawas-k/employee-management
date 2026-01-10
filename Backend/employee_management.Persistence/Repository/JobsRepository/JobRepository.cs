@@ -65,7 +65,8 @@ namespace employee_management.Persistence.Repository.JobsRepository
         public async Task<int> CountJobsByDateAsync(DateTime date, CancellationToken cancellationToken)
         {
             // Convert to DateTimeOffset to avoid timezone issues with PostgreSQL
-            var targetDate = new DateTimeOffset(date.Date, TimeSpan.Zero);
+            var utcDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+            var targetDate = new DateTimeOffset(utcDate, TimeSpan.Zero);
             var nextDate = targetDate.AddDays(1);
             
             return await Context.Jobs
@@ -84,6 +85,172 @@ namespace employee_management.Persistence.Repository.JobsRepository
                 .Where(j => !j.IsDeleted)
                 .OrderByDescending(j => j.CreatedDate)
                 .ToListAsync(cancellationToken);
+        }
+
+        // Manager-specific queries
+        public async Task<List<Job>> GetJobsByStatusAsync(employee_management.Domain.Enums.JobStatus? status, DateTime? dateFrom, DateTime? dateTo, CancellationToken cancellationToken)
+        {
+            var query = Context.Jobs
+                .Include(j => j.Employee)
+                .Include(j => j.ProductCategory)
+                .Where(j => !j.IsDeleted);
+
+            if (status.HasValue)
+            {
+                query = query.Where(j => j.Status == status.Value);
+            }
+
+            if (dateFrom.HasValue)
+            {
+                var utcDateFrom = DateTime.SpecifyKind(dateFrom.Value.Date, DateTimeKind.Utc);
+                var dateFromOffset = new DateTimeOffset(utcDateFrom, TimeSpan.Zero);
+                query = query.Where(j => j.CreatedDate >= dateFromOffset);
+            }
+
+            if (dateTo.HasValue)
+            {
+                var utcDateTo = DateTime.SpecifyKind(dateTo.Value.Date.AddDays(1), DateTimeKind.Utc);
+                var dateToOffset = new DateTimeOffset(utcDateTo, TimeSpan.Zero);
+                query = query.Where(j => j.CreatedDate < dateToOffset);
+            }
+
+            return await query
+                .OrderByDescending(j => j.CreatedDate)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<Job>> GetJobsWithSlaBreachAsync(CancellationToken cancellationToken)
+        {
+            var now = DateTime.UtcNow;
+            return await Context.Jobs
+                .Include(j => j.Employee)
+                .Where(j => !j.IsDeleted && 
+                    ((j.SlaWaitingBreachAt.HasValue && now >= j.SlaWaitingBreachAt.Value) ||
+                     (j.SlaAssignedBreachAt.HasValue && now >= j.SlaAssignedBreachAt.Value)))
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<int> GetWaitingJobsCountAsync(CancellationToken cancellationToken)
+        {
+            return await Context.Jobs
+                .Where(j => !j.IsDeleted && j.Status == employee_management.Domain.Enums.JobStatus.Pending)
+                .CountAsync(cancellationToken);
+        }
+
+        public async Task<double> GetAverageWaitTimeAsync(CancellationToken cancellationToken)
+        {
+            var waitingJobs = await Context.Jobs
+                .Where(j => !j.IsDeleted && j.Status == employee_management.Domain.Enums.JobStatus.Pending)
+                .ToListAsync(cancellationToken);
+
+            if (!waitingJobs.Any())
+            {
+                return 0;
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            var totalWaitMinutes = waitingJobs.Sum(j => (now - j.CreatedDate).TotalMinutes);
+            return totalWaitMinutes / waitingJobs.Count;
+        }
+
+        public async Task<List<Job>> GetTopWaitingJobsAsync(int count, CancellationToken cancellationToken)
+        {
+            return await Context.Jobs
+                .Include(j => j.Employee)
+                .Where(j => !j.IsDeleted && j.Status == employee_management.Domain.Enums.JobStatus.Pending)
+                .OrderBy(j => j.CreatedDate)
+                .Take(count)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<Dictionary<string, decimal>> GetSalesByCategoryAsync(DateTime dateFrom, DateTime dateTo, CancellationToken cancellationToken)
+        {
+            var utcDateFrom = DateTime.SpecifyKind(dateFrom.Date, DateTimeKind.Utc);
+            var utcDateTo = DateTime.SpecifyKind(dateTo.Date.AddDays(1), DateTimeKind.Utc);
+            var dateFromOffset = new DateTimeOffset(utcDateFrom, TimeSpan.Zero);
+            var dateToOffset = new DateTimeOffset(utcDateTo, TimeSpan.Zero);
+
+            var jobs = await Context.Jobs
+                .Include(j => j.Employee)
+                .Include(j => j.ProductCategory)
+                .Where(j => !j.IsDeleted && 
+                    j.Status == employee_management.Domain.Enums.JobStatus.ClosedWon &&
+                    j.CreatedDate >= dateFromOffset &&
+                    j.CreatedDate < dateToOffset &&
+                    j.ReportJson != null)
+                .ToListAsync(cancellationToken);
+
+            // Use categories from Sales Report (JobReport.ProductCategory) which is comma-separated
+            // If Report.ProductCategory is empty, fallback to Job.ProductCategoryId or Job.Category
+            var categorySales = new Dictionary<string, decimal>();
+            
+            foreach (var job in jobs.Where(j => j.Report != null && j.Report.SalesStatus.ToLower() == "success"))
+            {
+                var amount = job.Report?.Description != null && decimal.TryParse(job.Report.Description, out var saleAmount) ? saleAmount : 0m;
+                if (amount <= 0) continue;
+                
+                // Priority: Use JobReport.ProductCategory (from Sales Report dialog)
+                // If empty, fallback to Job.ProductCategoryId or Job.Category
+                var categories = new List<string>();
+                
+                if (!string.IsNullOrWhiteSpace(job.Report?.ProductCategory))
+                {
+                    // Split comma-separated categories from Sales Report
+                    categories.AddRange(job.Report.ProductCategory
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(c => c.Trim())
+                        .Where(c => !string.IsNullOrWhiteSpace(c)));
+                }
+                
+                // If no categories from Report, use Job.ProductCategoryId or Job.Category (backward compatibility)
+                if (categories.Count == 0)
+                {
+                    var fallbackCategory = !string.IsNullOrEmpty(job.ProductCategory?.Name)
+                        ? job.ProductCategory.Name
+                        : (!string.IsNullOrEmpty(job.Category) ? job.Category : "ไม่ระบุหมวดหมู่");
+                    categories.Add(fallbackCategory);
+                }
+                
+                // Distribute sales amount across all categories (if multiple categories selected)
+                var amountPerCategory = amount / categories.Count;
+                foreach (var category in categories)
+                {
+                    if (categorySales.ContainsKey(category))
+                    {
+                        categorySales[category] += amountPerCategory;
+                    }
+                    else
+                    {
+                        categorySales[category] = amountPerCategory;
+                    }
+                }
+            }
+            
+            return categorySales;
+        }
+
+        public async Task<Dictionary<employee_management.Domain.Enums.JobStatus, int>> GetStatusCountsAsync(DateTime? dateFrom, DateTime? dateTo, CancellationToken cancellationToken)
+        {
+            var query = Context.Jobs.Where(j => !j.IsDeleted);
+
+            if (dateFrom.HasValue)
+            {
+                var utcDateFrom = DateTime.SpecifyKind(dateFrom.Value.Date, DateTimeKind.Utc);
+                var dateFromOffset = new DateTimeOffset(utcDateFrom, TimeSpan.Zero);
+                query = query.Where(j => j.CreatedDate >= dateFromOffset);
+            }
+
+            if (dateTo.HasValue)
+            {
+                var utcDateTo = DateTime.SpecifyKind(dateTo.Value.Date.AddDays(1), DateTimeKind.Utc);
+                var dateToOffset = new DateTimeOffset(utcDateTo, TimeSpan.Zero);
+                query = query.Where(j => j.CreatedDate < dateToOffset);
+            }
+
+            var jobs = await query.ToListAsync(cancellationToken);
+            return jobs
+                .GroupBy(j => j.Status)
+                .ToDictionary(g => g.Key, g => g.Count());
         }
     }
 }

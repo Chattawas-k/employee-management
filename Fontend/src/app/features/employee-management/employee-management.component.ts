@@ -248,23 +248,6 @@ export class EmployeeManagementComponent implements OnInit {
     // Force refresh to bypass cache
     this.loadPositions(true);
   }
-  
-  loadPositions(forceRefresh: boolean = false): void {
-    this.isLoadingPositions.set(true);
-    this.positionService.getAll(undefined, forceRefresh).pipe(
-      catchError(error => {
-        console.error('Error loading positions:', error);
-        this.toastService.error('เกิดข้อผิดพลาดในการโหลดข้อมูลตำแหน่ง');
-        this.isLoadingPositions.set(false);
-        return of([]);
-      })
-    ).subscribe({
-      next: (positions) => {
-        this.positions.set(positions);
-        this.isLoadingPositions.set(false);
-      }
-    });
-  }
 
   Math = Math; // Expose Math to template
 }

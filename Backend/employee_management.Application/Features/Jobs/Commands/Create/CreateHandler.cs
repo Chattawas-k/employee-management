@@ -67,6 +67,9 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
                     AssigneeId = assigneeId, // May be Guid.Empty if auto-assigning
                     Status = JobStatus.Pending,
                     Priority = request.Priority,
+                    Channel = request.Channel ?? string.Empty,
+                    ProductCategoryId = request.ProductCategoryId,
+                    Category = request.Category ?? string.Empty, // Keep for backward compatibility
                     StatusLogs = new List<StatusLog>
                     {
                         new StatusLog

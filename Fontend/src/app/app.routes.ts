@@ -8,9 +8,11 @@ import { QueueSummaryComponent } from './features/queue-summary/queue-summary.co
 import { LoginComponent } from './features/login/login.component';
 import { EmployeeManagementComponent } from './features/employee-management/employee-management.component';
 import { QueueSettingsComponent } from './features/queue-settings/queue-settings.component';
+import { ProductCategoryManagementComponent } from './features/product-category-management/product-category-management.component';
 import { UsersPermissionsComponent } from './features/users-permissions/users-permissions.component';
 import { MyAccountComponent } from './features/my-account/my-account.component';
 import { authGuard } from './guards/auth.guard';
+import { managerGuard } from './guards/manager.guard';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -23,8 +25,45 @@ export const routes: Routes = [
   { path: 'report', component: SalesReportComponent, canActivate: [authGuard] },
   { path: 'settings/employees', component: EmployeeManagementComponent, canActivate: [authGuard] },
   { path: 'settings/queue', component: QueueSettingsComponent, canActivate: [authGuard] },
+  { path: 'settings/product-categories', component: ProductCategoryManagementComponent, canActivate: [authGuard] },
   { path: 'settings/users', component: UsersPermissionsComponent, canActivate: [authGuard] },
   { path: 'my-account', component: MyAccountComponent, canActivate: [authGuard] },
+  // Manager routes
+  { 
+    path: 'manager/dashboard', 
+    loadComponent: () => import('./features/manager-dashboard/manager-dashboard.component').then(m => m.ManagerDashboardComponent),
+    canActivate: [managerGuard] 
+  },
+  { 
+    path: 'manager/queue', 
+    loadComponent: () => import('./features/manager-live-queue/manager-live-queue.component').then(m => m.ManagerLiveQueueComponent),
+    canActivate: [managerGuard] 
+  },
+  { 
+    path: 'manager/staff', 
+    loadComponent: () => import('./features/manager-staff-overview/manager-staff-overview.component').then(m => m.ManagerStaffOverviewComponent),
+    canActivate: [managerGuard] 
+  },
+  { 
+    path: 'manager/deals', 
+    loadComponent: () => import('./features/manager-deals-sales/manager-deals-sales.component').then(m => m.ManagerDealsSalesComponent),
+    canActivate: [managerGuard] 
+  },
+  { 
+    path: 'manager/reports', 
+    loadComponent: () => import('./features/manager-reports/manager-reports.component').then(m => m.ManagerReportsComponent),
+    canActivate: [managerGuard] 
+  },
+  { 
+    path: 'manager/audit', 
+    loadComponent: () => import('./features/manager-audit-log/manager-audit-log.component').then(m => m.ManagerAuditLogComponent),
+    canActivate: [managerGuard] 
+  },
+  { 
+    path: 'manager/settings', 
+    loadComponent: () => import('./features/manager-settings/manager-settings.component').then(m => m.ManagerSettingsComponent),
+    canActivate: [managerGuard] 
+  },
   { path: '**', redirectTo: '/my-tasks' }
 ];
 

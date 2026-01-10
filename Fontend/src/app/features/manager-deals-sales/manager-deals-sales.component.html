@@ -1,0 +1,25 @@
+<div class="min-h-screen bg-gray-50">
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div class="px-4 sm:px-6 lg:px-8 py-4">
+      <h1 class="text-2xl font-bold text-gray-900">Deals & Sales - ยอดขายและ Conversion</h1>
+    </div>
+  </header>
+  <main class="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <app-filter-bar [config]="{showDateRange:true,showQuickFilters:true,showStatusFilter:false,showChannelFilter:true,showCategoryFilter:true,showStaffFilter:true}" [channelOptions]="channelOptions" [categoryOptions]="categoryOptions" [staffOptions]="staffOptions" (filterChange)="onFilterChange($event)" (quickFilterSelect)="onQuickFilterSelect($event)"></app-filter-bar>
+    @if (summary(); as summaryData) {
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <app-kpi-card title="ยอดขายรวม" [value]="summaryData.totalSales" unit="฿" icon="currency" iconColor="green" [isLoading]="isLoading()"></app-kpi-card>
+        <app-kpi-card title="เฉลี่ยต่อ Deal" [value]="summaryData.avgDeal" unit="฿" icon="currency" iconColor="blue" [isLoading]="isLoading()"></app-kpi-card>
+        <app-kpi-card title="Conversion Rate" [value]="summaryData.conversionRate.toFixed(1)" unit="%" icon="trending-up" iconColor="purple" [isLoading]="isLoading()"></app-kpi-card>
+        <app-kpi-card title="ทีมงานยอดเยี่ยม" [value]="summaryData.topStaff" unit="" icon="user-check" iconColor="indigo" [isLoading]="isLoading()"></app-kpi-card>
+      </div>
+    }
+    <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+      <div class="p-5 border-b border-gray-200"><h3 class="text-lg font-semibold text-gray-900">รายการ Deals</h3></div>
+      <app-data-table [columns]="columns" [data]="getTableData()" [isLoading]="isLoading()"></app-data-table>
+      @if (totalPages() > 1) {
+        <app-pagination [currentPage]="currentPage()" [totalPages]="totalPages()" [pageSize]="pageSize()" [totalCount]="totalCount()" (pageChange)="onPageChange($event)"></app-pagination>
+      }
+    </div>
+  </main>
+</div>

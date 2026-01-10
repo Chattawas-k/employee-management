@@ -7,6 +7,11 @@ namespace employee_management.Application.Repository.EmployeesRepository
     public interface IEmployeeRepository : IBaseRepository<Employee>
     {
         Task<PaginatedList<Employee>> SearchAsync(string? keyword, int pageNumber, int pageSize, string? sortBy, string? sortDirection, EmployeeStatus? status, Guid? departmentId, Guid? positionId, CancellationToken cancellationToken);
+        
+        // Manager-specific queries
+        Task<List<Employee>> GetStaffWithAvailabilityAsync(CancellationToken cancellationToken);
+        Task<int> GetReadyStaffCountAsync(CancellationToken cancellationToken);
+        Task<List<Employee>> GetStaffWithPerformanceAsync(DateTime dateFrom, DateTime dateTo, CancellationToken cancellationToken);
     }
 }
 

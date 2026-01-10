@@ -5,10 +5,12 @@ using Microsoft.Extensions.DependencyInjection;
 using employee_management.Application.Common.Services;
 using employee_management.Application.Repository;
 using employee_management.Application.Repository.TestTakersRepository;
+using employee_management.Application.Repository.ProductCategoriesRepository;
 using employee_management.Domain.Entities;
 using employee_management.Persistence.Context;
 using employee_management.Persistence.Repository;
 using employee_management.Persistence.Repository.TestTakersRepository;
+using employee_management.Persistence.Repository.ProductCategoriesRepository;
 using employee_management.Persistence.Services;
 
 namespace employee_management.Persistence
@@ -54,6 +56,9 @@ namespace employee_management.Persistence
             services.AddScoped<employee_management.Application.Repository.JobsRepository.IJobRepository, employee_management.Persistence.Repository.JobsRepository.JobRepository>();
             services.AddScoped<employee_management.Application.Repository.WaitingJobsRepository.IWaitingJobRepository, employee_management.Persistence.Repository.WaitingJobsRepository.WaitingJobRepository>();
             services.AddScoped<employee_management.Application.Repository.IEmployeeStatusHistoryRepository, employee_management.Persistence.Repository.EmployeeStatusHistoryRepository.EmployeeStatusHistoryRepository>();
+            services.AddScoped<employee_management.Application.Repository.AuditLogsRepository.IAuditLogRepository, employee_management.Persistence.Repository.AuditLogsRepository.AuditLogRepository>();
+            services.AddScoped<employee_management.Application.Repository.QueueRulesRepository.IQueueRuleRepository, employee_management.Persistence.Repository.QueueRulesRepository.QueueRuleRepository>();
+            services.AddScoped<IProductCategoryRepository, ProductCategoryRepository>();
             //Services
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();

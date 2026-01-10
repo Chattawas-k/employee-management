@@ -1,8 +1,11 @@
-import { Component, Input, Output, EventEmitter, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, signal, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, ValidatorFn, AbstractControl } from '@angular/forms';
 import { Task } from '../task-column/task-column.component';
 import { SalesReport, ReportStatus } from '../../../models/sales-report.model';
+import { ProductCategoryService } from '../../../services/product-category.service';
+import { ProductCategoryDropdownDto } from '../../../models/product-category.model';
+import { catchError, of } from 'rxjs';
 
 @Component({
   selector: 'app-sales-report-dialog',
@@ -46,21 +49,16 @@ export class SalesReportDialogComponent implements OnInit {
     { controlName: 'budgetCut', label: 'งบประมาณไม่พอ' }
   ];
 
-  interestedProductsList = [
-    { controlName: 'livingRoom', label: 'โซฟาและห้องนั่งเล่น' },
-    { controlName: 'bedroom', label: 'ชุดห้องนอน' },
-    { controlName: 'dining', label: 'โต๊ะอาหาร' },
-    { controlName: 'kitchen', label: 'ชุดครัว' },
-    { controlName: 'office', label: 'เฟอร์นิเจอร์สำนักงาน' },
-    { controlName: 'outdoor', label: 'เฟอร์นิเจอร์นอกบ้าน' },
-    { controlName: 'lighting', label: 'โคมไฟและของตกแต่ง' },
-    { controlName: 'storage', label: 'ตู้และชั้นวางของ' },
-    { controlName: 'kids', label: 'เฟอร์นิเจอร์เด็ก' }
-  ];
+  interestedProductsList = signal<ProductCategoryDropdownDto[]>([]);
+  isLoadingCategories = signal(false);
 
   salesReportForm!: ReturnType<FormBuilder['group']>;
 
-  constructor(private fb: FormBuilder) {
+  constructor(
+    private fb: FormBuilder,
+    private productCategoryService: ProductCategoryService,
+    private cdr: ChangeDetectorRef
+  ) {
     const requireAtLeastOne = (): ValidatorFn => {
       return (control: AbstractControl): { [key: string]: any } | null => {
         const formGroup = control as FormGroup;
@@ -80,9 +78,7 @@ export class SalesReportDialogComponent implements OnInit {
         wantsToDecide: [false], waitingForPromo: [false], comparing: [false], consultingFamily: [false], needsMoreInfo: [false], waitingForStock: [false], financialApproval: [false], undecidedOnSpec: [false], seasonalTiming: [false], wantsToSeeSample: [false],
         priceTooHigh: [false], productMismatch: [false], badService: [false], foundCheaper: [false], longDelivery: [false], outOfStock: [false], negativeReview: [false], competitorOffer: [false], changedMind: [false], budgetCut: [false],
       }, { validators: requireAtLeastOne() }),
-      interestedProducts: this.fb.group({
-        livingRoom: [false], bedroom: [false], dining: [false], kitchen: [false], office: [false], outdoor: [false], lighting: [false], storage: [false], kids: [false]
-      }, { validators: requireAtLeastOne() }),
+      interestedProducts: this.fb.group({}, { validators: requireAtLeastOne() }),
       additionalInfo: [''],
       saleValue: [0],
       invoiceId: ['']
@@ -92,6 +88,7 @@ export class SalesReportDialogComponent implements OnInit {
   selectedStatus = signal<ReportStatus>('Success');
 
   ngOnInit(): void {
+    this.loadProductCategories();
     const reportData = this.report;
     const taskData = this.task;
     
@@ -113,14 +110,15 @@ export class SalesReportDialogComponent implements OnInit {
         }
       });
 
-      const productControls = (this.salesReportForm.get('interestedProducts') as FormGroup).controls;
-      Object.keys(productControls).forEach(key => productControls[key].setValue(false));
-      reportData.interestedProducts.forEach((productText: string) => {
-        const product = this.interestedProductsList.find(p => p.label === productText);
-        if (product && productControls[product.controlName]) {
-          productControls[product.controlName].setValue(true);
-        }
-      });
+      // Wait for categories to load before setting form values
+      if (this.interestedProductsList().length > 0) {
+        this.setInterestedProductsFromReport(reportData);
+      } else {
+        // If categories haven't loaded yet, wait a bit and try again
+        setTimeout(() => {
+          this.setInterestedProductsFromReport(reportData);
+        }, 500);
+      }
       
       this.setStatus(this.initialStatus || reportData.status);
     } else if (taskData) {
@@ -128,14 +126,55 @@ export class SalesReportDialogComponent implements OnInit {
         customerName: taskData.customerName || '',
         contactInfo: '08x-xxx-xxxx'
       });
-      const productsForm = this.salesReportForm.get('interestedProducts') as FormGroup;
-      if (taskData.details?.includes('โซฟา')) {
-        productsForm.get('livingRoom')?.setValue(true);
-      }
       this.setStatus('Success');
     } else {
       this.setStatus('Success');
     }
+  }
+
+  loadProductCategories(): void {
+    this.isLoadingCategories.set(true);
+    this.productCategoryService.getDropdownList().pipe(
+      catchError(error => {
+        console.error('Error loading product categories:', error);
+        return of({ productCategories: [] });
+      })
+    ).subscribe(response => {
+      this.interestedProductsList.set(response.productCategories);
+      this.isLoadingCategories.set(false);
+      
+      // Dynamically create form controls for each category
+      const productsForm = this.salesReportForm.get('interestedProducts') as FormGroup;
+      response.productCategories.forEach(category => {
+        if (!productsForm.get(category.id)) {
+          productsForm.addControl(category.id, this.fb.control(false));
+        }
+      });
+      
+      // If we have report data, set the form values now
+      if (this.report) {
+        this.setInterestedProductsFromReport(this.report);
+      }
+      
+      this.cdr.markForCheck();
+    });
+  }
+
+  private setInterestedProductsFromReport(reportData: SalesReport): void {
+    const productControls = (this.salesReportForm.get('interestedProducts') as FormGroup).controls;
+    
+    // Clear existing controls
+    Object.keys(productControls).forEach(key => {
+      productControls[key].setValue(false);
+    });
+    
+    // Set values for products that match by name (backend stores as comma-separated names)
+    reportData.interestedProducts.forEach((productName: string) => {
+      const product = this.interestedProductsList().find(p => p.name === productName.trim());
+      if (product && productControls[product.id]) {
+        productControls[product.id].setValue(true);
+      }
+    });
   }
 
   setStatus(status: ReportStatus) {
@@ -154,7 +193,27 @@ export class SalesReportDialogComponent implements OnInit {
   onConfirmSave() {
     this.salesReportForm.markAllAsTouched();
     if (this.salesReportForm.valid) {
-      this.save.emit(this.salesReportForm.getRawValue());
+      const formValue = this.salesReportForm.getRawValue();
+      
+      // Convert selected category IDs to category names (comma-separated string)
+      const selectedCategoryIds = Object.keys(formValue.interestedProducts || {})
+        .filter(key => formValue.interestedProducts[key] === true);
+      
+      const selectedCategoryNames = selectedCategoryIds
+        .map(id => {
+          const category = this.interestedProductsList().find(c => c.id === id);
+          return category?.name || '';
+        })
+        .filter(name => name.length > 0);
+      
+      // Replace interestedProducts object with array of names for backward compatibility
+      const transformedValue = {
+        ...formValue,
+        interestedProducts: selectedCategoryNames,
+        interestedProductIds: selectedCategoryIds // Keep IDs for future use
+      };
+      
+      this.save.emit(transformedValue);
     }
   }
 

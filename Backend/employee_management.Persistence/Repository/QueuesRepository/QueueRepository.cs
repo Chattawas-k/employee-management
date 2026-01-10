@@ -17,7 +17,7 @@ namespace employee_management.Persistence.Repository.QueuesRepository
         public async Task<List<Queue>> GetByDateAsync(DateTime date, CancellationToken cancellationToken)
         {
             // Convert to UTC to avoid DateTime Kind issues with PostgreSQL
-            var targetDate = date.Date.ToUniversalTime();
+            var targetDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
             var nextDate = targetDate.AddDays(1);
             
             return await Context.Queues
@@ -32,7 +32,7 @@ namespace employee_management.Persistence.Repository.QueuesRepository
         public async Task<Queue?> GetByEmployeeIdAndDateAsync(Guid employeeId, DateTime date, CancellationToken cancellationToken)
         {
             // Convert to UTC to avoid DateTime Kind issues with PostgreSQL
-            var targetDate = date.Date.ToUniversalTime();
+            var targetDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
             var nextDate = targetDate.AddDays(1);
             
             return await Context.Queues
@@ -45,7 +45,7 @@ namespace employee_management.Persistence.Repository.QueuesRepository
         public async Task<List<Queue>> GetActiveQueuesByDateAsync(DateTime date, CancellationToken cancellationToken)
         {
             // Convert to UTC to avoid DateTime Kind issues with PostgreSQL
-            var targetDate = date.Date.ToUniversalTime();
+            var targetDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
             var nextDate = targetDate.AddDays(1);
             
             return await Context.Queues
@@ -60,7 +60,7 @@ namespace employee_management.Persistence.Repository.QueuesRepository
         public async Task UpdateQueueStatusAsync(Guid employeeId, DateTime date, QueueStatus status, CancellationToken cancellationToken)
         {
             // Convert to UTC to avoid DateTime Kind issues with PostgreSQL
-            var targetDate = date.Date.ToUniversalTime();
+            var targetDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
             
             var queue = await GetByEmployeeIdAndDateAsync(employeeId, date, cancellationToken);
             if (queue != null)
@@ -89,7 +89,7 @@ namespace employee_management.Persistence.Repository.QueuesRepository
         public async Task<Queue> UpdateAvailabilityStatusAsync(Guid employeeId, DateTime date, AvailabilityStatus availabilityStatus, CancellationToken cancellationToken)
         {
             // Convert to UTC to avoid DateTime Kind issues with PostgreSQL
-            var targetDate = date.Date.ToUniversalTime();
+            var targetDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
             
             var queue = await GetByEmployeeIdAndDateAsync(employeeId, date, cancellationToken);
             if (queue != null)
@@ -143,7 +143,7 @@ namespace employee_management.Persistence.Repository.QueuesRepository
         public async Task<Queue?> GetFirstAvailableStaffAsync(DateTime date, CancellationToken cancellationToken)
         {
             // Convert to UTC to avoid DateTime Kind issues with PostgreSQL
-            var targetDate = date.Date.ToUniversalTime();
+            var targetDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
             var nextDate = targetDate.AddDays(1);
             
             return await Context.Queues
@@ -158,7 +158,7 @@ namespace employee_management.Persistence.Repository.QueuesRepository
         public async Task RotateQueueToTailAsync(Guid employeeId, DateTime date, CancellationToken cancellationToken)
         {
             // Convert to UTC to avoid DateTime Kind issues with PostgreSQL
-            var targetDate = date.Date.ToUniversalTime();
+            var targetDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
             var nextDate = targetDate.AddDays(1);
             
             // Get all queues for the date, ordered by position

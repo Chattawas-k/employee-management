@@ -72,6 +72,33 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   });
 
+  // Check if user has Manager access (Manager, Admin, or SuperAdmin role)
+  hasManagerAccess = computed(() => {
+    const user = this.currentUser();
+    if (!user || !user.roles) return false;
+    const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
+    
+    return roles.some((role: string) => {
+      const roleLower = role.toLowerCase();
+      return roleLower === 'manager' || 
+             roleLower === 'admin' || 
+             roleLower === 'superadmin';
+    });
+  });
+
+  // Check if user has Admin access (Admin or SuperAdmin role only)
+  hasAdminAccess = computed(() => {
+    const user = this.currentUser();
+    if (!user || !user.roles) return false;
+    const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
+    
+    return roles.some((role: string) => {
+      const roleLower = role.toLowerCase();
+      return roleLower === 'admin' || 
+             roleLower === 'superadmin';
+    });
+  });
+
   statusInfo = computed(() => {
     switch (this.availabilityStatus()) {
       case 'available':
@@ -131,6 +158,11 @@ export class AppComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // Ensure status menu is closed on initial load
+    this.isStatusMenuOpen.set(false);
+    this.isMobileMenuOpen.set(false);
+    this.isSettingsOpen.set(false);
+    
     this.isAuthenticated.set(this.authService.isAuthenticated());
     this.currentUser.set(this.authService.getCurrentUser());
 
@@ -142,11 +174,22 @@ export class AppComponent implements OnInit, OnDestroy {
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe((event: any) => {
         this.checkRoute(event.url);
+        // Close status menu when navigating to a new route
+        this.isStatusMenuOpen.set(false);
       });
 
     this.authService.currentUser$.subscribe(user => {
       this.currentUser.set(user);
+      const wasAuthenticated = this.isAuthenticated();
       this.isAuthenticated.set(this.authService.isAuthenticated());
+      
+      // If user just logged in (was not authenticated, now is), close all menus
+      if (!wasAuthenticated && this.isAuthenticated()) {
+        this.isStatusMenuOpen.set(false);
+        this.isMobileMenuOpen.set(false);
+        this.isSettingsOpen.set(false);
+      }
+      
       if (user) {
         this.loadEmployeeInfo();
         this.loadMyQueueInfo();
@@ -154,6 +197,10 @@ export class AppComponent implements OnInit, OnDestroy {
       } else {
         this.currentEmployee.set(null);
         this.myQueueInfo.set(null);
+        // Close menus when user logs out
+        this.isStatusMenuOpen.set(false);
+        this.isMobileMenuOpen.set(false);
+        this.isSettingsOpen.set(false);
       }
     });
 
@@ -297,12 +344,18 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private checkRoute(url: string): void {
     this.isLoginPage.set(url.includes('/login'));
+    
+    // Close status menu when navigating (except if it's the login page)
+    if (!url.includes('/login')) {
+      this.isStatusMenuOpen.set(false);
+    }
   }
 
   logout(): void {
     this.authService.logout();
     this.isMobileMenuOpen.set(false);
     this.isSettingsOpen.set(false);
+    this.isStatusMenuOpen.set(false);
   }
 
   getUserInitial(): string {

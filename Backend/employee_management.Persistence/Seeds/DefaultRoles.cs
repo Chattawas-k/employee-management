@@ -15,6 +15,7 @@ namespace employee_management.Persistence.Seeds
             //Seed Roles
             await roleManager.CreateAsync(new Role("SuperAdmin"));
             await roleManager.CreateAsync(new Role("Admin"));
+            await roleManager.CreateAsync(new Role("Manager"));
             await roleManager.CreateAsync(new Role("Basic"));
         }
     }

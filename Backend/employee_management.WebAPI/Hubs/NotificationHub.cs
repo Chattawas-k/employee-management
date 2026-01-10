@@ -31,6 +31,13 @@ namespace employee_management.WebAPI.Hubs
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"Employee_{employeeId}");
             }
 
+            // Auto-join manager room if user has Manager role
+            var roles = GetRolesFromContext();
+            if (roles.Contains("Manager") || roles.Contains("Admin") || roles.Contains("SuperAdmin"))
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, "Managers");
+            }
+
             await base.OnConnectedAsync();
         }
 
@@ -98,6 +105,27 @@ namespace employee_management.WebAPI.Hubs
         public async Task SendToAll(string message)
         {
             await Clients.All.SendAsync("ReceiveNotification", message);
+        }
+
+        /// <summary>
+        /// Manager joins manager room (called from client)
+        /// </summary>
+        public async Task JoinManagerRoom()
+        {
+            var roles = GetRolesFromContext();
+            if (roles.Contains("Manager") || roles.Contains("Admin") || roles.Contains("SuperAdmin"))
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, "Managers");
+                await Clients.Caller.SendAsync("JoinedManagerRoom", "Managers");
+            }
+        }
+
+        /// <summary>
+        /// Manager leaves manager room (called from client)
+        /// </summary>
+        public async Task LeaveManagerRoom()
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Managers");
         }
 
         /// <summary>

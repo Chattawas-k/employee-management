@@ -1,0 +1,111 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div class="px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Staff Overview - ภาพรวมทีมงาน</h1>
+          <p class="text-sm text-gray-500 mt-1">ดูสถานะและผลงานของทีมงาน</p>
+        </div>
+        <button
+          (click)="loadStaff()"
+          [disabled]="isLoading()"
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+          </svg>
+          <span class="text-sm font-medium">รีเฟรช</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <!-- Filter Bar -->
+    <app-filter-bar
+      [config]="{
+        showDateRange: true,
+        showQuickFilters: true,
+        showStatusFilter: true,
+        showChannelFilter: false,
+        showCategoryFilter: false,
+        showStaffFilter: false,
+        showSearch: false
+      }"
+      [statusOptions]="['Available', 'Busy', 'Break', 'Unavailable']"
+      (filterChange)="onFilterChange($event)"
+      (quickFilterSelect)="onQuickFilterSelect($event)">
+    </app-filter-bar>
+
+    <!-- Staff Grid -->
+    @if (isLoading()) {
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        @for (item of [1,2,3,4,5,6]; track item) {
+          <div class="bg-white rounded-xl p-6 shadow-md border border-gray-100 animate-pulse">
+            <div class="h-24 bg-gray-200 rounded-lg"></div>
+          </div>
+        }
+      </div>
+    } @else if (staff().length === 0) {
+      <div class="bg-white rounded-xl p-10 text-center border border-gray-200">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+        </svg>
+        <p class="text-gray-500 text-sm">ไม่มีข้อมูลทีมงาน</p>
+      </div>
+    } @else {
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        @for (staffMember of staff(); track staffMember.id) {
+          <div
+            (click)="onStaffClick(staffMember)"
+            class="bg-white rounded-xl p-6 shadow-md border border-gray-100 hover:shadow-lg cursor-pointer transition-all duration-200">
+            <div class="flex items-start gap-4">
+              <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold text-xl flex-shrink-0">
+                {{ getInitials(staffMember.name) }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-2">
+                  <h3 class="font-semibold text-gray-900 text-lg truncate">{{ staffMember.name }}</h3>
+                  <span class="px-2 py-1 text-xs font-medium rounded border flex-shrink-0 {{ getStatusColor(staffMember.status) }}">
+                    {{ staffMember.status }}
+                  </span>
+                </div>
+                <div class="space-y-2 text-sm">
+                  <div class="flex items-center justify-between">
+                    <span class="text-gray-600">ภาระงาน:</span>
+                    <span class="font-medium text-gray-900">{{ staffMember.activeLoad }} งาน</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-gray-600">วันนี้:</span>
+                    <span class="font-medium text-gray-900">ทำ {{ staffMember.todayHandled }}, ชนะ {{ staffMember.todayWon }}</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Conversion:</span>
+                    <span class="font-medium text-blue-600">{{ staffMember.conversionRate.toFixed(1) }}%</span>
+                  </div>
+                  @if (staffMember.categoryTags && staffMember.categoryTags.length > 0) {
+                    <div class="flex flex-wrap gap-1 mt-2">
+                      @for (tag of staffMember.categoryTags.slice(0, 3); track tag) {
+                        <span class="px-1.5 py-0.5 text-xs rounded bg-blue-50 text-blue-700 border border-blue-200">
+                          {{ tag }}
+                        </span>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </main>
+
+  <!-- Staff Detail Drawer -->
+  <app-staff-detail-drawer
+    [staff]="selectedStaff()"
+    [isOpen]="showStaffDrawer()"
+    (close)="onStaffDrawerClose()">
+  </app-staff-detail-drawer>
+</div>

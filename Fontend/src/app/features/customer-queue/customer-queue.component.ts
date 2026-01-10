@@ -15,6 +15,7 @@ interface ReadyQueueStaff {
   status: string;
   servedToday: number;
   isNext?: boolean;
+  isAvatarLetter?: boolean;
 }
 
 interface BusyStaff {
@@ -25,6 +26,7 @@ interface BusyStaff {
   duration: string;
   startTimeFormatted: string;
   jobId: string;
+  isAvatarLetter?: boolean;
 }
 
 interface UnavailableStaff {
@@ -190,18 +192,19 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     // Assign relative positions for Ready Queue display (1, 2, 3...)
     availableQueues.forEach((queue, index) => {
       const relativePosition = index + 1; // Relative position in Ready Queue
-      const employeeName = queue.employeeName ? `คุณ${queue.employeeName}` : 'ไม่ระบุชื่อ';
-      const avatar = this.generateAvatar(queue.employeeName || '');
+      const employeeName = queue.employeeName || 'ไม่ระบุชื่อ';
+      const initial = queue.employeeName ? queue.employeeName.charAt(0).toUpperCase() : '?';
       const servedToday = this.countServedToday(queue.employeeId);
       const isNext = relativePosition === 1; // First in Ready Queue is "next"
 
       readyQueueList.push({
         queue: relativePosition, // Use relative position, not master position
         name: employeeName,
-        avatar,
+        avatar: initial,
         status: isNext ? 'รับลูกค้าวันนี้' : 'รอรับลูกค้า',
         servedToday,
-        isNext
+        isNext,
+        isAvatarLetter: true
       });
     });
 
@@ -209,8 +212,8 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     const sortedQueues = [...queues].sort((a, b) => a.position - b.position);
 
     sortedQueues.forEach((queue) => {
-      const employeeName = queue.employeeName ? `คุณ${queue.employeeName}` : 'ไม่ระบุชื่อ';
-      const avatar = this.generateAvatar(queue.employeeName || '');
+      const employeeName = queue.employeeName || 'ไม่ระบุชื่อ';
+      const initial = queue.employeeName ? queue.employeeName.charAt(0).toUpperCase() : '?';
       const servedToday = this.countServedToday(queue.employeeId);
 
       const normalizedStatus = typeof queue.status === 'string' ? queue.status.toLowerCase() : String(queue.status || '').toLowerCase();
@@ -226,7 +229,6 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
           ? this.formatStatusChangedTime(queue.updatedDate)
           : undefined;
         
-        const initial = queue.employeeName ? queue.employeeName.charAt(0).toUpperCase() : '?';
         unavailableStaffList.push({
           name: employeeName,
           avatar: initial,
@@ -246,12 +248,13 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
 
         busyStaffList.push({
           name: employeeName,
-          avatar,
+          avatar: initial,
           status: 'ให้บริการอยู่',
           startTime,
           duration: '00:00',
           startTimeFormatted,
-          jobId: jobId ? `#${jobId}` : ''
+          jobId: jobId ? `#${jobId}` : '',
+          isAvatarLetter: true
         });
       }
     });
@@ -262,20 +265,21 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
       const statusStr = this.normalizeStatus(job.status);
       const assigneeIdStr = typeof job.assigneeId === 'string' ? job.assigneeId.toLowerCase() : job.assigneeId;
       if (statusStr === 'inprogress' && !queueEmployeeIds.has(assigneeIdStr)) {
-        const employeeName = job.assigneeName ? `คุณ${job.assigneeName}` : 'ไม่ระบุชื่อ';
-        const avatar = this.generateAvatar(job.assigneeName || '');
+        const employeeName = job.assigneeName || 'ไม่ระบุชื่อ';
+        const initial = job.assigneeName ? job.assigneeName.charAt(0).toUpperCase() : '?';
         const startTime = this.getJobStartTime(job);
         const startTimeFormatted = this.formatStartTime(job);
         const jobId = job.jobNumber || '';
 
         busyStaffList.push({
           name: employeeName,
-          avatar,
+          avatar: initial,
           status: 'ให้บริการอยู่',
           startTime,
           duration: '00:00',
           startTimeFormatted,
-          jobId: jobId ? `#${jobId}` : ''
+          jobId: jobId ? `#${jobId}` : '',
+          isAvatarLetter: true
         });
       }
     });
@@ -299,8 +303,11 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
       const assigneeIdStr = typeof job.assigneeId === 'string' ? job.assigneeId.toLowerCase() : job.assigneeId;
       if (assigneeIdStr !== employeeIdLower) return false;
       const statusStr = this.normalizeStatus(job.status);
-      if (statusStr !== 'done') return false;
-      const doneLog = job.statusLogs?.find(log => this.normalizeStatus(log.status) === 'done');
+      if (statusStr !== 'closedwon' && statusStr !== 'closedlost' && statusStr !== 'cancelled') return false;
+      const doneLog = job.statusLogs?.find(log => {
+        const logStatus = this.normalizeStatus(log.status);
+        return logStatus === 'closedwon' || logStatus === 'closedlost' || logStatus === 'cancelled';
+      });
       if (!doneLog) return false;
       const jobDoneDate = new Date(doneLog.timestamp);
       jobDoneDate.setHours(0, 0, 0, 0);
@@ -321,13 +328,15 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     if (typeof status === 'string') {
       return status.toLowerCase();
     }
-    // Handle enum values: 1=Pending, 2=InProgress, 3=Done, 4=Rejected
+    // Handle enum values: 1=Pending, 2=Assigned, 3=InProgress, 4=ClosedWon, 5=ClosedLost, 6=Cancelled
     if (typeof status === 'number') {
       const statusMap: { [key: number]: string } = {
         1: 'pending',
-        2: 'inprogress',
-        3: 'done',
-        4: 'rejected'
+        2: 'assigned',
+        3: 'inprogress',
+        4: 'closedwon',
+        5: 'closedlost',
+        6: 'cancelled'
       };
       return statusMap[status] || 'pending';
     }
@@ -379,8 +388,11 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     // ลูกค้าที่ดูแลแล้ววันนี้ = count jobs ที่ status = Done ในวันนี้
     const servedToday = jobs.filter(job => {
       const statusStr = this.normalizeStatus(job.status);
-      if (statusStr !== 'done') return false;
-      const doneLog = job.statusLogs?.find(log => this.normalizeStatus(log.status) === 'done');
+      if (statusStr !== 'closedwon' && statusStr !== 'closedlost' && statusStr !== 'cancelled') return false;
+      const doneLog = job.statusLogs?.find(log => {
+        const logStatus = this.normalizeStatus(log.status);
+        return logStatus === 'closedwon' || logStatus === 'closedlost' || logStatus === 'cancelled';
+      });
       if (!doneLog) return false;
       const jobDoneDate = new Date(doneLog.timestamp);
       jobDoneDate.setHours(0, 0, 0, 0);

@@ -1,0 +1,131 @@
+<div class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <!-- Quick Filters -->
+    @if (config.showQuickFilters) {
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-sm font-medium text-gray-700">ช่วงเวลา:</span>
+        <div class="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+          @for (option of config.quickFilterOptions || []; track option) {
+            <button
+              (click)="onQuickFilterSelect(option)"
+              [class.bg-white]="selectedQuickFilter() === option"
+              [class.text-blue-600]="selectedQuickFilter() === option"
+              [class.shadow-sm]="selectedQuickFilter() === option"
+              class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150">
+              @switch (option) {
+                @case ('today') { วันนี้ }
+                @case ('yesterday') { เมื่อวาน }
+                @case ('last7days') { 7 วัน }
+                @case ('last30days') { 30 วัน }
+                @case ('thismonth') { เดือนนี้ }
+                @default { {{ option }} }
+              }
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Date Range -->
+    @if (config.showDateRange) {
+      <div class="flex items-center gap-2">
+        <label class="text-sm font-medium text-gray-700">ตั้งแต่:</label>
+        <input
+          type="date"
+          [value]="dateFrom() ? dateFrom()!.toISOString().split('T')[0] : ''"
+          (change)="onDateFromChange($any($event.target).value)"
+          class="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+        <label class="text-sm font-medium text-gray-700">ถึง:</label>
+        <input
+          type="date"
+          [value]="dateTo() ? dateTo()!.toISOString().split('T')[0] : ''"
+          (change)="onDateToChange($any($event.target).value)"
+          class="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+      </div>
+    }
+
+    <!-- Search -->
+    @if (config.showSearch) {
+      <div class="flex items-center gap-2 flex-1 max-w-md">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          [value]="searchTerm()"
+          (input)="searchTerm.set($any($event.target).value); onSearchChange()"
+          placeholder="ค้นหา..."
+          class="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+      </div>
+    }
+  </div>
+
+  <!-- Additional Filters Row -->
+  <div class="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-gray-200">
+    @if (config.showStatusFilter && statusOptions.length > 0) {
+      <div class="flex items-center gap-2">
+        <label class="text-sm font-medium text-gray-700">สถานะ:</label>
+        <select
+          [value]="selectedStatus()"
+          (change)="selectedStatus.set($any($event.target).value); onFilterChange()"
+          class="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <option value="">ทั้งหมด</option>
+          @for (status of statusOptions; track status) {
+            <option [value]="status">{{ status }}</option>
+          }
+        </select>
+      </div>
+    }
+
+    @if (config.showChannelFilter && channelOptions.length > 0) {
+      <div class="flex items-center gap-2">
+        <label class="text-sm font-medium text-gray-700">ช่องทาง:</label>
+        <select
+          [value]="selectedChannel()"
+          (change)="selectedChannel.set($any($event.target).value); onFilterChange()"
+          class="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <option value="">ทั้งหมด</option>
+          @for (channel of channelOptions; track channel) {
+            <option [value]="channel">{{ channel }}</option>
+          }
+        </select>
+      </div>
+    }
+
+    @if (config.showCategoryFilter && categoryOptions.length > 0) {
+      <div class="flex items-center gap-2">
+        <label class="text-sm font-medium text-gray-700">หมวดหมู่:</label>
+        <select
+          [value]="selectedCategory()"
+          (change)="selectedCategory.set($any($event.target).value); onFilterChange()"
+          class="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <option value="">ทั้งหมด</option>
+          @for (category of categoryOptions; track category) {
+            <option [value]="category">{{ category }}</option>
+          }
+        </select>
+      </div>
+    }
+
+    @if (config.showStaffFilter && staffOptions.length > 0) {
+      <div class="flex items-center gap-2">
+        <label class="text-sm font-medium text-gray-700">ทีมงาน:</label>
+        <select
+          [value]="selectedStaff()"
+          (change)="selectedStaff.set($any($event.target).value); onFilterChange()"
+          class="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <option value="">ทั้งหมด</option>
+          @for (staff of staffOptions; track staff.id) {
+            <option [value]="staff.id">{{ staff.name }}</option>
+          }
+        </select>
+      </div>
+    }
+
+    <button
+      (click)="clearFilters()"
+      class="ml-auto px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+      ล้างตัวกรอง
+    </button>
+  </div>
+</div>

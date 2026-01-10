@@ -99,17 +99,27 @@
            </svg>
            สินค้าที่สนใจ
          </h3>
-         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
-            @for (product of interestedProductsList; track product.controlName) {
-              <label [for]="product.controlName" class="flex items-center cursor-pointer">
-                <input [id]="product.controlName" type="checkbox" [formControlName]="product.controlName" class="h-5 w-5 text-indigo-600 border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 transition-all duration-150">
-                <span class="ml-3 block text-base text-gray-700">{{ product.label }}</span>
-              </label>
-            }
-         </div>
-          @if (salesReportForm.get('interestedProducts')?.hasError('requireAtLeastOne') && (salesReportForm.get('interestedProducts')?.touched || salesReportForm.get('interestedProducts')?.dirty)) {
-            <p class="text-red-600 text-sm mt-2 ml-1">กรุณาเลือกสินค้าที่สนใจอย่างน้อย 1 รายการ</p>
-          }
+         @if (isLoadingCategories()) {
+           <div class="p-4 text-center">
+             <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+             <p class="mt-2 text-sm text-gray-500">กำลังโหลดหมวดหมู่สินค้า...</p>
+           </div>
+         } @else {
+           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
+              @for (product of interestedProductsList(); track product.id) {
+                <label [for]="product.id" class="flex items-center cursor-pointer">
+                  <input [id]="product.id" type="checkbox" [formControlName]="product.id" class="h-5 w-5 text-indigo-600 border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 transition-all duration-150">
+                  <span class="ml-3 block text-base text-gray-700">{{ product.name }}</span>
+                </label>
+              }
+           </div>
+           @if (interestedProductsList().length === 0) {
+             <p class="text-sm text-gray-500 text-center py-4">ไม่มีหมวดหมู่สินค้าในระบบ กรุณาติดต่อผู้ดูแลระบบ</p>
+           }
+           @if (salesReportForm.get('interestedProducts')?.hasError('requireAtLeastOne') && (salesReportForm.get('interestedProducts')?.touched || salesReportForm.get('interestedProducts')?.dirty)) {
+             <p class="text-red-600 text-sm mt-2 ml-1">กรุณาเลือกสินค้าที่สนใจอย่างน้อย 1 รายการ</p>
+           }
+         }
       </div>
 
       <!-- Additional Info -->

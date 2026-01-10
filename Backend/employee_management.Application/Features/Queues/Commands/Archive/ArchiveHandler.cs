@@ -49,12 +49,8 @@ namespace employee_management.Application.Features.Queues.Commands.Archive
                 }
 
                 // Create archived queues for target date
-                // Ensure date is in UTC for PostgreSQL
-                var targetDateUtc = targetDate.Kind == DateTimeKind.Unspecified 
-                    ? DateTime.SpecifyKind(targetDate.Date, DateTimeKind.Utc)
-                    : targetDate.Kind == DateTimeKind.Local 
-                        ? targetDate.Date.ToUniversalTime()
-                        : targetDate.Date;
+                // Ensure date is in UTC for PostgreSQL (use SpecifyKind for consistency)
+                var targetDateUtc = DateTime.SpecifyKind(targetDate.Date, DateTimeKind.Utc);
                 
                 int archivedCount = 0;
                 foreach (var sourceQueue in sourceQueues)

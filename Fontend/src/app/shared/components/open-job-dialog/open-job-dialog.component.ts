@@ -21,7 +21,9 @@ export class OpenJobDialogComponent implements OnInit {
 
   jobForm!: ReturnType<FormBuilder['group']>;
 
-  constructor(private fb: FormBuilder) {
+  constructor(
+    private fb: FormBuilder
+  ) {
     this.jobForm = this.fb.group({
       jobTitle: ['Walk-in Customer', Validators.required],
       customerName: ['ลูกค้าทั่วไป', Validators.required],

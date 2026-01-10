@@ -1,0 +1,123 @@
+@if (isOpen && ticket) {
+  <div class="fixed inset-0 z-50 overflow-hidden">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" (click)="onBackdropClick()"></div>
+    
+    <!-- Drawer -->
+    <div class="absolute right-0 top-0 bottom-0 w-full max-w-2xl bg-white shadow-xl flex flex-col" (click)="$event.stopPropagation()">
+      <!-- Header -->
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <div>
+          <h2 class="text-xl font-semibold text-gray-900">รายละเอียด Ticket</h2>
+          <p class="text-sm text-gray-500 mt-1">{{ ticket.jobNumber }}</p>
+        </div>
+        <button
+          (click)="onClose()"
+          class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-6">
+        <!-- Basic Info -->
+        <section>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">ข้อมูลพื้นฐาน</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-medium text-gray-500">ลูกค้า</label>
+              <p class="mt-1 text-sm text-gray-900">{{ ticket.customer }}</p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-500">ช่องทาง</label>
+              <p class="mt-1 text-sm text-gray-900">{{ ticket.channel }}</p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-500">หมวดหมู่</label>
+              <p class="mt-1 text-sm text-gray-900">{{ ticket.category || '-' }}</p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-500">สถานะ</label>
+              <span class="mt-1 inline-block px-2 py-1 text-xs font-medium rounded-full {{ getStatusColor(ticket.status) }}">
+                {{ ticket.status }}
+              </span>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-500">ความสำคัญ</label>
+              <span class="mt-1 inline-block px-2 py-1 text-xs font-medium rounded-full {{ getPriorityColor(ticket.priority) }}">
+                {{ ticket.priority }}
+              </span>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-500">เวลารอ</label>
+              <p class="mt-1 text-sm text-gray-900">{{ formatDuration(ticket.createdDate) }}</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Assignment Info -->
+        <section>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">การมอบหมาย</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-medium text-gray-500">ทีมงานที่รับผิดชอบ</label>
+              <p class="mt-1 text-sm text-gray-900">{{ ticket.assignedStaffName || 'ยังไม่มอบหมาย' }}</p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-500">วันที่มอบหมาย</label>
+              <p class="mt-1 text-sm text-gray-900">{{ formatDate(ticket.assignedDate) }}</p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-500">วันที่เริ่มงาน</label>
+              <p class="mt-1 text-sm text-gray-900">{{ formatDate(ticket.startedDate) }}</p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-500">วันที่ปิดงาน</label>
+              <p class="mt-1 text-sm text-gray-900">{{ formatDate(ticket.closedDate) }}</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Alerts -->
+        @if (ticket.isSlaAtRisk || ticket.isEscalated) {
+          <section>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">การแจ้งเตือน</h3>
+            <div class="space-y-2">
+              @if (ticket.isSlaAtRisk) {
+                <div class="p-3 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
+                  <p class="text-sm font-medium text-red-800">SLA ใกล้เกินกำหนด</p>
+                </div>
+              }
+              @if (ticket.isEscalated) {
+                <div class="p-3 bg-orange-50 border-l-4 border-orange-500 rounded-r-lg">
+                  <p class="text-sm font-medium text-orange-800">งานนี้ถูก Escalate แล้ว</p>
+                </div>
+              }
+            </div>
+          </section>
+        }
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="p-6 border-t border-gray-200 bg-gray-50 flex items-center justify-end gap-3">
+        <button
+          (click)="onClose()"
+          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+          ปิด
+        </button>
+        <button
+          (click)="escalate.emit({ jobId: ticket.id, reason: 'Escalate from manager view' })"
+          class="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors">
+          Escalate
+        </button>
+        <button
+          (click)="cancel.emit({ jobId: ticket.id, reason: 'Cancelled by manager' })"
+          class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">
+          ยกเลิก
+        </button>
+      </div>
+    </div>
+  </div>
+}

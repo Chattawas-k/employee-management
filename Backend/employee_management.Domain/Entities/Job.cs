@@ -14,6 +14,16 @@ namespace employee_management.Domain.Entities
         public Employee? Employee { get; set; }
         public JobStatus Status { get; set; } = JobStatus.Pending;
         public JobPriority Priority { get; set; } = JobPriority.Normal;
+        public string Channel { get; set; } = string.Empty; // "Phone", "Chat", "Walk-in", "Email", etc.
+        public string Category { get; set; } = string.Empty; // Product/service category (deprecated, use ProductCategoryId)
+        public Guid? ProductCategoryId { get; set; } // Foreign key to ProductCategory
+        public ProductCategory? ProductCategory { get; set; } // Navigation property
+        public DateTime? AssignedDate { get; set; } // When job was assigned
+        public DateTime? StartedDate { get; set; } // When job moved to IN_PROGRESS
+        public DateTime? ClosedDate { get; set; } // When job was closed
+        public DateTime? SlaWaitingBreachAt { get; set; } // Calculated SLA breach time for waiting
+        public DateTime? SlaAssignedBreachAt { get; set; } // Calculated SLA breach time after assignment
+        public bool IsEscalated { get; set; } = false; // Priority escalation flag
         
         // JSON columns
         private string _statusLogsJson = "[]";
