@@ -7,6 +7,7 @@ using employee_management.Application.Features.Employees.Commands.Update;
 using employee_management.Application.Features.Employees.Queries.Get;
 using employee_management.Application.Features.Employees.Queries.Search;
 using employee_management.Application.Features.Employees.Queries.DropdownList;
+using employee_management.Application.Features.Employees.Queries.GetMyWorkStats;
 using employee_management.WebAPI.Controllers.Base;
 using employee_management.Domain.Enums;
 
@@ -24,6 +25,10 @@ namespace employee_management.WebAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<EmployeeGetResponse>> Get(Guid id, CancellationToken cancellationToken)
         {
+            if (id == Guid.Empty)
+            {
+                return BadRequest("Employee ID cannot be empty.");
+            }
             var response = await _mediator.Send(new GetRequest(id), cancellationToken);
             return Ok(response);
         }
@@ -76,12 +81,29 @@ namespace employee_management.WebAPI.Controllers
         public async Task<ActionResult<EmployeeGetResponse>> GetMyEmployeeInfo(CancellationToken cancellationToken)
         {
             var employeeIdClaim = User.FindFirst("EmployeeId")?.Value;
-            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId))
+            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId) || employeeId == Guid.Empty)
             {
-                return BadRequest("EmployeeId not found in token or invalid format.");
+                return BadRequest("EmployeeId not found in token, invalid format, or not linked to this user.");
             }
 
             var response = await _mediator.Send(new GetRequest(employeeId), cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpGet("my-work-stats")]
+        public async Task<ActionResult<GetMyWorkStatsResponse>> GetMyWorkStats(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            CancellationToken cancellationToken)
+        {
+            var employeeIdClaim = User.FindFirst("EmployeeId")?.Value;
+            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId) || employeeId == Guid.Empty)
+            {
+                return BadRequest("EmployeeId not found in token, invalid format, or not linked to this user.");
+            }
+
+            var request = new GetMyWorkStatsRequest(employeeId, startDate, endDate);
+            var response = await _mediator.Send(request, cancellationToken);
             return Ok(response);
         }
     }

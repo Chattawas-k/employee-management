@@ -157,7 +157,7 @@ namespace employee_management.Persistence.Services
             };
 
             // Add EmployeeId to claims if user is linked to an employee
-            if (user.EmployeeId.HasValue)
+            if (user.EmployeeId.HasValue && user.EmployeeId.Value != Guid.Empty)
             {
                 claims.Add(new Claim("EmployeeId", user.EmployeeId.Value.ToString()));
             }

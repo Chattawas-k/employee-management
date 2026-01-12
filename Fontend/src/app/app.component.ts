@@ -157,6 +157,25 @@ export class AppComponent implements OnInit, OnDestroy {
     private signalRService: SignalRService
   ) {}
 
+  // --- Disable zoom (Ctrl/Cmd + wheel / +/- / 0) ---
+  private readonly onWheelBlockZoom = (event: WheelEvent) => {
+    // Ctrl (Windows/Linux) or Cmd (macOS) + wheel triggers browser zoom
+    if (event.ctrlKey || event.metaKey) {
+      event.preventDefault();
+    }
+  };
+
+  private readonly onKeyDownBlockZoom = (event: KeyboardEvent) => {
+    const isZoomModifier = event.ctrlKey || event.metaKey;
+    if (!isZoomModifier) return;
+
+    const key = event.key;
+    // Block: Ctrl/Cmd + (+, -, 0) and common variants
+    if (key === '+' || key === '-' || key === '0' || key === '=' || key === '_' ) {
+      event.preventDefault();
+    }
+  };
+
   ngOnInit(): void {
     // Ensure status menu is closed on initial load
     this.isStatusMenuOpen.set(false);
@@ -211,6 +230,10 @@ export class AppComponent implements OnInit, OnDestroy {
       
       // Status is now stored in database, no need for localStorage
     }
+
+    // Attach non-passive wheel listener so preventDefault works
+    document.addEventListener('wheel', this.onWheelBlockZoom, { passive: false });
+    document.addEventListener('keydown', this.onKeyDownBlockZoom);
   }
 
   private loadEmployeeInfo(): void {
@@ -483,6 +506,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     // Cleanup if needed
+    document.removeEventListener('wheel', this.onWheelBlockZoom as any);
+    document.removeEventListener('keydown', this.onKeyDownBlockZoom as any);
   }
 }
 

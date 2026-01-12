@@ -133,7 +133,12 @@ namespace employee_management.WebAPI.Hubs
         /// </summary>
         private string GetEmployeeIdFromContext()
         {
-            return Context.User?.FindFirst("EmployeeId")?.Value ?? string.Empty;
+            var employeeId = Context.User?.FindFirst("EmployeeId")?.Value ?? string.Empty;
+            if (Guid.TryParse(employeeId, out var parsed) && parsed == Guid.Empty)
+            {
+                return string.Empty;
+            }
+            return employeeId;
         }
 
         /// <summary>

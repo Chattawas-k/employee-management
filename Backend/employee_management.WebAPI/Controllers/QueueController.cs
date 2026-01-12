@@ -36,9 +36,9 @@ namespace employee_management.WebAPI.Controllers
         {
             // Get EmployeeId from JWT token claims
             var employeeIdClaim = User.FindFirst("EmployeeId")?.Value;
-            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId))
+            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId) || employeeId == Guid.Empty)
             {
-                return BadRequest("EmployeeId not found in token or invalid format.");
+                return BadRequest("EmployeeId not found in token, invalid format, or not linked to this user.");
             }
 
             var request = new GetMyQueueInfoRequest(employeeId);
@@ -108,9 +108,9 @@ namespace employee_management.WebAPI.Controllers
         {
             // Get EmployeeId from JWT token claims
             var employeeIdClaim = User.FindFirst("EmployeeId")?.Value;
-            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId))
+            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId) || employeeId == Guid.Empty)
             {
-                return BadRequest("EmployeeId not found in token or invalid format.");
+                return BadRequest("EmployeeId not found in token, invalid format, or not linked to this user.");
             }
 
             // Map string status to AvailabilityStatus enum

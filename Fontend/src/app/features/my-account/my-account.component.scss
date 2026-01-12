@@ -1,0 +1,63 @@
+// My Account Component Styles
+
+// Smooth transitions for all interactive elements
+button {
+  transition: all 0.2s ease-in-out;
+}
+
+// Custom scrollbar for better UX
+:host {
+  display: block;
+  height: 100%;
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bg-white {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+// Custom focus styles
+input:focus {
+  outline: none;
+}
+
+// Disabled button styles
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+// Card hover effects
+.bg-white.rounded-xl {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.bg-white.rounded-xl:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+// Progress bar animation
+.bg-indigo-600.h-2 {
+  transition: width 0.5s ease-in-out;
+}
+
+// Avatar border animation
+img.rounded-full {
+  transition: transform 0.2s ease-in-out;
+}
+
+img.rounded-full:hover {
+  transform: scale(1.05);
+}

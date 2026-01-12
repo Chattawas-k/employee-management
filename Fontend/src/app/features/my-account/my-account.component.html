@@ -1,0 +1,327 @@
+<div class="flex flex-col min-h-screen bg-gray-100">
+  <!-- Header Section -->
+  <header class="bg-white px-4 sm:px-8 pt-4 sm:pt-8">
+    <div class="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center pb-6">
+      <div class="flex items-center gap-4">
+        <h1 class="text-2xl font-medium text-gray-900">บัญชีของฉัน</h1>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="flex-1 p-4 sm:p-6 lg:p-8">
+    <!-- Employee Info Card -->
+    @if (employee(); as emp) {
+      <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+        <div class="flex items-center gap-6">
+          <div class="flex-shrink-0">
+            <img [src]="getAvatarUrl()" alt="Avatar" class="w-20 h-20 rounded-full border-2 border-blue-200">
+          </div>
+          <div class="flex-1">
+            <h2 class="text-xl font-semibold text-gray-900">{{ emp.name }}</h2>
+            <p class="text-gray-600">{{ emp.positionName || 'ไม่ระบุตำแหน่ง' }}</p>
+            <p class="text-gray-500 text-sm">{{ emp.departmentName || 'ไม่ระบุแผนก' }}</p>
+            <div class="mt-2">
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ statusColor() }}">
+                {{ statusDisplayName() }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Work Summary Section -->
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">ภาพรวมงานของฉัน</h2>
+    <div class="bg-white rounded-xl p-6 shadow-sm mb-6">    
+      
+      <!-- Period Selector -->
+      <div class="flex flex-wrap gap-2 mb-6">
+        <button 
+          (click)="selectPeriod('today')"
+          [class]="selectedPeriod() === 'today' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          class="px-2 py-2 rounded-lg text-xs font-medium transition-colors ">
+          วันนี้
+        </button>
+        <button 
+          (click)="selectPeriod('yesterday')"
+          [class]="selectedPeriod() === 'yesterday' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          class="px-2 py-2 rounded-lg text-sm font-medium transition-colors">
+          เมื่อวาน
+        </button>
+        <button 
+          (click)="selectPeriod('last7days')"
+          [class]="selectedPeriod() === 'last7days' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          class="px-2 py-2 rounded-lg text-sm font-medium transition-colors">
+          7 วัน
+        </button>
+        <button 
+          (click)="selectPeriod('last15days')"
+          [class]="selectedPeriod() === 'last15days' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          class="px-2 py-2 rounded-lg text-sm font-medium transition-colors">
+          15 วัน
+        </button>
+        <button 
+          (click)="selectPeriod('thisMonth')"
+          [class]="selectedPeriod() === 'thisMonth' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          class="px-2 py-2 rounded-lg text-sm font-medium transition-colors">
+          เดือนนี้
+        </button>
+        <button 
+          (click)="selectPeriod('custom')"
+          [class]="selectedPeriod() === 'custom' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          class="px-2 py-2 rounded-lg text-sm font-medium transition-colors">
+          กำหนดเอง
+        </button>
+      </div>
+
+      <!-- Custom Date Picker -->
+      @if (showCustomDatePicker()) {
+        <div class="bg-gray-50 rounded-lg p-4 mb-6">
+          <div class="flex flex-col sm:flex-row gap-4">
+            <div class="flex-1">
+              <label class="block text-sm font-medium text-gray-700 mb-2">วันที่เริ่มต้น</label>
+              <input 
+                type="date" 
+                [value]="customStartDate()"
+                (change)="customStartDate.set($any($event.target).value)"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div class="flex-1">
+              <label class="block text-sm font-medium text-gray-700 mb-2">วันที่สิ้นสุด</label>
+              <input 
+                type="date" 
+                [value]="customEndDate()"
+                (change)="customEndDate.set($any($event.target).value)"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div class="flex items-end">
+              <button 
+                (click)="applyCustomDateRange()"
+                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium w-full">
+                ค้นหา
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Loading State -->
+      @if (isLoadingStats()) {
+        <div class="flex justify-center items-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      }
+
+      <!-- Statistics Cards -->
+      @if (!isLoadingStats() && workStats(); as stats) {
+        <div class="grid grid-cols-1 grid-cols-1 xl:grid-cols-4 gap-4">
+          <!-- Total -->
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <div class="text-base font-medium text-gray-700">งานทั้งหมด</div>
+                <div class="flex items-baseline gap-2">
+                  <div class="text-4xl font-semibold text-gray-900">{{ stats.taskStats.total }}</div>
+                  <div class="text-lg font-medium text-gray-600">งาน</div>
+                </div>
+              </div>
+              <div class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center">
+                <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5a2 2 0 002 2h2a2 2 0 002-2"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Success -->
+          <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <div class="text-base font-medium text-gray-700">งานสำเร็จ</div>
+                <div class="flex items-baseline gap-2">
+                  <div class="text-4xl font-semibold text-gray-900">{{ stats.taskStats.completedWon }}</div>
+                  <div class="text-lg font-medium text-gray-600">งาน</div>
+                </div>
+              </div>
+              <div class="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center">
+                <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pending decision -->
+          <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <div class="text-base font-medium text-gray-700">งานรอตัดสินใจ</div>
+                <div class="flex items-baseline gap-2">
+                  <div class="text-4xl font-semibold text-gray-900">{{ stats.taskStats.pending }}</div>
+                  <div class="text-lg font-medium text-gray-600">งาน</div>
+                </div>
+              </div>
+              <div class="w-14 h-14 rounded-2xl bg-yellow-50 flex items-center justify-center">
+                <svg class="w-7 h-7 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Failed -->
+          <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <div class="text-base font-medium text-gray-700">งานไม่สำเร็จ</div>
+                <div class="flex items-baseline gap-2">
+                  <div class="text-4xl font-semibold text-gray-900">{{ stats.taskStats.completedLost }}</div>
+                  <div class="text-lg font-medium text-gray-600">งาน</div>
+                </div>
+              </div>
+              <div class="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center">
+                <svg class="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2 2 2"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+
+    <!-- Status Management Section -->
+    <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">จัดการสถานะ</h2>
+      <p class="text-gray-600 mb-4">เปลี่ยนสถานะความพร้อมในการรับงาน</p>
+      
+      <div class="flex flex-wrap gap-3">
+        <button 
+          (click)="updateStatus('available')"
+          [disabled]="availabilityStatus() === 'available'"
+          class="flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all {{ availabilityStatus() === 'available' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-green-50 hover:text-green-700' }}">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+          </svg>
+          พร้อมรับงาน
+        </button>
+        
+        <button 
+          (click)="updateStatus('busy')"
+          [disabled]="availabilityStatus() === 'busy'"
+          class="flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all {{ availabilityStatus() === 'busy' ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-orange-50 hover:text-orange-700' }}">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+          </svg>
+          กำลังติดลูกค้า
+        </button>
+        
+        <button 
+          (click)="updateStatus('break')"
+          [disabled]="availabilityStatus() === 'break'"
+          class="flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all {{ availabilityStatus() === 'break' ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700' }}">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+          </svg>
+          พักเบรก
+        </button>
+        
+        <button 
+          (click)="updateStatus('unavailable')"
+          [disabled]="availabilityStatus() === 'unavailable'"
+          class="flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all {{ availabilityStatus() === 'unavailable' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path>
+          </svg>
+          ไม่พร้อมรับงาน
+        </button>
+        
+        <button 
+          (click)="updateStatus('notworking')"
+          [disabled]="availabilityStatus() === 'notworking'"
+          class="flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all {{ availabilityStatus() === 'notworking' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-700' }}">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+          </svg>
+          ไม่ได้ทำงาน
+        </button>
+      </div>
+    </div>
+
+    <!-- Password Change Section -->
+    <div class="bg-white rounded-xl p-6 shadow-sm">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-900">เปลี่ยนรหัสผ่าน</h2>
+        <button 
+          (click)="togglePasswordSection()"
+          class="text-blue-600 hover:text-blue-800 font-medium">
+          {{ showPasswordSection() ? 'ซ่อน' : 'แสดง' }}
+        </button>
+      </div>
+
+      @if (showPasswordSection()) {
+        <form [formGroup]="passwordForm" (ngSubmit)="onChangePassword()" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">รหัสผ่านปัจจุบัน</label>
+            <input 
+              type="password" 
+              formControlName="currentPassword"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="กรอกรหัสผ่านปัจจุบัน">
+            @if (getPasswordErrorMessage('currentPassword')) {
+              <p class="mt-1 text-sm text-red-600">{{ getPasswordErrorMessage('currentPassword') }}</p>
+            }
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">รหัสผ่านใหม่</label>
+            <input 
+              type="password" 
+              formControlName="newPassword"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="กรอกรหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)">
+            @if (getPasswordErrorMessage('newPassword')) {
+              <p class="mt-1 text-sm text-red-600">{{ getPasswordErrorMessage('newPassword') }}</p>
+            }
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">ยืนยันรหัสผ่านใหม่</label>
+            <input 
+              type="password" 
+              formControlName="confirmPassword"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="กรอกรหัสผ่านใหม่อีกครั้ง">
+            @if (getPasswordErrorMessage('confirmPassword')) {
+              <p class="mt-1 text-sm text-red-600">{{ getPasswordErrorMessage('confirmPassword') }}</p>
+            }
+          </div>
+
+          <div class="flex gap-3 pt-2">
+            <button 
+              type="submit"
+              [disabled]="isLoadingPassword()"
+              class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+              @if (isLoadingPassword()) {
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              }
+              <span>เปลี่ยนรหัสผ่าน</span>
+            </button>
+            <button 
+              type="button"
+              (click)="togglePasswordSection()"
+              class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">
+              ยกเลิก
+            </button>
+          </div>
+        </form>
+      }
+    </div>
+  </div>
+</div>

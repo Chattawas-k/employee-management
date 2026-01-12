@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using employee_management.Application.Features.Auth.LoginFeatures.AzureAd;
 using employee_management.Application.Features.Auth.LoginFeatures.Login;
 using employee_management.Application.Features.Auth.RefreshTokenFeatures.RefreshToken;
+using employee_management.Application.Features.Auth.Commands.ChangePassword;
 using employee_management.Application.Features.Users.Add;
 
 namespace employee_management.WebAPI.Controllers
@@ -57,6 +58,23 @@ namespace employee_management.WebAPI.Controllers
             var response = await _mediator.Send(request);
             if (response == null)
                 return Unauthorized();
+            return Ok(response);
+        }
+
+        [HttpPost("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            request.UserId = userId;
+            var response = await _mediator.Send(request);
+            
+            if (!response.Success)
+                return BadRequest(response);
+                
             return Ok(response);
         }
     }

@@ -29,9 +29,9 @@ namespace employee_management.WebAPI.Controllers
         {
             // Get EmployeeId from JWT token claims
             var employeeIdClaim = User.FindFirst("EmployeeId")?.Value;
-            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId))
+            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId) || employeeId == Guid.Empty)
             {
-                return BadRequest("EmployeeId not found in token or invalid format.");
+                return BadRequest("EmployeeId not found in token, invalid format, or not linked to this user.");
             }
 
             var response = await _mediator.Send(new GetMyTasksRequest(employeeId), cancellationToken);
@@ -91,9 +91,9 @@ namespace employee_management.WebAPI.Controllers
             // Get EmployeeId from JWT token claims
             // This is the employee who is assigned to the job, not the creator
             var employeeIdClaim = User.FindFirst("EmployeeId")?.Value;
-            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId))
+            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId) || employeeId == Guid.Empty)
             {
-                return BadRequest("EmployeeId not found in token or invalid format.");
+                return BadRequest("EmployeeId not found in token, invalid format, or not linked to this user.");
             }
 
             var response = await _mediator.Send(new GetSalesReportsRequest(employeeId, status), cancellationToken);

@@ -7,7 +7,7 @@ namespace employee_management.WebAPI.Extensions
         public static void ConfigureCorsPolicy(this IServiceCollection services, IConfiguration configuration)
         {
             var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
-                ?? new[] { "http://localhost:4200", "https://localhost:4200" };
+                ?? new[] { "http://localhost:4200", "https://localhost:4200","http://192.168.1.119:4200" };
 
             services.AddCors(opt =>
             {
