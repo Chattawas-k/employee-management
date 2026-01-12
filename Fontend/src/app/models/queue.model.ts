@@ -6,7 +6,8 @@ export interface QueueDto {
   departmentName?: string;
   position: number;
   status: 'active' | 'inactive' | 'busy' | 'Active' | 'Inactive' | 'Busy';
-  availabilityStatus: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking' | 'Available' | 'Busy' | 'Break' | 'Unavailable' | 'NotWorking';
+  // Backend returns enum as string (camelCase). Keep this as string and normalize in UI.
+  availabilityStatus: string;
   queueDate: string;
   updatedDate?: string;
 }
@@ -40,20 +41,21 @@ export interface QueueSummaryResponse {
 export enum AvailabilityStatus {
   Available = 1,
   Busy = 2,
-  Break = 3,
+  LunchBreak = 3,
   Unavailable = 4,
-  NotWorking = 5
+  Leave = 5,
+  OffsiteCustomer = 6
 }
 
 export interface UpdateMyQueueStatusRequest {
-  status: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking';
+  status: string;
 }
 
 export interface UpdateMyQueueStatusResponse {
   id: string;
   employeeId: string;
   position: number;
-  availabilityStatus: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking' | 'Available' | 'Busy' | 'Break' | 'Unavailable' | 'NotWorking';
+  availabilityStatus: string;
   status: 'Active' | 'Busy' | 'Inactive';
   updatedDate?: string;
 }
@@ -94,11 +96,11 @@ export interface MyQueueInfoResponse {
   } | null;
   isInQueue: boolean;
   queueStatus: string; // "Active", "Busy", "Inactive" (for backward compatibility)
-  availabilityStatus: string; // "Available", "Busy", "Break", "Unavailable", "NotWorking"
+  availabilityStatus: string; // e.g. "available", "busy", "lunchBreak", "unavailable", "leave", "offsiteCustomer"
 }
 
 export interface MigrateInactiveStatusRequest {
-  targetStatus: 'Break' | 'Unavailable';
+  targetStatus: 'LunchBreak' | 'Unavailable' | 'Break'; // allow legacy Break
 }
 
 export interface MigrateInactiveStatusResponse {

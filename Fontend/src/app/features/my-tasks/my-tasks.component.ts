@@ -16,8 +16,7 @@ import { getEmployeeIdFromToken } from '../../utils/jwt.util';
 import { catchError, finalize, switchMap, map } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { ToastService } from '../../services/toast.service';
-
-export type AvailabilityStatus = 'available' | 'busy' | 'break' | 'unavailable' | 'notworking';
+import { AvailabilityStatusKey, normalizeAvailabilityStatus } from '../../shared/utils/availability-status.util';
 
 @Component({
   selector: 'app-my-tasks',
@@ -36,7 +35,7 @@ export type AvailabilityStatus = 'available' | 'busy' | 'break' | 'unavailable' 
   ]
 })
 export class MyTasksComponent implements OnInit, OnDestroy {
-  availabilityStatus = signal<AvailabilityStatus>('available');
+  availabilityStatus = signal<AvailabilityStatusKey>('available');
   
   constructor(
     private taskService: TaskService,
@@ -69,10 +68,10 @@ export class MyTasksComponent implements OnInit, OnDestroy {
   completedTasks = signal<Task[]>([]);
 
   isAvailable = computed(() => this.availabilityStatus() === 'available');
-  // Show receive customer button only when status is 'break', 'unavailable', or 'notworking'
+  // Show receive customer button only when employee is NOT ready to receive a new job
   canReceiveCustomer = computed(() => {
     const status = this.availabilityStatus();
-    return status === 'break' || status === 'unavailable' || status === 'notworking';
+    return status === 'lunchBreak' || status === 'unavailable' || status === 'leave' || status === 'offsiteCustomer';
   });
 
   async ngOnInit(): Promise<void> {
@@ -154,39 +153,24 @@ export class MyTasksComponent implements OnInit, OnDestroy {
         this.myQueuePosition.set(queueInfo.myQueuePosition);
         this.isMyTurn.set(queueInfo.queuesRemaining === 0);
         
-        // Update availability status from queue info
-        // Use AvailabilityStatus from API (stored in database)
-        const availabilityStatusLower = queueInfo.availabilityStatus?.toLowerCase() || '';
+        // Update availability status from queue info (stored in database)
         const currentStatus = this.availabilityStatus();
-        
-        if (availabilityStatusLower === 'busy') {
-          // AvailabilityStatus is Busy → set to busy
-          this.availabilityStatus.set('busy');
-        } else if (availabilityStatusLower === 'break') {
-          // AvailabilityStatus is Break → set to break
-          this.availabilityStatus.set('break');
-        } else if (availabilityStatusLower === 'unavailable') {
-          // AvailabilityStatus is Unavailable → set to unavailable
-          this.availabilityStatus.set('unavailable');
-        } else if (availabilityStatusLower === 'notworking') {
-          // AvailabilityStatus is NotWorking → set to notworking
-          this.availabilityStatus.set('notworking');
-        } else if (availabilityStatusLower === 'notworking') {
-          // AvailabilityStatus is NotWorking → set to notworking
-          this.availabilityStatus.set('notworking');
-        } else if (availabilityStatusLower === 'available') {
-          // AvailabilityStatus is Available → check if should be available or busy
-          // If manually set to break/unavailable/notworking, keep it (but this shouldn't happen if status is Available)
-          if (currentStatus === 'break' || currentStatus === 'unavailable' || currentStatus === 'notworking') {
-            // Keep manual status - don't change it
-            // But this is unlikely since backend status is Available
+        const manualStatuses: AvailabilityStatusKey[] = ['lunchBreak', 'unavailable', 'leave', 'offsiteCustomer'];
+        const inProgressCount = this.inProgressTasks().length;
+
+        const rawApiStatus = (queueInfo.availabilityStatus ?? '').trim();
+        if (rawApiStatus) {
+          const apiStatus = normalizeAvailabilityStatus(rawApiStatus);
+
+          // Respect manual statuses from API always
+          if (manualStatuses.includes(apiStatus)) {
+            this.availabilityStatus.set(apiStatus);
+          } else if (apiStatus === 'busy') {
+            this.availabilityStatus.set('busy');
           } else {
-            // Check if there are in-progress tasks (sync with app.component.ts logic)
-            // Use inProgressTasks signal which is updated by mapTasksFromApi()
-            if (this.inProgressTasks().length > 0) {
-              this.availabilityStatus.set('busy');
-            } else {
-              this.availabilityStatus.set('available');
+            // apiStatus === 'available'
+            if (!manualStatuses.includes(currentStatus)) {
+              this.availabilityStatus.set(inProgressCount > 0 ? 'busy' : 'available');
             }
           }
         } else {
@@ -195,11 +179,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
           if (queueStatusLower === 'busy') {
             this.availabilityStatus.set('busy');
           } else if (queueStatusLower === 'active') {
-            if (this.inProgressTasks().length > 0) {
-              this.availabilityStatus.set('busy');
-            } else {
-              this.availabilityStatus.set('available');
-            }
+            this.availabilityStatus.set(inProgressCount > 0 ? 'busy' : 'available');
           } else {
             this.availabilityStatus.set('unavailable');
           }
@@ -278,12 +258,12 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     this.completedTasks.set(completed);
 
     // Update availability status based on InProgress tasks
-    // Only update if status is 'available' or 'busy' (don't override 'break' or 'unavailable')
+    // Only update if status is 'available' or 'busy' (don't override manual statuses)
     // This should sync with queue status from loadQueueInfo()
     const currentStatus = this.availabilityStatus();
     
-    // Don't override manual status (break/unavailable/notworking)
-    if (currentStatus === 'break' || currentStatus === 'unavailable' || currentStatus === 'notworking') {
+    // Don't override manual status
+    if (currentStatus === 'lunchBreak' || currentStatus === 'unavailable' || currentStatus === 'leave' || currentStatus === 'offsiteCustomer') {
       return; // Don't update status based on tasks
     }
     

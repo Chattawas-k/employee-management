@@ -101,9 +101,10 @@ namespace employee_management.Persistence.Repository.QueuesRepository
                 {
                     AvailabilityStatus.Available => QueueStatus.Active,
                     AvailabilityStatus.Busy => QueueStatus.Busy,
-                    AvailabilityStatus.Break => QueueStatus.Inactive,
+                    AvailabilityStatus.LunchBreak => QueueStatus.Inactive,
                     AvailabilityStatus.Unavailable => QueueStatus.Inactive,
-                    AvailabilityStatus.NotWorking => QueueStatus.Inactive,
+                    AvailabilityStatus.Leave => QueueStatus.Inactive,
+                    AvailabilityStatus.OffsiteCustomer => QueueStatus.Inactive,
                     _ => QueueStatus.Active
                 };
                 queue.Status = queueStatus;
@@ -121,9 +122,10 @@ namespace employee_management.Persistence.Repository.QueuesRepository
                 {
                     AvailabilityStatus.Available => QueueStatus.Active,
                     AvailabilityStatus.Busy => QueueStatus.Busy,
-                    AvailabilityStatus.Break => QueueStatus.Inactive,
+                    AvailabilityStatus.LunchBreak => QueueStatus.Inactive,
                     AvailabilityStatus.Unavailable => QueueStatus.Inactive,
-                    AvailabilityStatus.NotWorking => QueueStatus.Inactive,
+                    AvailabilityStatus.Leave => QueueStatus.Inactive,
+                    AvailabilityStatus.OffsiteCustomer => QueueStatus.Inactive,
                     _ => QueueStatus.Active
                 };
 

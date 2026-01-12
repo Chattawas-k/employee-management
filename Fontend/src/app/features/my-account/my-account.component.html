@@ -187,17 +187,17 @@
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
           </svg>
-          กำลังติดลูกค้า
+          ติดลูกค้า
         </button>
         
         <button 
-          (click)="updateStatus('break')"
-          [disabled]="availabilityStatus() === 'break'"
-          class="flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all {{ availabilityStatus() === 'break' ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700' }}">
+          (click)="updateStatus('lunchBreak')"
+          [disabled]="availabilityStatus() === 'lunchBreak'"
+          class="flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all {{ availabilityStatus() === 'lunchBreak' ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700' }}">
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
           </svg>
-          พักเบรก
+          พักเที่ยง
         </button>
         
         <button 
@@ -211,13 +211,23 @@
         </button>
         
         <button 
-          (click)="updateStatus('notworking')"
-          [disabled]="availabilityStatus() === 'notworking'"
-          class="flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all {{ availabilityStatus() === 'notworking' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-700' }}">
+          (click)="updateStatus('leave')"
+          [disabled]="availabilityStatus() === 'leave'"
+          class="flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all {{ availabilityStatus() === 'leave' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-700' }}">
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
           </svg>
-          ไม่ได้ทำงาน
+          ลา
+        </button>
+
+        <button 
+          (click)="updateStatus('offsiteCustomer')"
+          [disabled]="availabilityStatus() === 'offsiteCustomer'"
+          class="flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all {{ availabilityStatus() === 'offsiteCustomer' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-700' }}">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M5 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V7.414A2 2 0 0016.414 6L14 3.586A2 2 0 0012.586 3H5zm3 4a1 1 0 000 2h4a1 1 0 100-2H8zm0 4a1 1 0 000 2h4a1 1 0 100-2H8z" clip-rule="evenodd"></path>
+          </svg>
+          พบลูกค้านอกสถานที่
         </button>
       </div>
     </div>

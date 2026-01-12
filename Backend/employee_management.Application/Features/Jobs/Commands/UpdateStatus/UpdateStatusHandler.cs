@@ -162,12 +162,13 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                     return; // No queue entry exists, skip update
                 }
 
-                // Don't override manual status (break/unavailable/notworking)
-                // If AvailabilityStatus is Break, Unavailable, or NotWorking, it means employee manually set it
+                // Don't override manual status (lunchBreak/unavailable/leave/offsiteCustomer)
+                // If AvailabilityStatus is LunchBreak, Unavailable, Leave, or OffsiteCustomer, it means employee manually set it
                 // We should respect this manual setting and not override it automatically
-                if (queue.AvailabilityStatus == AvailabilityStatus.Break || 
+                if (queue.AvailabilityStatus == AvailabilityStatus.LunchBreak || 
                     queue.AvailabilityStatus == AvailabilityStatus.Unavailable || 
-                    queue.AvailabilityStatus == AvailabilityStatus.NotWorking)
+                    queue.AvailabilityStatus == AvailabilityStatus.Leave ||
+                    queue.AvailabilityStatus == AvailabilityStatus.OffsiteCustomer)
                 {
                     _logger.LogInformation(
                         "AvailabilityStatus is {Status} (manual) for employee {EmployeeId}, skipping automatic status update for job {JobId}",

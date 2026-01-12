@@ -26,9 +26,9 @@ namespace employee_management.Application.Features.Queues.Commands.MigrateInacti
         {
             try
             {
-                if (request.TargetStatus != AvailabilityStatus.Break && request.TargetStatus != AvailabilityStatus.Unavailable)
+                if (request.TargetStatus != AvailabilityStatus.LunchBreak && request.TargetStatus != AvailabilityStatus.Unavailable)
                 {
-                    throw new ArgumentException("Target status must be Break or Unavailable", nameof(request.TargetStatus));
+                    throw new ArgumentException("Target status must be LunchBreak or Unavailable", nameof(request.TargetStatus));
                 }
 
                 var today = DateTime.UtcNow.Date;

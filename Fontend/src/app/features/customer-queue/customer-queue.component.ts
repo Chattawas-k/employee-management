@@ -13,6 +13,7 @@ import { JobPriority, JobStatus } from '../../models/task.model';
 import { getEmployeeIdFromToken } from '../../utils/jwt.util';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize, switchMap, map } from 'rxjs/operators';
+import { AvailabilityStatusKey, getAvailabilityStatusLabel, normalizeAvailabilityStatus } from '../../shared/utils/availability-status.util';
 
 interface ReadyQueueStaff {
   queue: number;
@@ -38,7 +39,7 @@ interface BusyStaff {
 interface UnavailableStaff {
   name: string;
   avatar: string;
-  status: 'พัก' | 'ไม่พร้อมรับงาน' | 'ไม่ได้ทำงาน';
+  status: 'พักเที่ยง' | 'ไม่พร้อมรับงาน' | 'ลา' | 'พบลูกค้านอกสถานที่';
   statusClass: string; // CSS classes for status badge
   isAvatarLetter?: boolean;
   statusChangedTime?: string; // Formatted time when status was changed
@@ -69,7 +70,7 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
   allJobs: QueueSummaryJobDto[] = [];
 
   isMyTurn = signal(false);
-  availabilityStatus = signal<'available' | 'busy' | 'break' | 'unavailable' | 'notworking'>('available');
+  availabilityStatus = signal<AvailabilityStatusKey>('available');
   showOpenJobDialog = signal(false);
 
   constructor(
@@ -112,7 +113,32 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
 
   readyQueue = signal<ReadyQueueStaff[]>([]);
   busyStaff = signal<BusyStaff[]>([]);
+  lunchBreakStaff = signal<UnavailableStaff[]>([]);
   unavailableStaff = signal<UnavailableStaff[]>([]);
+  leaveStaff = signal<UnavailableStaff[]>([]);
+  offsiteCustomerStaff = signal<UnavailableStaff[]>([]);
+
+  // Collapsible panels (default: collapsed)
+  isLunchBreakCollapsed = signal(true);
+  isUnavailableCollapsed = signal(true);
+  isLeaveCollapsed = signal(true);
+  isOffsiteCollapsed = signal(true);
+
+  toggleLunchBreak(): void {
+    this.isLunchBreakCollapsed.update(v => !v);
+  }
+
+  toggleUnavailable(): void {
+    this.isUnavailableCollapsed.update(v => !v);
+  }
+
+  toggleLeave(): void {
+    this.isLeaveCollapsed.update(v => !v);
+  }
+
+  toggleOffsite(): void {
+    this.isOffsiteCollapsed.update(v => !v);
+  }
 
   ngOnInit(): void {
     this.loadQueueData();
@@ -278,7 +304,10 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
   private mapQueueData(queues: QueueDto[]): void {
     const readyQueueList: ReadyQueueStaff[] = [];
     const busyStaffList: BusyStaff[] = [];
+    const lunchBreakStaffList: UnavailableStaff[] = [];
     const unavailableStaffList: UnavailableStaff[] = [];
+    const leaveStaffList: UnavailableStaff[] = [];
+    const offsiteCustomerStaffList: UnavailableStaff[] = [];
 
     // Filter and sort Available staff by master position
     const availableQueues = queues
@@ -318,30 +347,52 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
       const servedToday = this.countServedToday(queue.employeeId);
 
       const normalizedStatus = typeof queue.status === 'string' ? queue.status.toLowerCase() : String(queue.status || '').toLowerCase();
-      const availabilityStatus = queue.availabilityStatus?.toLowerCase() || '';
+      const availabilityKey = normalizeAvailabilityStatus(queue.availabilityStatus);
 
-      // Check availabilityStatus first for break/unavailable, regardless of queue status
-      if (availabilityStatus === 'break' || availabilityStatus === 'unavailable') {
-        let statusText: 'พัก' | 'ไม่พร้อมรับงาน' = availabilityStatus === 'break' ? 'พัก' : 'ไม่พร้อมรับงาน';
-        let statusClass = availabilityStatus === 'break' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 ';
+      // Show non-available statuses in their own panels (lunchBreak / unavailable / leave / offsiteCustomer)
+      if (availabilityKey !== 'available' && availabilityKey !== 'busy') {
+        const statusText = getAvailabilityStatusLabel(availabilityKey) as UnavailableStaff['status'];
+        const statusClass = availabilityKey === 'lunchBreak'
+          ? 'bg-yellow-100 text-yellow-800'
+          : availabilityKey === 'unavailable'
+            ? 'bg-gray-100 '
+            : availabilityKey === 'leave'
+              ? 'bg-red-100 text-red-800'
+              : 'bg-blue-100 text-blue-800';
         
         // Format the status changed time
         const statusChangedTime = queue.updatedDate 
           ? this.formatStatusChangedTime(queue.updatedDate)
           : undefined;
-        
-        unavailableStaffList.push({
+
+        const staffItem: UnavailableStaff = {
           name: employeeName,
           avatar: initial,
           status: statusText,
           statusClass: statusClass,
           isAvatarLetter: true,
           statusChangedTime: statusChangedTime
-        });
+        };
+
+        switch (availabilityKey) {
+          case 'lunchBreak':
+            lunchBreakStaffList.push(staffItem);
+            break;
+          case 'unavailable':
+            unavailableStaffList.push(staffItem);
+            break;
+          case 'leave':
+            leaveStaffList.push(staffItem);
+            break;
+          case 'offsiteCustomer':
+            offsiteCustomerStaffList.push(staffItem);
+            break;
+        }
+
         return; // Skip further processing for this queue
       }
 
-      if (normalizedStatus === 'busy' || availabilityStatus === 'busy') {
+      if (normalizedStatus === 'busy' || availabilityKey === 'busy') {
         const job = this.findActiveJobForEmployee(queue.employeeId);
         const startTime = job ? this.getJobStartTime(job) : Date.now();
         const startTimeFormatted = job ? this.formatStartTime(job) : '';
@@ -387,7 +438,10 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
 
     this.readyQueue.set(readyQueueList);
     this.busyStaff.set(busyStaffList);
+    this.lunchBreakStaff.set(lunchBreakStaffList);
     this.unavailableStaff.set(unavailableStaffList);
+    this.leaveStaff.set(leaveStaffList);
+    this.offsiteCustomerStaff.set(offsiteCustomerStaffList);
   }
 
   private generateAvatar(name: string): string {

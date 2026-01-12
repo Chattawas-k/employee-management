@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AvailabilityStatusKey, normalizeAvailabilityStatus } from '../../utils/availability-status.util';
 
 export type CalloutVariant = 'success' | 'info' | 'warning' | 'danger' | 'neutral';
 export type CalloutIcon = 'bell' | 'user-plus' | 'ban' | 'pause' | 'info' | 'check';
 export type CalloutPreset = 'manual' | 'queue';
-export type AvailabilityStatus = 'available' | 'busy' | 'break' | 'unavailable' | 'notworking';
 
 @Component({
   selector: 'app-callout-card',
@@ -30,7 +30,7 @@ export class CalloutCardComponent {
   @Input() actionButtonClass: string = 'bg-green-600 hover:bg-green-700 text-white';
 
   // Queue preset inputs
-  @Input() availabilityStatus: AvailabilityStatus | null = null;
+  @Input() availabilityStatus: string | null = null;
   @Input() isMyTurn: boolean | null = null;
   @Input() queueActionLabel: string = 'รับลูกค้า';
   @Input() queueActionIcon: CalloutIcon = 'user-plus';
@@ -123,7 +123,7 @@ export class CalloutCardComponent {
   }
 
   private get queueConfig(): { title: string; subtitle: string; variant: CalloutVariant; icon: CalloutIcon; showAction: boolean } | null {
-    const status = (this.availabilityStatus ?? 'available') as AvailabilityStatus;
+    const status: AvailabilityStatusKey = normalizeAvailabilityStatus(this.availabilityStatus ?? 'available');
     const myTurn = !!this.isMyTurn;
 
     // If not available => show status banner
@@ -137,10 +137,10 @@ export class CalloutCardComponent {
             icon: 'info',
             showAction: false,
           };
-        case 'break':
+        case 'lunchBreak':
           return {
-            title: 'คุณกำลังพัก',
-            subtitle: 'คุณจะไม่ได้รับคิวใหม่ระหว่างพัก',
+            title: 'คุณกำลังพักเที่ยง',
+            subtitle: 'คุณจะไม่ได้รับคิวใหม่ระหว่างพักเที่ยง',
             variant: 'warning',
             icon: 'pause',
             showAction: false,
@@ -153,12 +153,20 @@ export class CalloutCardComponent {
             icon: 'ban',
             showAction: false,
           };
-        case 'notworking':
+        case 'leave':
           return {
-            title: 'คุณตั้งสถานะเป็น "ไม่ได้ทำงาน"',
+            title: 'คุณตั้งสถานะเป็น "ลา"',
             subtitle: 'คุณจะไม่ได้รับคิวใหม่จนกว่าจะเปลี่ยนสถานะกลับมาเป็น "พร้อมรับงาน"',
             variant: 'danger',
             icon: 'ban',
+            showAction: false,
+          };
+        case 'offsiteCustomer':
+          return {
+            title: 'คุณตั้งสถานะเป็น "พบลูกค้านอกสถานที่"',
+            subtitle: 'คุณจะไม่ได้รับคิวใหม่จนกว่าจะเปลี่ยนสถานะกลับมาเป็น "พร้อมรับงาน"',
+            variant: 'info',
+            icon: 'info',
             showAction: false,
           };
         default:

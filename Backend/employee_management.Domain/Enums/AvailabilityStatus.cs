@@ -4,9 +4,10 @@ namespace employee_management.Domain.Enums
     {
         Available = 1,
         Busy = 2,
-        Break = 3,
+        LunchBreak = 3, // พักเที่ยง (เดิมคือ Break/พัก)
         Unavailable = 4,
-        NotWorking = 5  // ไม่ได้ทำงาน
+        Leave = 5,      // ลา (เดิมคือ NotWorking/ไม่ได้ทำงาน)
+        OffsiteCustomer = 6 // พบลูกค้านอกสถานที่
     }
 }
 

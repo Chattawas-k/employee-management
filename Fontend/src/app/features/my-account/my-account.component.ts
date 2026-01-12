@@ -13,6 +13,7 @@ import { MyQueueInfoResponse } from '../../models/queue.model';
 import { JobDto, JobPriority, JobStatus } from '../../models/task.model';
 import { catchError, finalize } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { AvailabilityStatusKey, getAvailabilityStatusBadgeClass, getAvailabilityStatusLabel, normalizeAvailabilityStatus } from '../../shared/utils/availability-status.util';
 
 @Component({
   selector: 'app-my-account',
@@ -52,33 +53,16 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   // Computed values
   availabilityStatus = computed(() => {
     const info = this.queueInfo();
-    if (!info || !info.isInQueue) return 'notworking';
-    const status = info.availabilityStatus?.toLowerCase() || 'available';
-    return status as 'available' | 'busy' | 'break' | 'unavailable' | 'notworking';
+    if (!info || !info.isInQueue) return 'leave' as AvailabilityStatusKey;
+    return normalizeAvailabilityStatus(info.availabilityStatus);
   });
 
   statusDisplayName = computed(() => {
-    const status = this.availabilityStatus();
-    switch (status) {
-      case 'available': return 'พร้อมรับงาน';
-      case 'busy': return 'กำลังติดลูกค้า';
-      case 'break': return 'พักเบรก';
-      case 'unavailable': return 'ไม่พร้อมรับงาน';
-      case 'notworking': return 'ไม่ได้ทำงาน';
-      default: return 'ไม่ทราบสถานะ';
-    }
+    return getAvailabilityStatusLabel(this.availabilityStatus());
   });
 
   statusColor = computed(() => {
-    const status = this.availabilityStatus();
-    switch (status) {
-      case 'available': return 'bg-green-100 text-green-800 border-green-200';
-      case 'busy': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'break': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'unavailable': return 'bg-gray-100  border-gray-200';
-      case 'notworking': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100  border-gray-200';
-    }
+    return getAvailabilityStatusBadgeClass(this.availabilityStatus());
   });
 
   recentJobs = computed(() => {
@@ -244,7 +228,7 @@ export class MyAccountComponent implements OnInit, OnDestroy {
     }
   }
 
-  updateStatus(status: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking'): void {
+  updateStatus(status: AvailabilityStatusKey): void {
     this.queueService.updateMyQueueStatus(status).pipe(
       catchError(error => {
         console.error('Error updating status:', error);

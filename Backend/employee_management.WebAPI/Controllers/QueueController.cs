@@ -118,10 +118,22 @@ namespace employee_management.WebAPI.Controllers
             {
                 "available" => AvailabilityStatus.Available,
                 "busy" => AvailabilityStatus.Busy,
-                "break" => AvailabilityStatus.Break,
+                // LunchBreak (legacy: break)
+                "lunchbreak" => AvailabilityStatus.LunchBreak,
+                "lunch" => AvailabilityStatus.LunchBreak,
+                "break" => AvailabilityStatus.LunchBreak,
+                "พัก" => AvailabilityStatus.LunchBreak,
+                "พักเที่ยง" => AvailabilityStatus.LunchBreak,
                 "unavailable" => AvailabilityStatus.Unavailable,
-                "notworking" => AvailabilityStatus.NotWorking,
-                "ไม่ได้ทำงาน" => AvailabilityStatus.NotWorking,
+                // Leave (legacy: notworking)
+                "leave" => AvailabilityStatus.Leave,
+                "notworking" => AvailabilityStatus.Leave,
+                "ลา" => AvailabilityStatus.Leave,
+                "ไม่ได้ทำงาน" => AvailabilityStatus.Leave,
+                // Offsite customer
+                "offsitecustomer" => AvailabilityStatus.OffsiteCustomer,
+                "offsite" => AvailabilityStatus.OffsiteCustomer,
+                "พบลูกค้านอกสถานที่" => AvailabilityStatus.OffsiteCustomer,
                 _ => throw new ArgumentException($"Invalid status: {request.Status}")
             };
 
@@ -139,9 +151,12 @@ namespace employee_management.WebAPI.Controllers
             // Map string status to AvailabilityStatus enum
             AvailabilityStatus targetStatus = request.TargetStatus.ToLower() switch
             {
-                "break" => AvailabilityStatus.Break,
+                // Allow migrating to LunchBreak (legacy: break)
+                "lunchbreak" => AvailabilityStatus.LunchBreak,
+                "lunch" => AvailabilityStatus.LunchBreak,
+                "break" => AvailabilityStatus.LunchBreak,
                 "unavailable" => AvailabilityStatus.Unavailable,
-                _ => throw new ArgumentException($"Invalid target status: {request.TargetStatus}. Must be 'break' or 'unavailable'")
+                _ => throw new ArgumentException($"Invalid target status: {request.TargetStatus}. Must be 'lunchBreak' (or legacy 'break') or 'unavailable'")
             };
 
             var migrateRequest = new MigrateInactiveStatusRequest(targetStatus);

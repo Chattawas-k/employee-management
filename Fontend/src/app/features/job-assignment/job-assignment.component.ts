@@ -16,6 +16,7 @@ import { EmployeeDropdownDto } from '../../models/employee.model';
 import { QueueDto } from '../../models/queue.model';
 import { QueueSummaryResponse } from '../../models/queue.model';
 import { getEmployeeIdFromToken } from '../../utils/jwt.util';
+import { AvailabilityStatusKey, normalizeAvailabilityStatus } from '../../shared/utils/availability-status.util';
 
 @Component({
   selector: 'app-job-assignment',
@@ -30,7 +31,7 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
   
   searchTerm = signal('');
   isLoading = signal(false);
-  activeTab = signal<'all' | 'available' | 'busy' | 'break' | 'unavailable' | 'notworking'>('all');
+  activeTab = signal<'all' | AvailabilityStatusKey>('all');
 
   showAssignDialog = signal(false);
   selectedStaff = signal<StaffMember | null>(null);
@@ -244,7 +245,7 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   private mapAvailabilityStatusToUIStatus(
-    availabilityStatus: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking' | 'Available' | 'Busy' | 'Break' | 'Unavailable' | 'NotWorking' | null
+    availabilityStatus: string | null
   ): { status: StaffMember['status']; statusClass: string } {
     if (!availabilityStatus) {
       return {
@@ -253,10 +254,9 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
       };
     }
 
-    // Normalize to lowercase for comparison (backend sends camelCase)
-    const normalizedStatus = availabilityStatus.toLowerCase();
+    const normalized = normalizeAvailabilityStatus(availabilityStatus);
 
-    switch (normalizedStatus) {
+    switch (normalized) {
       case 'available':
         return {
           status: 'พร้อมรับงาน',
@@ -267,9 +267,9 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
           status: 'ติดลูกค้า',
           statusClass: 'bg-orange-100 text-orange-800'
         };
-      case 'break':
+      case 'lunchBreak':
         return {
-          status: 'พัก',
+          status: 'พักเที่ยง',
           statusClass: 'bg-yellow-100 text-yellow-800'
         };
       case 'unavailable':
@@ -277,10 +277,15 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
           status: 'ไม่พร้อมรับงาน',
           statusClass: 'bg-gray-100 '
         };
-      case 'notworking':
+      case 'leave':
         return {
-          status: 'ไม่ได้ทำงาน',
+          status: 'ลา',
           statusClass: 'bg-red-100 text-red-800'
+        };
+      case 'offsiteCustomer':
+        return {
+          status: 'พบลูกค้านอกสถานที่',
+          statusClass: 'bg-blue-100 text-blue-800'
         };
       default:
         return {
@@ -317,12 +322,14 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
           return s.status === 'พร้อมรับงาน';
         case 'busy':
           return s.status === 'ติดลูกค้า';
-        case 'break':
-          return s.status === 'พัก';
+        case 'lunchBreak':
+          return s.status === 'พักเที่ยง';
         case 'unavailable':
           return s.status === 'ไม่พร้อมรับงาน';
-        case 'notworking':
-          return s.status === 'ไม่ได้ทำงาน';
+        case 'leave':
+          return s.status === 'ลา';
+        case 'offsiteCustomer':
+          return s.status === 'พบลูกค้านอกสถานที่';
         default:
           return true;
       }
@@ -336,13 +343,14 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
       all: staff.length,
       available: staff.filter(s => s.status === 'พร้อมรับงาน').length,
       busy: staff.filter(s => s.status === 'ติดลูกค้า').length,
-      break: staff.filter(s => s.status === 'พัก').length,
       unavailable: staff.filter(s => s.status === 'ไม่พร้อมรับงาน').length,
-      notworking: staff.filter(s => s.status === 'ไม่ได้ทำงาน').length
+      lunchBreak: staff.filter(s => s.status === 'พักเที่ยง').length,
+      leave: staff.filter(s => s.status === 'ลา').length,
+      offsiteCustomer: staff.filter(s => s.status === 'พบลูกค้านอกสถานที่').length
     };
   });
 
-  setTab(tab: 'all' | 'available' | 'busy' | 'break' | 'unavailable' | 'notworking') {
+  setTab(tab: 'all' | AvailabilityStatusKey) {
     this.activeTab.set(tab);
   }
 
