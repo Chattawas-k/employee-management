@@ -249,7 +249,7 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
     if (!availabilityStatus) {
       return {
         status: 'ไม่พร้อมรับงาน',
-        statusClass: 'bg-gray-100 text-gray-800'
+        statusClass: 'bg-gray-100 '
       };
     }
 
@@ -275,7 +275,7 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
       case 'unavailable':
         return {
           status: 'ไม่พร้อมรับงาน',
-          statusClass: 'bg-gray-100 text-gray-800'
+          statusClass: 'bg-gray-100 '
         };
       case 'notworking':
         return {
@@ -285,7 +285,7 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
       default:
         return {
           status: 'ไม่พร้อมรับงาน',
-          statusClass: 'bg-gray-100 text-gray-800'
+          statusClass: 'bg-gray-100 '
         };
     }
   }

@@ -96,7 +96,7 @@
       <div #statusMenuContainer
         class="absolute left-4 right-4 bottom-full mb-2 w-auto rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10 overflow-hidden transition-all duration-200 ease-out transform opacity-100 translate-y-0">
         <div class="py-2">
-          <div class="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <div class="px-4 py-2 text-xs font-medium text-gray uppercase tracking-wider">
             สถานะการทำงาน
           </div>
           @for (status of getAvailableStatuses(); track status.value) {
@@ -109,7 +109,7 @@
           <div class="border-t border-gray-200 my-1"></div>
           <a href="#"
             class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors duration-150">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24"
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray" fill="none" viewBox="0 0 24 24"
               stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round"
                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -254,7 +254,7 @@
         <div #statusMenuContainer
           class="absolute left-4 right-4 bottom-full mb-2 w-auto rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10 overflow-hidden transition-all duration-200 ease-out transform opacity-100 translate-y-0">
           <div class="py-2">
-            <div class="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <div class="px-4 py-2 text-xs font-medium text-gray uppercase tracking-wider">
               สถานะการทำงาน
             </div>
             @for (status of getAvailableStatuses(); track status.value) {
@@ -267,7 +267,7 @@
             <div class="border-t border-gray-200 my-1"></div>
             <a href="#"
               class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors duration-150">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24"
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -338,7 +338,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" 
             class="w-6 h-6 mb-1 transition-colors duration-300"
             [class.text-blue-600]="customerQueueLink.isActive"
-            [class.text-gray-500]="!customerQueueLink.isActive"
+            [class.text-gray]="!customerQueueLink.isActive"
             fill="none" 
             viewBox="0 0 24 24" 
             stroke="currentColor" 
@@ -348,7 +348,7 @@
           <span 
             class="text-[10px] font-medium transition-colors duration-300"
             [class.text-blue-600]="customerQueueLink.isActive"
-            [class.text-gray-500]="!customerQueueLink.isActive">
+            [class.text-gray]="!customerQueueLink.isActive">
             คิวพนักงาน
           </span>
         </a>
@@ -362,7 +362,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" 
             class="w-6 h-6 mb-1 transition-colors duration-300"
             [class.text-blue-600]="myTasksLink.isActive"
-            [class.text-gray-500]="!myTasksLink.isActive"
+            [class.text-gray]="!myTasksLink.isActive"
             fill="none" 
             viewBox="0 0 24 24" 
             stroke="currentColor" 
@@ -372,7 +372,7 @@
           <span 
             class="text-[10px] font-medium transition-colors duration-300"
             [class.text-blue-600]="myTasksLink.isActive"
-            [class.text-gray-500]="!myTasksLink.isActive">
+            [class.text-gray]="!myTasksLink.isActive">
             งานของฉัน
           </span>
         </a>
@@ -388,7 +388,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" 
             class="w-6 h-6 mb-1 transition-colors duration-300"
             [class.text-blue-600]="reportLink.isActive"
-            [class.text-gray-500]="!reportLink.isActive"
+            [class.text-gray]="!reportLink.isActive"
             fill="none" 
             viewBox="0 0 24 24" 
             stroke="currentColor" 
@@ -398,7 +398,7 @@
           <span 
             class="text-[10px] font-medium transition-colors duration-300"
             [class.text-blue-600]="reportLink.isActive"
-            [class.text-gray-500]="!reportLink.isActive">
+            [class.text-gray]="!reportLink.isActive">
             รายงาน
           </span>
         </a>
@@ -412,7 +412,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" 
             class="w-6 h-6 mb-1 transition-colors duration-300"
             [class.text-blue-600]="myAccountLink.isActive"
-            [class.text-gray-500]="!myAccountLink.isActive"
+            [class.text-gray]="!myAccountLink.isActive"
             fill="none" 
             viewBox="0 0 24 24" 
             stroke="currentColor" 
@@ -422,7 +422,7 @@
           <span 
             class="text-[10px] font-medium transition-colors duration-300"
             [class.text-blue-600]="myAccountLink.isActive"
-            [class.text-gray-500]="!myAccountLink.isActive">
+            [class.text-gray]="!myAccountLink.isActive">
             บัญชีของฉัน
           </span>
         </a>

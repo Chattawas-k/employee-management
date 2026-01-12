@@ -25,7 +25,7 @@ export class SalesReportDetailDialogComponent {
       case 'Failed':
         return { text: 'ไม่สำเร็จ', class: 'bg-red-100 text-red-800', icon: 'x-circle' };
       default:
-        return { text: 'ไม่ระบุ', class: 'bg-gray-100 text-gray-800', icon: 'question-mark-circle' };
+        return { text: 'ไม่ระบุ', class: 'bg-gray-100 ', icon: 'question-mark-circle' };
     }
   });
 

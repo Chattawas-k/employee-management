@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, Component, signal, computed, OnInit, OnDestroy
 import { CommonModule } from '@angular/common';
 import { TaskColumnComponent, Task } from '../../shared/components/task-column/task-column.component';
 import { ConfirmationDialogComponent } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { CalloutCardComponent } from '../../shared/components/callout-card/callout-card.component';
 import { SalesReportDialogComponent } from '../../shared/components/sales-report-dialog/sales-report-dialog.component';
 import { TaskDetailDialogComponent } from '../../shared/components/task-detail-dialog/task-detail-dialog.component';
-import { OpenJobDialogComponent } from '../../shared/components/open-job-dialog/open-job-dialog.component';
 import { RejectTaskDialogComponent } from '../../shared/components/reject-task-dialog/reject-task-dialog.component';
 import { TaskService } from '../../services/task.service';
 import { AuthService } from '../../services/auth.service';
@@ -29,9 +29,9 @@ export type AvailabilityStatus = 'available' | 'busy' | 'break' | 'unavailable' 
     CommonModule,
     TaskColumnComponent,
     ConfirmationDialogComponent,
+    CalloutCardComponent,
     SalesReportDialogComponent,
     TaskDetailDialogComponent,
-    OpenJobDialogComponent,
     RejectTaskDialogComponent
   ]
 })
@@ -45,8 +45,6 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     private signalRService: SignalRService,
     private queueService: QueueService
   ) {}
-  statusBannerInfo = signal<{ title: string; subtitle: string; borderColor: string; backgroundColor: string; iconContainerBg: string; iconBorder: string; iconColor: string; } | null>(null);
-  
   isMyTurn = signal(false);
   currentUser = signal('สมศักดิ์ รักงาน (Bob)');
   
@@ -62,9 +60,9 @@ export class MyTasksComponent implements OnInit, OnDestroy {
   showRejectDialog = signal(false);
   showSalesReportDialog = signal(false);
   showTaskDetailDialog = signal(false);
-  showOpenJobDialog = signal(false);
   selectedTask = signal<Task | null>(null);
   isLoading = signal(false);
+  startDialogContext = signal<'existingTask' | 'walkInJob'>('existingTask');
 
   todoTasks = signal<Task[]>([]);
   inProgressTasks = signal<Task[]>([]);
@@ -78,8 +76,6 @@ export class MyTasksComponent implements OnInit, OnDestroy {
   });
 
   async ngOnInit(): Promise<void> {
-    // Initialize status banner info based on availability status
-    this.updateStatusBanner();
     this.loadTasks();
     this.loadQueueInfo();
 
@@ -96,13 +92,13 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       this.signalRService.onQueueUpdated(() => {
         // When queue status changes, reload tasks and queue info
         this.loadTasks();
-        // Reload queue info which will update availabilityStatus and banner
-        this.loadQueueInfo(); // This will update availabilityStatus from queue status and call updateStatusBanner()
+        // Reload queue info which will update availabilityStatus
+        this.loadQueueInfo();
       });
 
       this.signalRService.onEmployeeStatusChanged(() => {
         // When employee status changes, reload queue info to sync status
-        this.loadQueueInfo(); // This will update availabilityStatus from queue status and call updateStatusBanner()
+        this.loadQueueInfo();
       });
 
       this.signalRService.onJobAssigned((jobId, jobTitle, customer) => {
@@ -209,9 +205,6 @@ export class MyTasksComponent implements OnInit, OnDestroy {
           }
         }
         
-        // Always update status banner after status change or when keeping manual status
-        this.updateStatusBanner();
-        
         if (queueInfo.currentlyServing) {
           // Generate avatar URL if not provided
           let avatarUrl = queueInfo.currentlyServing.avatarUrl;
@@ -235,8 +228,6 @@ export class MyTasksComponent implements OnInit, OnDestroy {
         this.myQueuePosition.set(0);
         this.currentlyServing.set(null);
         this.isMyTurn.set(false);
-        // Update status banner when not in queue
-        this.updateStatusBanner();
       }
     });
   }
@@ -293,8 +284,6 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     
     // Don't override manual status (break/unavailable/notworking)
     if (currentStatus === 'break' || currentStatus === 'unavailable' || currentStatus === 'notworking') {
-      // If manually set to break/unavailable/notworking, ensure banner is updated
-      this.updateStatusBanner();
       return; // Don't update status based on tasks
     }
     
@@ -303,7 +292,6 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       // Has InProgress tasks → should be 'busy'
       if (currentStatus === 'available') {
         this.availabilityStatus.set('busy');
-        this.updateStatusBanner();
       }
     } else {
       // No InProgress tasks → should be 'available' (unless manually set to 'break' or 'unavailable')
@@ -312,7 +300,6 @@ export class MyTasksComponent implements OnInit, OnDestroy {
         // This will be handled by loadQueueInfo() which syncs with backend
         // For now, we'll update it here but loadQueueInfo() will override if needed
         this.availabilityStatus.set('available');
-        this.updateStatusBanner();
       }
     }
   }
@@ -565,123 +552,58 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     return `${day} ${month} ${year} (${hours}.${minutes} น.)`;
   }
 
-  private updateStatusBanner() {
-    switch (this.availabilityStatus()) {
-      case 'busy':
-        this.statusBannerInfo.set({
-          title: 'คุณกำลังติดลูกค้า',
-          subtitle: 'สถานะของคุณจะเปลี่ยนเป็น "พร้อมรับงาน" อัตโนมัติเมื่องานเสร็จ',
-          borderColor: 'border-orange-500',
-          backgroundColor: 'bg-orange-50',
-          iconContainerBg: 'bg-orange-100',
-          iconBorder: 'border-orange-200',
-          iconColor: 'text-orange-600',
-        });
-        break;
-      case 'break':
-        this.statusBannerInfo.set({
-          title: 'คุณกำลังพัก',
-          subtitle: 'คุณจะไม่ได้รับคิวใหม่ระหว่างพัก',
-          borderColor: 'border-yellow-500',
-          backgroundColor: 'bg-yellow-50',
-          iconContainerBg: 'bg-yellow-100',
-          iconBorder: 'border-yellow-200',
-          iconColor: 'text-yellow-600',
-        });
-        break;
-      case 'unavailable':
-        this.statusBannerInfo.set({
-          title: 'คุณตั้งสถานะเป็น "ไม่พร้อมรับงาน"',
-          subtitle: 'คุณจะไม่ได้รับคิวใหม่จนกว่าจะเปลี่ยนสถานะกลับมาเป็น "พร้อมรับงาน"',
-          borderColor: 'border-gray-500',
-          backgroundColor: 'bg-gray-50',
-          iconContainerBg: 'bg-gray-100',
-          iconBorder: 'border-gray-200',
-          iconColor: 'text-gray-600',
-        });
-        break;
-      case 'notworking':
-        this.statusBannerInfo.set({
-          title: 'คุณตั้งสถานะเป็น "ไม่ได้ทำงาน"',
-          subtitle: 'คุณจะไม่ได้รับคิวใหม่จนกว่าจะเปลี่ยนสถานะกลับมาเป็น "พร้อมรับงาน"',
-          borderColor: 'border-red-500',
-          backgroundColor: 'bg-red-50',
-          iconContainerBg: 'bg-red-100',
-          iconBorder: 'border-red-200',
-          iconColor: 'text-red-600',
-        });
-        break;
-      case 'available':
-      default:
-        // When status is 'available', don't show the red banner
-        this.statusBannerInfo.set(null);
-        break;
-    }
-  }
-
-
   acceptCustomer() {
-    this.showOpenJobDialog.set(true);
-  }
-  
-  closeOpenJobDialog() {
-    this.showOpenJobDialog.set(false);
-  }
-  
-  confirmOpenJob(jobData: any) {
+    // Create a walk-in job automatically, then confirm start (as per requirement)
     const token = this.authService.getToken();
     const employeeId = getEmployeeIdFromToken(token);
-    
+
     if (!employeeId) {
       this.toastService.error('ไม่พบข้อมูลพนักงาน');
       return;
     }
 
-    const priority = jobData.priority === 'Urgent' ? JobPriority.Urgent : JobPriority.Normal;
-    
     this.isLoading.set(true);
     this.taskService.createJob({
-      title: jobData.jobTitle,
-      customer: jobData.customerName,
-      description: jobData.details || '',
+      title: 'Walk-in Customer',
+      customer: 'ลูกค้าทั่วไป',
+      description: 'บริการลูกค้าหน้าร้าน',
       assigneeId: employeeId,
-      priority,
-      channel: jobData.channel || 'Walk-in',
-      productCategoryId: jobData.productCategoryId || undefined
+      priority: JobPriority.Normal,
+      channel: 'Walk-in'
     }).pipe(
-      // After creating job, immediately update status to InProgress
-      switchMap(createResponse => {
-        if (!createResponse) {
-          return of(null);
-        }
-        // Update status to InProgress automatically
-        return this.taskService.updateJobStatus(createResponse.id, {
-          id: createResponse.id,
-          status: JobStatus.InProgress
-        }).pipe(
-          map(updateResponse => ({ createResponse, updateResponse }))
-        );
-      }),
       catchError(error => {
-        console.error('Error creating or updating job:', error);
-        this.toastService.error('เกิดข้อผิดพลาดในการสร้างงาน');
+        console.error('Error creating walk-in job:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการเปิดใบงาน');
         return of(null);
       }),
-      finalize(() => {
-        this.isLoading.set(false);
-        this.closeOpenJobDialog();
-        // Reload tasks after a short delay to ensure backend has updated
-        setTimeout(() => {
-          this.loadTasks();
-        }, 200);
-      })
-    ).subscribe(response => {
-      if (response) {
-        this.toastService.success('สร้างงานและเริ่มงานสำเร็จ');
-        this.isMyTurn.set(false);
-        // availabilityStatus will be updated automatically when loadTasks() completes
-      }
+      finalize(() => this.isLoading.set(false))
+    ).subscribe(createResponse => {
+      if (!createResponse) return;
+
+      // Open start confirmation dialog (same UI as screenshot)
+      this.startDialogContext.set('walkInJob');
+      this.selectedTask.set(this.mapCreateJobResponseToTask(createResponse));
+      this.showStartDialog.set(true);
     });
+  }
+
+  private mapCreateJobResponseToTask(createResponse: any): Task {
+    return {
+      id: createResponse.id,
+      jobNumber: createResponse.jobNumber,
+      createdAt: createResponse.createdDate,
+      priority: this.getPriorityText(createResponse.priority),
+      priorityClass: this.getPriorityClass(createResponse.priority),
+      buttonText: 'เริ่มงาน',
+      buttonIcon: 'refresh',
+      buttonClass: 'bg-indigo-600 hover:bg-indigo-700 text-white',
+      startedAt: null,
+      completedAt: null,
+      jobTitle: createResponse.title,
+      customerName: createResponse.customer,
+      details: createResponse.description,
+      status: 'pending'
+    };
   }
 
   handleTaskAction(action: { task: Task; actionType: 'start' | 'complete' | 'reject' }) {
@@ -764,6 +686,18 @@ export class MyTasksComponent implements OnInit, OnDestroy {
   }
 
   handleRejectTask() {
+    // For walk-in flow, reject should cancel immediately (no extra form)
+    if (this.startDialogContext() === 'walkInJob') {
+      const task = this.selectedTask();
+      this.showStartDialog.set(false);
+      if (task?.id) {
+        this.cancelJob(task.id, 'ปฏิเสธงาน');
+      }
+      this.selectedTask.set(null);
+      this.startDialogContext.set('existingTask');
+      return;
+    }
+
     this.showStartDialog.set(false);
     this.showRejectDialog.set(true);
   }
@@ -922,8 +856,45 @@ export class MyTasksComponent implements OnInit, OnDestroy {
   }
 
   closeStartDialog() {
+    // For walk-in flow, closing dialog should not leave a dangling Pending job
+    if (this.startDialogContext() === 'walkInJob') {
+      const task = this.selectedTask();
+      this.showStartDialog.set(false);
+      if (task?.id) {
+        this.cancelJob(task.id, 'ยกเลิกเริ่มงาน');
+      }
+      this.selectedTask.set(null);
+      this.startDialogContext.set('existingTask');
+      return;
+    }
+
     this.showStartDialog.set(false);
     this.selectedTask.set(null);
+  }
+
+  private cancelJob(jobId: string, reason: string): void {
+    if (!jobId || jobId === '00000000-0000-0000-0000-000000000000') return;
+
+    this.isLoading.set(true);
+    this.taskService.updateJobStatus(jobId, {
+      id: jobId,
+      status: JobStatus.Cancelled,
+      rejectReason: reason
+    }).pipe(
+      catchError(error => {
+        console.error('Error cancelling job:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการยกเลิกงาน');
+        return of(null);
+      }),
+      finalize(() => {
+        this.isLoading.set(false);
+        setTimeout(() => this.loadTasks(), 200);
+      })
+    ).subscribe(response => {
+      if (response) {
+        this.toastService.success('ยกเลิกงานเรียบร้อย');
+      }
+    });
   }
 
   closeSalesReportDialog() {

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, signal, OnInit, OnDestroy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SummaryCardComponent } from '../../shared/components/summary-card/summary-card.component';
+import { CalloutCardComponent } from '../../shared/components/callout-card/callout-card.component';
 import { OpenJobDialogComponent } from '../../shared/components/open-job-dialog/open-job-dialog.component';
 import { QueueService } from '../../services/queue.service';
 import { TaskService } from '../../services/task.service';
@@ -56,7 +57,7 @@ interface SummaryCardData {
 @Component({
   selector: 'app-customer-queue',
   standalone: true,
-  imports: [CommonModule, SummaryCardComponent, OpenJobDialogComponent],
+  imports: [CommonModule, SummaryCardComponent, CalloutCardComponent, OpenJobDialogComponent],
   templateUrl: './customer-queue.component.html',
   styleUrls: ['./customer-queue.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -68,6 +69,7 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
   allJobs: QueueSummaryJobDto[] = [];
 
   isMyTurn = signal(false);
+  availabilityStatus = signal<'available' | 'busy' | 'break' | 'unavailable' | 'notworking'>('available');
   showOpenJobDialog = signal(false);
 
   constructor(
@@ -84,7 +86,7 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
       value: 51,
       unit: 'ท่าน',
       icon: 'check',
-      valueClass: 'text-gray-800',
+      valueClass: '',
       iconBgClass: 'bg-indigo-100',
       iconClass: 'text-indigo-600',
     },
@@ -164,13 +166,17 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
       catchError(error => {
         console.error('Error loading queue info:', error);
         this.isMyTurn.set(false);
+        this.availabilityStatus.set('unavailable');
         return of(null);
       })
     ).subscribe(queueInfo => {
       if (queueInfo && queueInfo.isInQueue) {
         this.isMyTurn.set(queueInfo.queuesRemaining === 0);
+        const s = (queueInfo.availabilityStatus || 'available').toLowerCase() as any;
+        this.availabilityStatus.set(s);
       } else {
         this.isMyTurn.set(false);
+        this.availabilityStatus.set('unavailable');
       }
     });
   }
@@ -317,7 +323,7 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
       // Check availabilityStatus first for break/unavailable, regardless of queue status
       if (availabilityStatus === 'break' || availabilityStatus === 'unavailable') {
         let statusText: 'พัก' | 'ไม่พร้อมรับงาน' = availabilityStatus === 'break' ? 'พัก' : 'ไม่พร้อมรับงาน';
-        let statusClass = availabilityStatus === 'break' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800';
+        let statusClass = availabilityStatus === 'break' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 ';
         
         // Format the status changed time
         const statusChangedTime = queue.updatedDate 
@@ -512,7 +518,7 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
         value: servedToday,
         unit: 'ท่าน',
         icon: 'check',
-        valueClass: 'text-gray-800',
+        valueClass: '',
         iconBgClass: 'bg-indigo-100',
         iconClass: 'text-indigo-600',
       },

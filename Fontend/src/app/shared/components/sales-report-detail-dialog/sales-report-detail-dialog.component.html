@@ -3,7 +3,7 @@
     <!-- Header -->
     <header class="p-5 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
       <div>
-        <h2 class="text-xl font-medium text-gray-800">{{ report.customerName }}</h2>
+        <h2 class="text-xl font-medium ">{{ report.customerName }}</h2>
         <p class="text-base text-gray-500">รายละเอียดรายงาน #{{ report.id }}</p>
       </div>
       <button (click)="close.emit()" class="text-gray-400 hover:text-gray-600">
@@ -20,7 +20,7 @@
       @switch (report.status) {
         @case ('Success') {
           <section class="bg-green-50 p-5 rounded-lg border-l-[6px] border-green-400">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">ข้อมูลการขาย</h3>
+            <h3 class="text-xl font-bold  mb-4">ข้อมูลการขาย</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
               <div>
                 <p class="text-base text-gray-500">มูลค่า</p>
@@ -39,7 +39,7 @@
         }
         @case ('Pending') {
           <section class="bg-yellow-50 p-5 rounded-lg border-l-[6px] border-yellow-400">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">ข้อมูลการติดตาม</h3>
+            <h3 class="text-xl font-bold  mb-4">ข้อมูลการติดตาม</h3>
             <div class="space-y-5">
               <div>
                 <p class="text-base text-gray-500">วันที่ต้องติดตาม</p>
@@ -67,7 +67,7 @@
         }
         @case ('Failed') {
           <section class="bg-red-50 p-5 rounded-lg border-l-[6px] border-red-400">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">สรุปผล (ไม่สำเร็จ)</h3>
+            <h3 class="text-xl font-bold  mb-4">สรุปผล (ไม่สำเร็จ)</h3>
             <div class="space-y-4">
               @if (report.competitor) {
                 <div>
@@ -90,7 +90,7 @@
 
       <!-- Interested Products -->
       <section>
-        <h3 class="text-xl font-bold text-gray-800 mb-3">สินค้าที่สนใจ</h3>
+        <h3 class="text-xl font-bold  mb-3">สินค้าที่สนใจ</h3>
         <div class="flex flex-wrap gap-3">
           @for (product of report.interestedProducts; track product) {
             <span class="px-4 py-1.5 text-base font-medium text-violet-800 bg-violet-100 rounded-full">{{ product }}</span>
@@ -103,8 +103,8 @@
        <!-- Notes -->
       @if (report.notes) {
         <section>
-          <h3 class="text-xl font-bold text-gray-800 mb-2">บันทึกเพิ่มเติม</h3>
-          <p class="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">{{ report.notes }}</p>
+          <h3 class="text-xl font-bold  mb-2">บันทึกเพิ่มเติม</h3>
+          <p class="text-base  leading-relaxed whitespace-pre-wrap">{{ report.notes }}</p>
         </section>
       }
 

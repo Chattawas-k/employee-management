@@ -13,9 +13,10 @@ export class SummaryCardComponent {
   @Input() title: string = '';
   @Input() value: string | number = 0;
   @Input() unit: string = '';
-  @Input() icon: 'check' | 'pulse' | 'user-check' = 'check';
+  @Input() icon: 'check' | 'pulse' | 'user-check' | 'clipboard' | 'clock' | 'x-circle' = 'check';
   @Input() valueClass: string = '';
   @Input() iconBgClass: string = '';
   @Input() iconClass: string = '';
+  @Input() containerClass: string = '';
 }
 

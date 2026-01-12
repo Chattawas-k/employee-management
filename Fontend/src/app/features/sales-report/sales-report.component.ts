@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, signal, computed, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { CalloutCardComponent } from '../../shared/components/callout-card/callout-card.component';
 import { SalesReportDetailDialogComponent } from '../../shared/components/sales-report-detail-dialog/sales-report-detail-dialog.component';
 import { SalesReportDialogComponent } from '../../shared/components/sales-report-dialog/sales-report-dialog.component';
 import { OpenJobDialogComponent } from '../../shared/components/open-job-dialog/open-job-dialog.component';
@@ -24,7 +25,7 @@ export type { SalesReport } from '../../models/sales-report.model';
 @Component({
   selector: 'app-sales-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, SalesReportDetailDialogComponent, SalesReportDialogComponent, OpenJobDialogComponent],
+  imports: [CommonModule, FormsModule, CalloutCardComponent, SalesReportDetailDialogComponent, SalesReportDialogComponent, OpenJobDialogComponent],
   templateUrl: './sales-report.component.html',
   styleUrls: ['./sales-report.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush

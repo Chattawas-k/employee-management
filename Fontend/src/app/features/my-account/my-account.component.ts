@@ -6,6 +6,7 @@ import { EmployeeService } from '../../services/employee.service';
 import { QueueService } from '../../services/queue.service';
 import { TaskService } from '../../services/task.service';
 import { ToastService } from '../../services/toast.service';
+import { SummaryCardComponent } from '../../shared/components/summary-card/summary-card.component';
 import { EmployeeDto } from '../../models/employee.model';
 import { WorkStatsResponse, TimePeriod } from '../../models/account.model';
 import { MyQueueInfoResponse } from '../../models/queue.model';
@@ -16,7 +17,7 @@ import { of } from 'rxjs';
 @Component({
   selector: 'app-my-account',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, SummaryCardComponent],
   templateUrl: './my-account.component.html',
   styleUrls: ['./my-account.component.scss']
 })
@@ -74,9 +75,9 @@ export class MyAccountComponent implements OnInit, OnDestroy {
       case 'available': return 'bg-green-100 text-green-800 border-green-200';
       case 'busy': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'break': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'unavailable': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'unavailable': return 'bg-gray-100  border-gray-200';
       case 'notworking': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-gray-100  border-gray-200';
     }
   });
 
@@ -291,9 +292,9 @@ export class MyAccountComponent implements OnInit, OnDestroy {
       case 'closedlost':
         return 'bg-red-100 text-red-800 border-red-200';
       case 'cancelled':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100  border-gray-200';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100  border-gray-200';
     }
   }
 
@@ -323,7 +324,7 @@ export class MyAccountComponent implements OnInit, OnDestroy {
       case 'normal':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'low':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100  border-gray-200';
       default:
         return 'bg-blue-100 text-blue-800 border-blue-200';
     }

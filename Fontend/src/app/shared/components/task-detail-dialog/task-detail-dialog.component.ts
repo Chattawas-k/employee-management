@@ -29,14 +29,14 @@ export class TaskDetailDialogComponent {
       case 'rejected':
         return { text: 'ปฏิเสธแล้ว', class: 'text-red-800 font-medium bg-red-100', textColor: 'text-red-800', iconColor: 'text-red-600', iconBg: 'bg-red-200' };
       default:
-        return { text: 'ไม่ระบุ', class: 'text-gray-800 font-medium bg-gray-100', textColor: 'text-gray-800', iconColor: 'text-gray-600', iconBg: 'bg-gray-200' };
+        return { text: 'ไม่ระบุ', class: ' font-medium bg-gray-100', textColor: '', iconColor: 'text-gray-600', iconBg: 'bg-gray-200' };
     }
   });
 
   salesStatusInfo = computed(() => {
     const reportStatus = this.task.salesReportData?.status as ReportStatus | undefined;
     if (!reportStatus) {
-      return { text: '-', class: 'bg-gray-100 text-gray-800' };
+      return { text: '-', class: 'bg-gray-100 ' };
     }
     switch (reportStatus) {
       case 'Success':
@@ -46,7 +46,7 @@ export class TaskDetailDialogComponent {
       case 'Failed':
         return { text: 'ไม่สำเร็จ', class: 'bg-red-100 text-red-800' };
       default:
-        return { text: '-', class: 'bg-gray-100 text-gray-800' };
+        return { text: '-', class: 'bg-gray-100 ' };
     }
   });
 

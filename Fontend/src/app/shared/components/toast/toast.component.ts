@@ -72,7 +72,7 @@ export class ToastComponent implements OnInit {
       case 'info':
         return 'bg-blue-50 border-blue-500 text-blue-800';
       default:
-        return 'bg-gray-50 border-gray-500 text-gray-800';
+        return 'bg-gray-50 border-gray-500 ';
     }
   }
 

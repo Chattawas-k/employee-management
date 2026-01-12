@@ -67,7 +67,7 @@
     <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" (click)="onFormCancel()">
       <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl" (click)="$event.stopPropagation()">
         <header class="p-5 border-b border-gray-200 flex justify-between items-center">
-          <h2 class="text-xl font-medium text-gray-800">
+          <h2 class="text-xl font-medium ">
             {{ editingCategory() ? 'แก้ไขหมวดหมู่สินค้า' : 'เพิ่มหมวดหมู่สินค้า' }}
           </h2>
           <button (click)="onFormCancel()" class="text-gray-400 hover:text-gray-600">

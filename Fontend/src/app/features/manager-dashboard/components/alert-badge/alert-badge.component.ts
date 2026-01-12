@@ -33,7 +33,7 @@ export class AlertBadgeComponent {
       case 'Low':
         return 'bg-yellow-50 border-yellow-200 text-yellow-800';
       default:
-        return 'bg-gray-50 border-gray-200 text-gray-800';
+        return 'bg-gray-50 border-gray-200 ';
     }
   }
 
