@@ -33,43 +33,43 @@
 
     <!-- Work Summary Section -->
     <h2 class="text-xl font-semibold text-gray-900 mb-4">ภาพรวมงานของฉัน</h2>
-    <div class="bg-white rounded-xl p-6 shadow-sm mb-6">    
+    <div class="mb-6">    
       
       <!-- Period Selector -->
       <div class="flex flex-wrap gap-2 mb-6">
         <button 
           (click)="selectPeriod('today')"
-          [class]="selectedPeriod() === 'today' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          [class]="selectedPeriod() === 'today' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 border border'"
           class="px-2 py-2 rounded-lg text-xs font-medium transition-colors ">
           วันนี้
         </button>
         <button 
           (click)="selectPeriod('yesterday')"
-          [class]="selectedPeriod() === 'yesterday' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          [class]="selectedPeriod() === 'yesterday' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 border border'"
           class="px-2 py-2 rounded-lg text-sm font-medium transition-colors">
           เมื่อวาน
         </button>
         <button 
           (click)="selectPeriod('last7days')"
-          [class]="selectedPeriod() === 'last7days' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          [class]="selectedPeriod() === 'last7days' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 border border'"
           class="px-2 py-2 rounded-lg text-sm font-medium transition-colors">
           7 วัน
         </button>
         <button 
           (click)="selectPeriod('last15days')"
-          [class]="selectedPeriod() === 'last15days' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          [class]="selectedPeriod() === 'last15days' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 border border'"
           class="px-2 py-2 rounded-lg text-sm font-medium transition-colors">
           15 วัน
         </button>
         <button 
           (click)="selectPeriod('thisMonth')"
-          [class]="selectedPeriod() === 'thisMonth' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          [class]="selectedPeriod() === 'thisMonth' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 border border'"
           class="px-2 py-2 rounded-lg text-sm font-medium transition-colors">
           เดือนนี้
         </button>
         <button 
           (click)="selectPeriod('custom')"
-          [class]="selectedPeriod() === 'custom' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          [class]="selectedPeriod() === 'custom' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 border border'"
           class="px-2 py-2 rounded-lg text-sm font-medium transition-colors">
           กำหนดเอง
         </button>
@@ -115,49 +115,49 @@
 
       <!-- Statistics Cards -->
       @if (!isLoadingStats() && workStats(); as stats) {
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 grid-cols-2 xl:grid-cols-4 gap-2">
           <app-summary-card
-            title="งานทั้งหมด"
+            title="ทั้งหมด"
             [value]="stats.taskStats.total"
             unit="งาน"
             icon="clipboard"
             valueClass="text-gray-900"
             iconBgClass="bg-blue-100"
             iconClass="text-blue-600"
-            containerClass="rounded-2xl shadow-sm border border-gray-100"
+            containerClass="rounded-2xl shadow-sm border-x2 border-blue-500"
           />
 
           <app-summary-card
-            title="งานสำเร็จ"
+            title="สำเร็จ"
             [value]="stats.taskStats.completedWon"
             unit="งาน"
             icon="check"
             valueClass="text-gray-900"
             iconBgClass="bg-green-100"
             iconClass="text-green-600"
-            containerClass="rounded-2xl shadow-sm border border-gray-100"
+            containerClass="rounded-2xl shadow-sm border-x2 border-green-500"
           />
 
           <app-summary-card
-            title="งานรอตัดสินใจ"
+            title="รอตัดสินใจ"
             [value]="stats.taskStats.pending"
             unit="งาน"
             icon="clock"
             valueClass="text-gray-900"
             iconBgClass="bg-yellow-100"
             iconClass="text-yellow-600"
-            containerClass="rounded-2xl shadow-sm border border-gray-100"
+            containerClass="rounded-2xl shadow-sm border-x2 border-yellow-500"
           />
 
           <app-summary-card
-            title="งานไม่สำเร็จ"
+            title="ไม่สำเร็จ"
             [value]="stats.taskStats.completedLost"
             unit="งาน"
             icon="x-circle"
             valueClass="text-gray-900"
             iconBgClass="bg-red-100"
             iconClass="text-red-600"
-            containerClass="rounded-2xl shadow-sm border border-gray-100"
+            containerClass="rounded-2xl shadow-sm border-x2 border-red-400"
           />
         </div>
       }
@@ -203,7 +203,7 @@
         <button 
           (click)="updateStatus('unavailable')"
           [disabled]="availabilityStatus() === 'unavailable'"
-          class="flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all {{ availabilityStatus() === 'unavailable' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+          class="flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all {{ availabilityStatus() === 'unavailable' ? 'bg-gray-600 text-white' : 'bg-white-500 text-gray-700 border border' }}">
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path>
           </svg>
