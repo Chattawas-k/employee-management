@@ -1,0 +1,147 @@
+:host {
+  display: block;
+}
+
+.monitor-root {
+  --bg-deep: #02040a;
+  --primary-accent: #06b6d4; /* Cyan */
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --orb-1-color: rgba(6, 182, 212, 0.15);
+  --orb-2-color: rgba(99, 102, 241, 0.15);
+  --orb-3-color: rgba(16, 185, 129, 0.1);
+
+  font-family: 'Kanit', sans-serif;
+  background-color: var(--bg-deep);
+  color: var(--text-main);
+}
+
+.monitor-root.light-mode {
+  /* Theme: Ethereal Day (from a.html) */
+  --bg-deep: #f8fafc; /* Slate 50 */
+  --primary-accent: #0284c7; /* Sky 600 */
+  --text-main: #1e293b; /* Slate 800 */
+  --text-muted: #64748b; /* Slate 500 */
+  --orb-1-color: rgba(14, 165, 233, 0.25);
+  --orb-2-color: rgba(168, 85, 247, 0.2);
+  --orb-3-color: rgba(20, 184, 166, 0.2);
+}
+
+.monitor-root .font-outfit {
+  font-family: 'Kanit', sans-serif;
+}
+
+.monitor-root .text-main { color: var(--text-main); }
+.monitor-root .text-muted { color: var(--text-muted); }
+
+/* Background layers */
+.monitor-root .bg-fixed-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.monitor-root.light-mode .bg-fixed-layer {
+  background: linear-gradient(135deg, #f0f9ff 0%, #eef2ff 50%, #f0fdf4 100%);
+}
+
+.monitor-root .orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  animation: drift 20s infinite alternate ease-in-out;
+  will-change: transform;
+}
+
+.monitor-root .orb-1 {
+  width: 60vw; height: 60vw;
+  background: radial-gradient(circle, var(--orb-1-color), transparent 70%);
+  top: -10%; left: -10%;
+  animation-delay: 0s;
+}
+
+.monitor-root .orb-2 {
+  width: 50vw; height: 50vw;
+  background: radial-gradient(circle, var(--orb-2-color), transparent 70%);
+  bottom: -10%; right: -10%;
+  animation-delay: -5s;
+  animation-duration: 25s;
+}
+
+.monitor-root .orb-3 {
+  width: 40vw; height: 40vw;
+  background: radial-gradient(circle, var(--orb-3-color), transparent 70%);
+  top: 40%; left: 30%;
+  animation-delay: -10s;
+  animation-duration: 30s;
+}
+
+@keyframes drift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, -30px) scale(1.1); }
+  100% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+.monitor-root .cyber-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  opacity: 0.5;
+  z-index: 1;
+}
+
+.monitor-root.light-mode .cyber-grid {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
+  opacity: 0.8;
+}
+
+.monitor-root .overlay-texture {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 0%, var(--bg-deep) 120%);
+  z-index: 2;
+}
+
+.monitor-root.light-mode .overlay-texture {
+  background: radial-gradient(circle at center, rgba(255,255,255,0.6) 0%, rgba(248,250,252,1) 70%);
+}
+
+/* Hero ring */
+.monitor-root .hero-ring-container {
+  position: relative;
+  padding: 10px;
+  z-index: 20;
+}
+
+.monitor-root .hero-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0%, var(--primary-accent) 20%, transparent 40%, var(--primary-accent) 60%, transparent 100%);
+  mask-image: radial-gradient(transparent 62%, black 64%);
+  -webkit-mask-image: radial-gradient(transparent 62%, black 64%);
+  animation: rotate-ring 12s linear infinite;
+  opacity: 0.5;
+}
+
+.monitor-root .hero-ring-glow {
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: var(--primary-accent);
+  opacity: 0.15;
+  filter: blur(25px);
+  animation: pulse-ring 4s ease-in-out infinite alternate;
+}
+
+@keyframes rotate-ring { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes pulse-ring { from { opacity: 0.1; transform: scale(0.95); } to { opacity: 0.25; transform: scale(1.05); } }
+

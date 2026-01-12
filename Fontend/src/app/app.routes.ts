@@ -17,6 +17,10 @@ import { managerGuard } from './guards/manager.guard';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
+  {
+    path: 'monitor',
+    loadComponent: () => import('./features/monitor/monitor.component').then(m => m.MonitorComponent)
+  },
   { path: '', redirectTo: '/my-tasks', pathMatch: 'full' },
   { path: 'my-tasks', component: MyTasksComponent, canActivate: [authGuard] },
   { path: 'customer-queue', component: CustomerQueueComponent, canActivate: [authGuard] },
