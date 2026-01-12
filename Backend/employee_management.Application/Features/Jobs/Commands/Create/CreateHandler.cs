@@ -4,6 +4,7 @@ using employee_management.Application.Common.Exceptions;
 using employee_management.Application.Common.Services;
 using employee_management.Application.Repository;
 using employee_management.Application.Repository.EmployeesRepository;
+using employee_management.Application.Repository.JobStatusHistoriesRepository;
 using employee_management.Application.Repository.JobsRepository;
 using employee_management.Application.Repository.QueuesRepository;
 using employee_management.Application.Repository.WaitingJobsRepository;
@@ -24,6 +25,8 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
         private readonly ILogger<CreateHandler> _logger;
         private readonly INotificationService _notificationService;
         private readonly IJobNumberService _jobNumberService;
+        private readonly IJobStatusHistoryRepository _jobStatusHistoryRepository;
+        private readonly ICurrentUserService _currentUserService;
 
         public CreateHandler(
             IUnitOfWork unitOfWork,
@@ -34,7 +37,9 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
             IMapper mapper,
             ILogger<CreateHandler> logger,
             INotificationService notificationService,
-            IJobNumberService jobNumberService)
+            IJobNumberService jobNumberService,
+            IJobStatusHistoryRepository jobStatusHistoryRepository,
+            ICurrentUserService currentUserService)
         {
             _unitOfWork = unitOfWork;
             _jobRepository = jobRepository;
@@ -45,6 +50,8 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
             _logger = logger;
             _notificationService = notificationService;
             _jobNumberService = jobNumberService;
+            _jobStatusHistoryRepository = jobStatusHistoryRepository;
+            _currentUserService = currentUserService;
         }
 
         public async Task<CreateResponse> Handle(CreateRequest request, CancellationToken cancellationToken)
@@ -81,6 +88,19 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
                 };
 
                 _jobRepository.Create(job);
+                await _unitOfWork.Save(cancellationToken);
+
+                // Job creation history (Auto)
+                _jobStatusHistoryRepository.Create(new JobStatusHistory
+                {
+                    JobId = job.Id,
+                    PreviousStatus = null,
+                    NewStatus = JobStatus.Pending,
+                    ChangeSource = JobChangeSource.Auto,
+                    ChangedByEmployeeId = _currentUserService.EmployeeId,
+                    ChangedDate = DateTimeOffset.UtcNow,
+                    Notes = "Job created"
+                });
                 await _unitOfWork.Save(cancellationToken);
 
                 // Auto-assign to first Available staff if AssigneeId is not provided (Guid.Empty)
@@ -123,7 +143,35 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
                     
                     // Update job with assignee
                     job.AssigneeId = assigneeId;
+                    var previousStatus = job.Status;
+                    job.Status = JobStatus.Assigned;
+                    job.AssignedDate ??= DateTime.UtcNow;
+
+                    // Add status log entry
+                    var statusLogs = job.StatusLogs;
+                    statusLogs.Add(new StatusLog
+                    {
+                        Status = JobStatus.Assigned.ToString(),
+                        Timestamp = DateTimeOffset.UtcNow
+                    });
+                    job.StatusLogs = statusLogs;
+
                     _jobRepository.Update(job);
+                    await _unitOfWork.Save(cancellationToken);
+
+                    // Assignment history (Assigned)
+                    _jobStatusHistoryRepository.Create(new JobStatusHistory
+                    {
+                        JobId = job.Id,
+                        PreviousStatus = previousStatus,
+                        NewStatus = job.Status,
+                        ChangeSource = JobChangeSource.Assigned,
+                        ChangedByEmployeeId = null, // auto assignment
+                        ChangedDate = DateTimeOffset.UtcNow,
+                        PreviousAssigneeId = Guid.Empty,
+                        NewAssigneeId = assigneeId,
+                        Notes = $"Auto-assigned to queue employee (position {firstAvailableQueue.Position})"
+                    });
                     await _unitOfWork.Save(cancellationToken);
                     
                     _logger.LogInformation("Auto-assigned job to employee {EmployeeId} (position {Position})", 
@@ -138,6 +186,37 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
                         _logger.LogWarning("Employee with Id: {EmployeeId} not found", assigneeId);
                         throw new NoDataFoundException($"Employee with Id {assigneeId} not found.");
                     }
+
+                    // Mark job as assigned (manual assignment at creation)
+                    var previousStatus = job.Status;
+                    job.Status = JobStatus.Assigned;
+                    job.AssignedDate ??= DateTime.UtcNow;
+
+                    // Add status log entry
+                    var statusLogs = job.StatusLogs;
+                    statusLogs.Add(new StatusLog
+                    {
+                        Status = JobStatus.Assigned.ToString(),
+                        Timestamp = DateTimeOffset.UtcNow
+                    });
+                    job.StatusLogs = statusLogs;
+
+                    _jobRepository.Update(job);
+                    await _unitOfWork.Save(cancellationToken);
+
+                    _jobStatusHistoryRepository.Create(new JobStatusHistory
+                    {
+                        JobId = job.Id,
+                        PreviousStatus = previousStatus,
+                        NewStatus = job.Status,
+                        ChangeSource = JobChangeSource.Assigned,
+                        ChangedByEmployeeId = _currentUserService.EmployeeId,
+                        ChangedDate = DateTimeOffset.UtcNow,
+                        PreviousAssigneeId = null,
+                        NewAssigneeId = assigneeId,
+                        Notes = "Assigned during job creation"
+                    });
+                    await _unitOfWork.Save(cancellationToken);
                 }
 
                 // Reload the job with employee relationship for mapping

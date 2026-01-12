@@ -5,6 +5,7 @@ using employee_management.Application.Repository;
 using employee_management.Application.Repository.JobsRepository;
 using employee_management.Application.Repository.EmployeesRepository;
 using employee_management.Application.Repository.AuditLogsRepository;
+using employee_management.Application.Repository.JobStatusHistoriesRepository;
 using employee_management.Domain.Entities;
 using employee_management.Domain.Enums;
 using System.Text.Json;
@@ -18,6 +19,7 @@ namespace employee_management.Application.Features.Manager.Commands.Queue.ForceA
         private readonly IJobRepository _jobRepository;
         private readonly IEmployeeRepository _employeeRepository;
         private readonly IAuditLogRepository _auditLogRepository;
+        private readonly IJobStatusHistoryRepository _jobStatusHistoryRepository;
         private readonly ICurrentUserService _currentUserService;
         private readonly ILogger<ForceAssignHandler> _logger;
 
@@ -26,6 +28,7 @@ namespace employee_management.Application.Features.Manager.Commands.Queue.ForceA
             IJobRepository jobRepository,
             IEmployeeRepository employeeRepository,
             IAuditLogRepository auditLogRepository,
+            IJobStatusHistoryRepository jobStatusHistoryRepository,
             ICurrentUserService currentUserService,
             ILogger<ForceAssignHandler> logger)
         {
@@ -33,6 +36,7 @@ namespace employee_management.Application.Features.Manager.Commands.Queue.ForceA
             _jobRepository = jobRepository;
             _employeeRepository = employeeRepository;
             _auditLogRepository = auditLogRepository;
+            _jobStatusHistoryRepository = jobStatusHistoryRepository;
             _currentUserService = currentUserService;
             _logger = logger;
         }
@@ -56,6 +60,7 @@ namespace employee_management.Application.Features.Manager.Commands.Queue.ForceA
 
             // Update job
             var previousAssigneeId = job.AssigneeId;
+            var previousStatus = job.Status;
             job.AssigneeId = request.StaffId;
             job.AssignedDate = DateTime.UtcNow;
             
@@ -74,6 +79,20 @@ namespace employee_management.Application.Features.Manager.Commands.Queue.ForceA
             job.StatusLogs = statusLogs;
 
             _jobRepository.Update(job);
+
+            // Job history (Assigned)
+            _jobStatusHistoryRepository.Create(new JobStatusHistory
+            {
+                JobId = job.Id,
+                PreviousStatus = previousStatus,
+                NewStatus = job.Status,
+                ChangeSource = JobChangeSource.Assigned,
+                ChangedByEmployeeId = _currentUserService.EmployeeId,
+                ChangedDate = DateTimeOffset.UtcNow,
+                PreviousAssigneeId = previousAssigneeId,
+                NewAssigneeId = request.StaffId,
+                Notes = string.IsNullOrWhiteSpace(request.Reason) ? "Force assigned" : $"Force assigned: {request.Reason}"
+            });
 
             // Create audit log
             var afterJson = JsonSerializer.Serialize(new { job.AssigneeId, job.Status });

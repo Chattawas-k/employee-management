@@ -3,6 +3,7 @@ using MediatR;
 using employee_management.Application.Common.Exceptions;
 using employee_management.Application.Common.Services;
 using employee_management.Application.Repository;
+using employee_management.Application.Repository.JobStatusHistoriesRepository;
 using employee_management.Application.Repository.JobsRepository;
 using employee_management.Application.Repository.QueuesRepository;
 using employee_management.Application.Repository.WaitingJobsRepository;
@@ -19,7 +20,9 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
         private readonly IQueueRepository _queueRepository;
         private readonly IWaitingJobRepository _waitingJobRepository;
         private readonly IEmployeeStatusHistoryRepository _historyRepository;
+        private readonly IJobStatusHistoryRepository _jobStatusHistoryRepository;
         private readonly INotificationService _notificationService;
+        private readonly ICurrentUserService _currentUserService;
         private readonly IMapper _mapper;
         private readonly ILogger<UpdateStatusHandler> _logger;
 
@@ -29,7 +32,9 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
             IQueueRepository queueRepository,
             IWaitingJobRepository waitingJobRepository,
             IEmployeeStatusHistoryRepository historyRepository,
+            IJobStatusHistoryRepository jobStatusHistoryRepository,
             INotificationService notificationService,
+            ICurrentUserService currentUserService,
             IMapper mapper, 
             ILogger<UpdateStatusHandler> logger)
         {
@@ -38,7 +43,9 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
             _queueRepository = queueRepository;
             _waitingJobRepository = waitingJobRepository;
             _historyRepository = historyRepository;
+            _jobStatusHistoryRepository = jobStatusHistoryRepository;
             _notificationService = notificationService;
+            _currentUserService = currentUserService;
             _mapper = mapper;
             _logger = logger;
         }
@@ -57,6 +64,25 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                 // Update status and set related dates
                 var previousStatus = job.Status;
                 job.Status = request.Status;
+
+                // Job status history (Manual) - only when status actually changes
+                if (previousStatus != request.Status)
+                {
+                    var notes = request.Status == JobStatus.Cancelled && !string.IsNullOrWhiteSpace(request.RejectReason)
+                        ? $"Cancelled: {request.RejectReason}"
+                        : null;
+
+                    _jobStatusHistoryRepository.Create(new JobStatusHistory
+                    {
+                        JobId = job.Id,
+                        PreviousStatus = previousStatus,
+                        NewStatus = request.Status,
+                        ChangeSource = JobChangeSource.Manual,
+                        ChangedByEmployeeId = _currentUserService.EmployeeId,
+                        ChangedDate = DateTimeOffset.UtcNow,
+                        Notes = notes
+                    });
+                }
 
                 // Set AssignedDate when transitioning to Assigned
                 if (request.Status == JobStatus.Assigned && !job.AssignedDate.HasValue)
@@ -269,8 +295,25 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                         continue;
                     }
 
+                    var previousAssigneeId = job.AssigneeId;
+                    var previousStatus = job.Status;
+
                     // Assign job to available staff
                     job.AssigneeId = availableStaff.EmployeeId;
+                    job.AssignedDate ??= DateTime.UtcNow;
+                    if (job.Status == JobStatus.Pending)
+                    {
+                        job.Status = JobStatus.Assigned;
+                    }
+
+                    // Add status log entry (assignment)
+                    var statusLogs = job.StatusLogs;
+                    statusLogs.Add(new StatusLog
+                    {
+                        Status = $"Auto Assigned to {availableStaff.EmployeeId}",
+                        Timestamp = DateTimeOffset.UtcNow
+                    });
+                    job.StatusLogs = statusLogs;
                     _jobRepository.Update(job);
 
                     // Mark waiting job as assigned
@@ -289,6 +332,21 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                     }
 
                     // Save changes
+                    await _unitOfWork.Save(cancellationToken);
+
+                    // History record (Assigned)
+                    _jobStatusHistoryRepository.Create(new JobStatusHistory
+                    {
+                        JobId = job.Id,
+                        PreviousStatus = previousStatus,
+                        NewStatus = job.Status,
+                        ChangeSource = JobChangeSource.Assigned,
+                        ChangedByEmployeeId = null, // system
+                        ChangedDate = DateTimeOffset.UtcNow,
+                        PreviousAssigneeId = previousAssigneeId == Guid.Empty ? Guid.Empty : previousAssigneeId,
+                        NewAssigneeId = availableStaff.EmployeeId,
+                        Notes = "Auto-assigned from waiting queue"
+                    });
                     await _unitOfWork.Save(cancellationToken);
 
                     // Send notification

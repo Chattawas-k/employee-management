@@ -429,6 +429,76 @@ namespace employee_management.Persistence.Migrations
                     b.ToTable("Jobs", (string)null);
                 });
 
+            modelBuilder.Entity("employee_management.Domain.Entities.JobStatusHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ChangeSource")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ChangedByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ChangedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("NewAssigneeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("NewStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("PreviousAssigneeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("PreviousStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangeSource");
+
+                    b.HasIndex("ChangedByEmployeeId");
+
+                    b.HasIndex("ChangedDate");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("JobId");
+
+                    b.HasIndex("NewAssigneeId");
+
+                    b.HasIndex("PreviousAssigneeId");
+
+                    b.ToTable("JobStatusHistories", (string)null);
+                });
+
             modelBuilder.Entity("employee_management.Domain.Entities.Position", b =>
                 {
                     b.Property<Guid>("Id")
@@ -936,6 +1006,24 @@ namespace employee_management.Persistence.Migrations
                     b.Navigation("Employee");
 
                     b.Navigation("ProductCategory");
+                });
+
+            modelBuilder.Entity("employee_management.Domain.Entities.JobStatusHistory", b =>
+                {
+                    b.HasOne("employee_management.Domain.Entities.Employee", "ChangedByEmployee")
+                        .WithMany()
+                        .HasForeignKey("ChangedByEmployeeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("employee_management.Domain.Entities.Job", "Job")
+                        .WithMany()
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ChangedByEmployee");
+
+                    b.Navigation("Job");
                 });
 
             modelBuilder.Entity("employee_management.Domain.Entities.Position", b =>

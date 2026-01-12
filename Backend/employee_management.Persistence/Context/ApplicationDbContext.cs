@@ -28,6 +28,7 @@ namespace employee_management.Persistence.Context
         public DbSet<Job> Jobs { get; set; }
         public DbSet<WaitingJob> WaitingJobs { get; set; }
         public DbSet<EmployeeStatusHistory> EmployeeStatusHistories { get; set; }
+        public DbSet<JobStatusHistory> JobStatusHistories { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<QueueRule> QueueRules { get; set; }
         public DbSet<ProductCategory> ProductCategories { get; set; }
@@ -124,6 +125,31 @@ namespace employee_management.Persistence.Context
                 entity.HasIndex(e => e.ChangedDate);
                 entity.HasIndex(e => e.ChangeReason);
                 entity.HasIndex(e => e.IsDeleted);
+            });
+
+            // Configure JobStatusHistory entity
+            modelBuilder.Entity<JobStatusHistory>(entity =>
+            {
+                entity.ToTable("JobStatusHistories");
+
+                entity.HasOne(e => e.Job)
+                    .WithMany()
+                    .HasForeignKey(e => e.JobId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.ChangedByEmployee)
+                    .WithMany()
+                    .HasForeignKey(e => e.ChangedByEmployeeId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(e => e.JobId);
+                entity.HasIndex(e => e.ChangedDate);
+                entity.HasIndex(e => e.ChangeSource);
+                entity.HasIndex(e => e.ChangedByEmployeeId);
+                entity.HasIndex(e => e.IsDeleted);
+
+                entity.HasIndex(e => e.PreviousAssigneeId);
+                entity.HasIndex(e => e.NewAssigneeId);
             });
 
             // Configure AuditLog entity

@@ -5,10 +5,12 @@ using employee_management.Application.Features.Jobs.Commands.Create;
 using employee_management.Application.Features.Jobs.Commands.UpdateStatus;
 using employee_management.Application.Features.Jobs.Queries.Get;
 using employee_management.Application.Features.Jobs.Queries.GetMyTasks;
+using employee_management.Application.Features.Jobs.Queries.GetMyStatusHistory;
 using employee_management.Application.Features.Jobs.Queries.GetSalesReports;
 using employee_management.Application.Features.Jobs.Queries.GetQueueSummary;
 using employee_management.Application.Features.Jobs.Queries.GetWaitingJobs;
 using employee_management.WebAPI.Controllers.Base;
+using employee_management.Domain.Enums;
 
 namespace employee_management.WebAPI.Controllers
 {
@@ -35,6 +37,39 @@ namespace employee_management.WebAPI.Controllers
             }
 
             var response = await _mediator.Send(new GetMyTasksRequest(employeeId), cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpGet("my-status-history")]
+        public async Task<ActionResult<GetMyStatusHistoryResponse>> GetMyStatusHistory(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] int? source = null,
+            [FromQuery] Guid? jobId = null,
+            [FromQuery] int skip = 0,
+            [FromQuery] int take = 50,
+            CancellationToken cancellationToken = default)
+        {
+            var employeeIdClaim = User.FindFirst("EmployeeId")?.Value;
+            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId) || employeeId == Guid.Empty)
+            {
+                return BadRequest("EmployeeId not found in token, invalid format, or not linked to this user.");
+            }
+
+            JobChangeSource? changeSource = null;
+            if (source.HasValue)
+            {
+                if (!Enum.IsDefined(typeof(JobChangeSource), source.Value))
+                {
+                    return BadRequest("Invalid source.");
+                }
+                changeSource = (JobChangeSource)source.Value;
+            }
+
+            var response = await _mediator.Send(
+                new GetMyStatusHistoryRequest(employeeId, startDate, endDate, changeSource, jobId, skip, take),
+                cancellationToken);
+
             return Ok(response);
         }
 

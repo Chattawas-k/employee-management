@@ -11,6 +11,7 @@ import { QueueSettingsComponent } from './features/queue-settings/queue-settings
 import { ProductCategoryManagementComponent } from './features/product-category-management/product-category-management.component';
 import { UsersPermissionsComponent } from './features/users-permissions/users-permissions.component';
 import { MyAccountComponent } from './features/my-account/my-account.component';
+import { MyAccountLayoutComponent } from './features/my-account/my-account-layout.component';
 import { authGuard } from './guards/auth.guard';
 import { managerGuard } from './guards/manager.guard';
 
@@ -27,7 +28,21 @@ export const routes: Routes = [
   { path: 'settings/queue', component: QueueSettingsComponent, canActivate: [authGuard] },
   { path: 'settings/product-categories', component: ProductCategoryManagementComponent, canActivate: [authGuard] },
   { path: 'settings/users', component: UsersPermissionsComponent, canActivate: [authGuard] },
-  { path: 'my-account', component: MyAccountComponent, canActivate: [authGuard] },
+  {
+    path: 'my-account',
+    component: MyAccountLayoutComponent,
+    canActivate: [authGuard],
+    children: [
+      { path: '', component: MyAccountComponent },
+      {
+        path: 'job-status-history',
+        loadComponent: () =>
+          import('./features/job-status-history/job-status-history.component').then(
+            m => m.JobStatusHistoryComponent
+          )
+      }
+    ]
+  },
   // Manager routes
   { 
     path: 'manager/dashboard', 

@@ -5,6 +5,7 @@ using employee_management.Application.Repository;
 using employee_management.Application.Repository.JobsRepository;
 using employee_management.Application.Repository.EmployeesRepository;
 using employee_management.Application.Repository.AuditLogsRepository;
+using employee_management.Application.Repository.JobStatusHistoriesRepository;
 using employee_management.Domain.Entities;
 using employee_management.Domain.Enums;
 using System.Text.Json;
@@ -18,6 +19,7 @@ namespace employee_management.Application.Features.Manager.Commands.Queue.Transf
         private readonly IJobRepository _jobRepository;
         private readonly IEmployeeRepository _employeeRepository;
         private readonly IAuditLogRepository _auditLogRepository;
+        private readonly IJobStatusHistoryRepository _jobStatusHistoryRepository;
         private readonly ICurrentUserService _currentUserService;
         private readonly ILogger<TransferHandler> _logger;
 
@@ -26,6 +28,7 @@ namespace employee_management.Application.Features.Manager.Commands.Queue.Transf
             IJobRepository jobRepository,
             IEmployeeRepository employeeRepository,
             IAuditLogRepository auditLogRepository,
+            IJobStatusHistoryRepository jobStatusHistoryRepository,
             ICurrentUserService currentUserService,
             ILogger<TransferHandler> logger)
         {
@@ -33,6 +36,7 @@ namespace employee_management.Application.Features.Manager.Commands.Queue.Transf
             _jobRepository = jobRepository;
             _employeeRepository = employeeRepository;
             _auditLogRepository = auditLogRepository;
+            _jobStatusHistoryRepository = jobStatusHistoryRepository;
             _currentUserService = currentUserService;
             _logger = logger;
         }
@@ -61,6 +65,7 @@ namespace employee_management.Application.Features.Manager.Commands.Queue.Transf
 
             // Update job
             var fromStaffId = job.AssigneeId;
+            var previousStatus = job.Status;
             job.AssigneeId = request.ToStaffId;
             job.AssignedDate = DateTime.UtcNow;
 
@@ -74,6 +79,20 @@ namespace employee_management.Application.Features.Manager.Commands.Queue.Transf
             job.StatusLogs = statusLogs;
 
             _jobRepository.Update(job);
+
+            // Job history (Assigned)
+            _jobStatusHistoryRepository.Create(new JobStatusHistory
+            {
+                JobId = job.Id,
+                PreviousStatus = previousStatus,
+                NewStatus = job.Status,
+                ChangeSource = JobChangeSource.Assigned,
+                ChangedByEmployeeId = _currentUserService.EmployeeId,
+                ChangedDate = DateTimeOffset.UtcNow,
+                PreviousAssigneeId = fromStaffId,
+                NewAssigneeId = request.ToStaffId,
+                Notes = $"Transferred: {request.Reason}"
+            });
 
             // Create audit log
             var afterJson = JsonSerializer.Serialize(new { job.AssigneeId, job.Status });
