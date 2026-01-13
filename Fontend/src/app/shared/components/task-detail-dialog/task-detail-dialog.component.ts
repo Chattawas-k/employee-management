@@ -39,7 +39,7 @@ export class TaskDetailDialogComponent {
       case 'rejected':
         return { text: 'ปฏิเสธแล้ว', class: 'text-red-800 font-medium bg-red-100', textColor: 'text-red-800', iconColor: 'text-red-600', iconBg: 'bg-red-200' };
       default:
-        return { text: 'ไม่ระบุ', class: ' font-medium bg-gray-100', textColor: '', iconColor: 'text-gray-600', iconBg: 'bg-gray-200' };
+        return { text: 'ไม่ระบุ', class: ' font-medium bg-gray-100', textColor: '', iconColor: '', iconBg: 'bg-gray-200' };
     }
   });
 
@@ -130,7 +130,6 @@ export class TaskDetailDialogComponent {
       key: 'created',
       title: 'สร้างงานในระบบ',
       timestamp: this.task.createdAt,
-      description: 'ลูกค้า Walk-in เข้ามาที่ร้าน และพนักงานรับคิว',
       iconColor: 'text-blue-600',
       iconBg: 'bg-blue-100',
       iconPath: 'M12 4v16m8-8H4'

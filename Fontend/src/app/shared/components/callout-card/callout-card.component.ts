@@ -116,7 +116,7 @@ export class CalloutCardComponent {
       case 'danger':
         return 'text-red-600';
       case 'neutral':
-        return 'text-gray-600';
+        return '';
       case 'info':
       default:
         return 'text-blue-600';

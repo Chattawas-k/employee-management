@@ -46,7 +46,7 @@ export class AlertBadgeComponent {
       case 'Low':
         return 'text-yellow-600';
       default:
-        return 'text-gray-600';
+        return '';
     }
   }
 

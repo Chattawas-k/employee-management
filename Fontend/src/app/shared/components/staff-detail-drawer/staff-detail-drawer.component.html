@@ -32,24 +32,24 @@
           <h3 class="text-lg font-semibold text-gray-900 mb-4">ผลงานวันนี้</h3>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="bg-blue-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">ทำแล้ว</p>
+              <p class="text-sm ">ทำแล้ว</p>
               <p class="text-2xl font-bold text-blue-600 mt-1">{{ staff.todayPerformance.handled }}</p>
             </div>
             <div class="bg-green-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">ชนะ</p>
+              <p class="text-sm ">ชนะ</p>
               <p class="text-2xl font-bold text-green-600 mt-1">{{ staff.todayPerformance.won }}</p>
             </div>
             <div class="bg-red-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">แพ้</p>
+              <p class="text-sm ">แพ้</p>
               <p class="text-2xl font-bold text-red-600 mt-1">{{ staff.todayPerformance.lost }}</p>
             </div>
             <div class="bg-purple-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">Conversion</p>
+              <p class="text-sm ">Conversion</p>
               <p class="text-2xl font-bold text-purple-600 mt-1">{{ staff.todayPerformance.conversionRate.toFixed(1) }}%</p>
             </div>
           </div>
           <div class="mt-4 bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">ยอดขายวันนี้</p>
+            <p class="text-sm ">ยอดขายวันนี้</p>
             <p class="text-2xl font-bold text-gray-900 mt-1">฿{{ staff.todayPerformance.salesAmount.toLocaleString() }}</p>
           </div>
         </section>
@@ -65,7 +65,7 @@
                   <p class="text-sm font-medium text-gray-900">{{ item.status }}</p>
                   <p class="text-xs text-gray-500 mt-1">{{ formatDate(item.timestamp) }}</p>
                   @if (item.reason) {
-                    <p class="text-xs text-gray-600 mt-1">{{ item.reason }}</p>
+                    <p class="text-xs  mt-1">{{ item.reason }}</p>
                   }
                 </div>
               </div>

@@ -87,7 +87,7 @@ export class ToastComponent implements OnInit {
       case 'info':
         return 'text-blue-600';
       default:
-        return 'text-gray-600';
+        return '';
     }
   }
 }

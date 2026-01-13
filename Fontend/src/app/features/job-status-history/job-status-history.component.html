@@ -103,10 +103,10 @@
                   <div class="mt-1 font-semibold text-gray-900 truncate">
                     {{ h.jobRunningCode || h.jobNumber || '-' }} · {{ h.title || '-' }}
                   </div>
-                  <div class="text-sm text-gray-600 truncate">{{ h.customer || '' }}</div>
+                  <div class="text-sm  truncate">{{ h.customer || '' }}</div>
 
                   <div class="mt-3 text-sm">
-                    <span class="text-gray-600">สถานะ:</span>
+                    <span class="">สถานะ:</span>
                     <span class="font-medium text-gray-900">
                       {{ getStatusLabel(h.previousStatus ?? null) }} → {{ getStatusLabel(h.newStatus) }}
                     </span>
@@ -114,12 +114,12 @@
 
                   @if (h.notes) {
                     <div class="mt-2 text-sm text-gray-700">
-                      <span class="text-gray-600">หมายเหตุ:</span> {{ h.notes }}
+                      <span class="">หมายเหตุ:</span> {{ h.notes }}
                     </div>
                   }
                 </div>
 
-                <div class="text-sm text-gray-600">
+                <div class="text-sm ">
                   <div class="text-gray-500">เปลี่ยนโดย</div>
                   <div class="font-medium text-gray-900">
                     {{ h.changedByEmployeeName || 'ระบบ' }}

@@ -39,7 +39,7 @@
                     {{ staffMember.status }}
                   </span>
                 </div>
-                <div class="space-y-1.5 text-xs text-gray-600">
+                <div class="space-y-1.5 text-xs ">
                   <div class="flex items-center justify-between">
                     <span>ภาระงาน:</span>
                     <span class="font-medium">{{ staffMember.activeLoad }} งาน</span>
@@ -60,7 +60,7 @@
                         </span>
                       }
                       @if (staffMember.categoryTags.length > 3) {
-                        <span class="px-1.5 py-0.5 text-xs rounded bg-gray-100 text-gray-600">
+                        <span class="px-1.5 py-0.5 text-xs rounded bg-gray-100 ">
                           +{{ staffMember.categoryTags.length - 3 }}
                         </span>
                       }

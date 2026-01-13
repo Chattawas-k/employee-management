@@ -29,7 +29,7 @@
       class="absolute left-0 top-0 bottom-0 z-10 w-12 bg-gradient-to-r from-slate-50 via-slate-50/80 to-transparent flex items-center justify-center hover:from-slate-100 transition-all duration-200 pointer-events-auto"
       type="button"
       aria-label="Scroll left">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 " fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
       </svg>
     </button>
@@ -41,7 +41,7 @@
       class="absolute right-0 top-0 bottom-0 z-10 w-12 bg-gradient-to-l from-slate-50 via-slate-50/80 to-transparent flex items-center justify-center hover:from-slate-100 transition-all duration-200 pointer-events-auto"
       type="button"
       aria-label="Scroll right">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 " fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
       </svg>
     </button>
@@ -61,7 +61,7 @@
         <span>ทั้งหมด</span>
         <span [class]="activeTab() === 'all' 
           ? 'bg-indigo-100 text-indigo-600' 
-          : 'bg-gray-100 text-gray-600'"
+          : 'bg-gray-100 '"
           class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
           {{ staffCounts().all }}
         </span>
@@ -77,7 +77,7 @@
         <span>พร้อมรับงาน</span>
         <span [class]="activeTab() === 'available' 
           ? 'bg-green-100 text-green-600' 
-          : 'bg-gray-100 text-gray-600'"
+          : 'bg-gray-100 '"
           class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
           {{ staffCounts().available }}
         </span>
@@ -93,7 +93,7 @@
         <span>ติดลูกค้า</span>
         <span [class]="activeTab() === 'busy' 
           ? 'bg-orange-100 text-orange-600' 
-          : 'bg-gray-100 text-gray-600'"
+          : 'bg-gray-100 '"
           class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
           {{ staffCounts().busy }}
         </span>
@@ -109,7 +109,7 @@
         <span>พักเที่ยง</span>
         <span [class]="activeTab() === 'lunchBreak' 
           ? 'bg-yellow-100 text-yellow-600' 
-          : 'bg-gray-100 text-gray-600'"
+          : 'bg-gray-100 '"
           class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
           {{ staffCounts().lunchBreak }}
         </span>
@@ -118,14 +118,14 @@
       <button
         (click)="setTab('unavailable')"
         [class]="activeTab() === 'unavailable' 
-          ? 'border-gray-500 text-gray-600' 
+          ? 'border-gray-500 ' 
           : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
         class="whitespace-nowrap py-3 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
         <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-500 flex-shrink-0"></span>
         <span>ไม่พร้อมรับงาน</span>
         <span [class]="activeTab() === 'unavailable' 
-          ? 'bg-gray-100 text-gray-600' 
-          : 'bg-gray-100 text-gray-600'"
+          ? 'bg-gray-100 ' 
+          : 'bg-gray-100 '"
           class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
           {{ staffCounts().unavailable }}
         </span>
@@ -141,7 +141,7 @@
         <span>ลา</span>
         <span [class]="activeTab() === 'leave' 
           ? 'bg-red-100 text-red-600' 
-          : 'bg-gray-100 text-gray-600'"
+          : 'bg-gray-100 '"
           class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
           {{ staffCounts().leave }}
         </span>
@@ -157,7 +157,7 @@
         <span>พบลูกค้านอกสถานที่</span>
         <span [class]="activeTab() === 'offsiteCustomer' 
           ? 'bg-blue-100 text-blue-600' 
-          : 'bg-gray-100 text-gray-600'"
+          : 'bg-gray-100 '"
           class="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold">
           {{ staffCounts().offsiteCustomer }}
         </span>

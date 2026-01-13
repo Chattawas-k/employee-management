@@ -73,15 +73,15 @@
                 </div>
                 <div class="space-y-2 text-sm">
                   <div class="flex items-center justify-between">
-                    <span class="text-gray-600">ภาระงาน:</span>
+                    <span class="">ภาระงาน:</span>
                     <span class="font-medium text-gray-900">{{ staffMember.activeLoad }} งาน</span>
                   </div>
                   <div class="flex items-center justify-between">
-                    <span class="text-gray-600">วันนี้:</span>
+                    <span class="">วันนี้:</span>
                     <span class="font-medium text-gray-900">ทำ {{ staffMember.todayHandled }}, ชนะ {{ staffMember.todayWon }}</span>
                   </div>
                   <div class="flex items-center justify-between">
-                    <span class="text-gray-600">Conversion:</span>
+                    <span class="">Conversion:</span>
                     <span class="font-medium text-blue-600">{{ staffMember.conversionRate.toFixed(1) }}%</span>
                   </div>
                   @if (staffMember.categoryTags && staffMember.categoryTags.length > 0) {

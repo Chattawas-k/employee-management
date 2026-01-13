@@ -52,7 +52,7 @@ export class QueueSnapshotPanelComponent {
     } else if (minutes >= 15) {
       return 'text-orange-600 font-medium';
     }
-    return 'text-gray-600';
+    return '';
   }
 
   formatWaitTime(waitTime: string): string {
