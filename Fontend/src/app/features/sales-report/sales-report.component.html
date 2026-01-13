@@ -258,7 +258,7 @@
       } @else {
         @for(report of paginatedReports(); track report.id) {
           @if (getStatusIcon(report.status); as statusIcon) {
-            <div class="p-5 space-y-3 bg-white rounded-lg shadow-sm cursor-pointer hover:bg-gray-50 hover:shadow-md transition-all duration-150 border border-gray-300" (click)="openDetailDialog(report)">
+            <div class="p-5 space-y-3 bg-white rounded-lg shadow-sm cursor-pointer hover:bg-gray-50 hover:shadow-md transition-all duration-150 border border-gray-100" (click)="openDetailDialog(report)">
               <!-- Header Section: Customer Info and Status -->
               <div class="flex justify-between items-start">
                 <div class="flex items-center gap-3 flex-1 min-w-0">

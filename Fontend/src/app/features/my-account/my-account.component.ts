@@ -1,35 +1,39 @@
 import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AccountService } from '../../services/account.service';
+import { AuthService } from '../../services/auth.service';
 import { EmployeeService } from '../../services/employee.service';
 import { QueueService } from '../../services/queue.service';
 import { TaskService } from '../../services/task.service';
 import { ToastService } from '../../services/toast.service';
 import { SummaryCardComponent } from '../../shared/components/summary-card/summary-card.component';
 import { EmployeeDto } from '../../models/employee.model';
-import { WorkStatsResponse, TimePeriod } from '../../models/account.model';
-import { MyQueueInfoResponse } from '../../models/queue.model';
+import { WorkStatsResponse, TimePeriod, ChangePasswordRequest } from '../../models/account.model';
+import { MyQueueInfoResponse, UpdateMyQueueStatusResponse } from '../../models/queue.model';
 import { JobDto, JobPriority, JobStatus } from '../../models/task.model';
 import { catchError, finalize } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { AvailabilityStatusKey, getAvailabilityStatusBadgeClass, getAvailabilityStatusLabel, normalizeAvailabilityStatus } from '../../shared/utils/availability-status.util';
+import { StatusUpdateDialogComponent } from '../../shared/components/status-update-dialog/status-update-dialog.component';
+import { PasswordChangeDialogComponent } from '../../shared/components/password-change-dialog/password-change-dialog.component';
+import { LogoutConfirmDialogComponent } from '../../shared/components/logout-confirm-dialog/logout-confirm-dialog.component';
 
 @Component({
   selector: 'app-my-account',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, SummaryCardComponent],
+  imports: [CommonModule, SummaryCardComponent, StatusUpdateDialogComponent, PasswordChangeDialogComponent, LogoutConfirmDialogComponent],
   templateUrl: './my-account.component.html',
   styleUrls: ['./my-account.component.scss']
 })
 export class MyAccountComponent implements OnInit, OnDestroy {
   // Services
   private accountService = inject(AccountService);
+  private authService = inject(AuthService);
   private employeeService = inject(EmployeeService);
   private queueService = inject(QueueService);
   private taskService = inject(TaskService);
   private toastService = inject(ToastService);
-  private fb = inject(FormBuilder);
 
   // Signals for state management
   employee = signal<EmployeeDto | null>(null);
@@ -40,15 +44,34 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   customStartDate = signal<string>('');
   customEndDate = signal<string>('');
   isLoadingStats = signal(false);
-  isLoadingPassword = signal(false);
+  isSubmittingPassword = signal(false);
+  isSubmittingStatus = signal(false);
   isLoadingEmployee = signal(false);
   isLoadingQueue = signal(false);
   isLoadingJobs = signal(false);
-  showPasswordSection = signal(false);
   showCustomDatePicker = signal(false);
 
-  // Forms
-  passwordForm!: FormGroup;
+  // Dialog state
+  showStatusDialog = signal(false);
+  showPasswordDialog = signal(false);
+  showLogoutDialog = signal(false);
+  isSubmittingLogout = signal(false);
+
+  // Date range display state (controls the blue label)
+  displayDateRange = signal<{ start: Date; end: Date } | null>(null);
+
+  displayDateRangeLabel = computed(() => {
+    const range = this.displayDateRange();
+    if (!range) return '';
+    // Thai language + Gregorian year (ค.ศ.) + latin digits
+    const fmt = new Intl.DateTimeFormat('th-TH-u-ca-gregory-nu-latn', { day: 'numeric', month: 'long', year: 'numeric' });
+    const startKey = this.toYmd(range.start);
+    const endKey = this.toYmd(range.end);
+    if (startKey === endKey) {
+      return `วันที่ ${fmt.format(range.start)}`;
+    }
+    return `วันที่ ${fmt.format(range.start)} - ${fmt.format(range.end)}`;
+  });
 
   // Computed values
   availabilityStatus = computed(() => {
@@ -75,7 +98,14 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    this.initPasswordForm();
+    // Default custom dates to today (YYYY-MM-DD)
+    const todayYmd = this.toYmd(new Date());
+    if (!this.customStartDate()) this.customStartDate.set(todayYmd);
+    if (!this.customEndDate()) this.customEndDate.set(todayYmd);
+
+    // Initialize label for default period
+    this.setDisplayDateRangeForPeriod(this.selectedPeriod());
+
     this.loadEmployeeInfo();
     this.loadQueueInfo();
     this.loadWorkStats();
@@ -85,24 +115,39 @@ export class MyAccountComponent implements OnInit, OnDestroy {
     // Cleanup if needed
   }
 
-  private initPasswordForm(): void {
-    this.passwordForm = this.fb.group({
-      currentPassword: ['', [Validators.required]],
-      newPassword: ['', [Validators.required, Validators.minLength(6)]],
-      confirmPassword: ['', [Validators.required]]
-    }, {
-      validators: this.passwordMatchValidator
-    });
+  openStatusDialog(): void {
+    this.showStatusDialog.set(true);
   }
 
-  private passwordMatchValidator(form: FormGroup): { [key: string]: boolean } | null {
-    const newPassword = form.get('newPassword')?.value;
-    const confirmPassword = form.get('confirmPassword')?.value;
-    
-    if (newPassword && confirmPassword && newPassword !== confirmPassword) {
-      return { passwordMismatch: true };
-    }
-    return null;
+  closeStatusDialog(): void {
+    if (this.isSubmittingStatus()) return;
+    this.showStatusDialog.set(false);
+  }
+
+  openPasswordDialog(): void {
+    this.showPasswordDialog.set(true);
+  }
+
+  closePasswordDialog(): void {
+    if (this.isSubmittingPassword()) return;
+    this.showPasswordDialog.set(false);
+  }
+
+  openLogoutDialog(): void {
+    this.showLogoutDialog.set(true);
+  }
+
+  closeLogoutDialog(): void {
+    if (this.isSubmittingLogout()) return;
+    this.showLogoutDialog.set(false);
+  }
+
+  confirmLogout(): void {
+    // Logout is synchronous (localStorage clear + redirect), but we keep UX consistent with dialogs.
+    this.isSubmittingLogout.set(true);
+    this.authService.logout();
+    this.isSubmittingLogout.set(false);
+    this.closeLogoutDialog();
   }
 
   loadEmployeeInfo(): void {
@@ -138,51 +183,14 @@ export class MyAccountComponent implements OnInit, OnDestroy {
 
   loadWorkStats(): void {
     const period = this.selectedPeriod();
-    let startDate: string | undefined;
-    let endDate: string | undefined;
-
-    // Calculate date range based on selected period
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    switch (period) {
-      case 'today':
-        startDate = today.toISOString();
-        endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
-        break;
-      case 'yesterday':
-        const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-        startDate = yesterday.toISOString();
-        endDate = new Date(yesterday.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
-        break;
-      case 'last7days':
-        const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-        startDate = sevenDaysAgo.toISOString();
-        endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
-        break;
-      case 'last15days':
-        const fifteenDaysAgo = new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000);
-        startDate = fifteenDaysAgo.toISOString();
-        endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
-        break;
-      case 'thisMonth':
-        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        startDate = firstDayOfMonth.toISOString();
-        endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
-        break;
-      case 'custom':
-        if (this.customStartDate() && this.customEndDate()) {
-          startDate = new Date(this.customStartDate()).toISOString();
-          endDate = new Date(this.customEndDate() + 'T23:59:59').toISOString();
-        } else {
-          this.toastService.error('กรุณาเลือกช่วงวันที่');
-          return;
-        }
-        break;
+    const query = this.getDateRangeQuery(period);
+    if (!query) {
+      this.toastService.error('กรุณาเลือกช่วงวันที่');
+      return;
     }
 
     this.isLoadingStats.set(true);
-    this.accountService.getMyWorkStats(startDate, endDate).pipe(
+    this.accountService.getMyWorkStats(query.startIso, query.endIso).pipe(
       catchError(error => {
         console.error('Error loading work stats:', error);
         this.toastService.error('เกิดข้อผิดพลาดในการโหลดสถิติ');
@@ -214,18 +222,55 @@ export class MyAccountComponent implements OnInit, OnDestroy {
     this.selectedPeriod.set(period);
     if (period === 'custom') {
       this.showCustomDatePicker.set(true);
+      // Ensure defaults exist for custom
+      const todayYmd = this.toYmd(new Date());
+      if (!this.customStartDate()) this.customStartDate.set(todayYmd);
+      if (!this.customEndDate()) this.customEndDate.set(todayYmd);
+      // Set label to current custom values (does not auto-update on input change)
+      this.setDisplayDateRangeForCustomInputs();
     } else {
       this.showCustomDatePicker.set(false);
+      this.setDisplayDateRangeForPeriod(period);
       this.loadWorkStats();
     }
   }
 
   applyCustomDateRange(): void {
-    if (this.customStartDate() && this.customEndDate()) {
-      this.loadWorkStats();
-    } else {
+    const start = this.customStartDate();
+    const end = this.customEndDate();
+    
+    if (!start || !end) {
       this.toastService.error('กรุณาเลือกวันที่เริ่มต้นและวันที่สิ้นสุด');
+      return;
     }
+    
+    // Validate: end date must be >= start date
+    if (end < start) {
+      this.toastService.error('วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น');
+      return;
+    }
+    
+    this.setDisplayDateRangeForCustomInputs();
+    this.loadWorkStats();
+  }
+
+  onCustomStartDateChange(value: string): void {
+    this.customStartDate.set(value);
+    // Keep end date >= start date
+    const end = this.customEndDate();
+    if (end && value && end < value) {
+      this.customEndDate.set(value);
+    }
+  }
+
+  onCustomEndDateChange(value: string): void {
+    const start = this.customStartDate();
+    // Prevent end < start (if user manages to pick it via platform quirks)
+    if (start && value && value < start) {
+      this.customEndDate.set(start);
+      return;
+    }
+    this.customEndDate.set(value);
   }
 
   updateStatus(status: AvailabilityStatusKey): void {
@@ -241,6 +286,219 @@ export class MyAccountComponent implements OnInit, OnDestroy {
         this.loadQueueInfo();
       }
     });
+  }
+
+  confirmStatusChange(status: AvailabilityStatusKey): void {
+    if (status === this.availabilityStatus()) {
+      this.closeStatusDialog();
+      return;
+    }
+
+    this.isSubmittingStatus.set(true);
+    this.queueService.updateMyQueueStatus(status).pipe(
+      catchError(error => {
+        console.error('Error updating status:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการอัพเดทสถานะ');
+        return of(null);
+      }),
+      finalize(() => this.isSubmittingStatus.set(false))
+    ).subscribe((response: UpdateMyQueueStatusResponse | null) => {
+      if (response) {
+        this.toastService.success('อัพเดทสถานะสำเร็จ');
+        this.loadQueueInfo();
+        this.closeStatusDialog();
+      }
+    });
+  }
+
+  confirmPasswordChange(payload: ChangePasswordRequest): void {
+    this.isSubmittingPassword.set(true);
+    this.accountService.changePassword(payload).pipe(
+      catchError(error => {
+        console.error('Error changing password:', error);
+        const rawMessage = this.extractHttpErrorMessage(error, 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน');
+        this.toastService.error(this.translateChangePasswordMessage(rawMessage));
+        return of(null);
+      }),
+      finalize(() => this.isSubmittingPassword.set(false))
+    ).subscribe(response => {
+      if (response && response.success) {
+        this.toastService.success('เปลี่ยนรหัสผ่านสำเร็จ');
+        this.closePasswordDialog();
+      } else if (response && !response.success) {
+        this.toastService.error(this.translateChangePasswordMessage(response.message));
+      }
+    });
+  }
+
+  private translateChangePasswordMessage(message: string): string {
+    const text = String(message ?? '').trim();
+    if (!text) return 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน';
+
+    // If it's already Thai, keep it.
+    if (/[ก-๙]/.test(text)) return text;
+
+    const normalized = text.toLowerCase();
+
+    // Handle Identity aggregated errors: "Failed to change password: ... , ..."
+    if (normalized.includes('failed to change password:')) {
+      const after = text.split(/failed to change password:/i)[1] ?? '';
+      const parts = after
+        .split(',')
+        .map(p => p.trim())
+        .filter(Boolean);
+
+      const translatedParts = parts
+        .map(p => this.translateChangePasswordMessage(p))
+        .filter(Boolean);
+
+      if (translatedParts.length > 0) return translatedParts.join(' / ');
+      return 'เปลี่ยนรหัสผ่านไม่สำเร็จ';
+    }
+
+    if (normalized.includes('current password is incorrect')) return 'รหัสผ่านปัจจุบันไม่ถูกต้อง';
+    if (normalized.includes('current password is required')) return 'กรุณากรอกรหัสผ่านปัจจุบัน';
+    if (normalized.includes('new password is required')) return 'กรุณากรอกรหัสผ่านใหม่';
+    if (normalized.includes('confirm password is required')) return 'กรุณายืนยันรหัสผ่านใหม่';
+    if (normalized.includes('new password must be at least 6')) return 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร';
+    if (normalized.includes('confirm password must match')) return 'ยืนยันรหัสผ่านต้องตรงกับรหัสผ่านใหม่';
+    if (normalized.includes('new password must be different')) return 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านปัจจุบัน';
+    if (normalized.includes('user not found')) return 'ไม่พบผู้ใช้';
+    if (normalized.includes('failed to change password')) return 'เปลี่ยนรหัสผ่านไม่สำเร็จ';
+
+    // ASP.NET Identity password policy messages
+    if (normalized.includes("passwords must have at least one lowercase")) return "รหัสผ่านต้องมีตัวอักษรภาษาอังกฤษพิมพ์เล็กอย่างน้อย 1 ตัว (a-z)";
+    if (normalized.includes("passwords must have at least one uppercase")) return "รหัสผ่านต้องมีตัวอักษรภาษาอังกฤษพิมพ์ใหญ่อย่างน้อย 1 ตัว (A-Z)";
+    if (normalized.includes("passwords must have at least one digit")) return "รหัสผ่านต้องมีตัวเลขอย่างน้อย 1 ตัว (0-9)";
+    if (normalized.includes("passwords must have at least one non alphanumeric")) return "รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (เช่น !@#)";
+    if (normalized.includes("passwords must be at least")) return "รหัสผ่านใหม่สั้นเกินไป";
+
+    return 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน';
+  }
+
+  private extractHttpErrorMessage(error: unknown, fallback: string): string {
+    // HttpClient errors usually come through HttpErrorResponse
+    if (error instanceof HttpErrorResponse) {
+      const payload = error.error;
+
+      // Case: backend returns plain text
+      if (typeof payload === 'string' && payload.trim().length > 0) {
+        return payload;
+      }
+
+      // Case: backend returns { message }
+      const message = (payload as any)?.message;
+      if (typeof message === 'string' && message.trim().length > 0) {
+        return message;
+      }
+
+      // Case: backend returns RFC7807 ProblemDetails { title, detail, errors }
+      const title = (payload as any)?.title;
+      if (typeof title === 'string' && title.trim().length > 0) {
+        return title;
+      }
+
+      const detail = (payload as any)?.detail;
+      if (typeof detail === 'string' && detail.trim().length > 0) {
+        return detail;
+      }
+
+      const errors = (payload as any)?.errors;
+      if (errors && typeof errors === 'object') {
+        const firstMessages: string[] = [];
+        for (const key of Object.keys(errors)) {
+          const value = (errors as any)[key];
+          if (Array.isArray(value) && typeof value[0] === 'string' && value[0].trim().length > 0) {
+            firstMessages.push(value[0]);
+          }
+        }
+        if (firstMessages.length > 0) {
+          return firstMessages.join(' / ');
+        }
+      }
+
+      // Case: HttpErrorResponse.message (client-side)
+      if (typeof error.message === 'string' && error.message.trim().length > 0) {
+        return error.message;
+      }
+    }
+
+    // Unknown error
+    if (typeof (error as any)?.message === 'string' && (error as any).message.trim().length > 0) {
+      return (error as any).message;
+    }
+
+    return fallback;
+  }
+
+  private setDisplayDateRangeForPeriod(period: TimePeriod): void {
+    const query = this.getDateRangeQuery(period);
+    if (!query) return;
+    this.displayDateRange.set({ start: query.startDisplay, end: query.endDisplay });
+  }
+
+  private setDisplayDateRangeForCustomInputs(): void {
+    const start = this.customStartDate();
+    const end = this.customEndDate();
+    if (!start || !end) return;
+    this.displayDateRange.set({
+      start: new Date(`${start}T00:00:00`),
+      end: new Date(`${end}T00:00:00`)
+    });
+  }
+
+  private getDateRangeQuery(period: TimePeriod): { startIso: string; endIso: string; startDisplay: Date; endDisplay: Date } | null {
+    // Calculate date range based on selected period (kept consistent with previous logic)
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    switch (period) {
+      case 'today': {
+        const start = today;
+        const endDisplay = today;
+        const endIso = new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
+        return { startIso: start.toISOString(), endIso, startDisplay: start, endDisplay };
+      }
+      case 'yesterday': {
+        const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+        const endIso = new Date(yesterday.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
+        return { startIso: yesterday.toISOString(), endIso, startDisplay: yesterday, endDisplay: yesterday };
+      }
+      case 'last7days': {
+        const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const endIso = new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
+        return { startIso: sevenDaysAgo.toISOString(), endIso, startDisplay: sevenDaysAgo, endDisplay: today };
+      }
+      case 'last15days': {
+        const fifteenDaysAgo = new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000);
+        const endIso = new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
+        return { startIso: fifteenDaysAgo.toISOString(), endIso, startDisplay: fifteenDaysAgo, endDisplay: today };
+      }
+      case 'thisMonth': {
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endIso = new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
+        return { startIso: firstDayOfMonth.toISOString(), endIso, startDisplay: firstDayOfMonth, endDisplay: today };
+      }
+      case 'custom': {
+        const startYmd = this.customStartDate();
+        const endYmd = this.customEndDate();
+        if (!startYmd || !endYmd) return null;
+        const startDisplay = new Date(`${startYmd}T00:00:00`);
+        const endDisplay = new Date(`${endYmd}T00:00:00`);
+        const startIso = new Date(startYmd).toISOString();
+        const endIso = new Date(`${endYmd}T23:59:59`).toISOString();
+        return { startIso, endIso, startDisplay, endDisplay };
+      }
+      default:
+        return null;
+    }
+  }
+
+  private toYmd(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
   getJobStatusLabel(status: JobStatus | string): string {
@@ -330,61 +588,6 @@ export class MyAccountComponent implements OnInit, OnDestroy {
       }
     }
     return String(value).toLowerCase().replace(/[^a-z]/g, '');
-  }
-
-  togglePasswordSection(): void {
-    this.showPasswordSection.set(!this.showPasswordSection());
-    if (!this.showPasswordSection()) {
-      this.passwordForm.reset();
-    }
-  }
-
-  onChangePassword(): void {
-    if (this.passwordForm.invalid) {
-      this.passwordForm.markAllAsTouched();
-      return;
-    }
-
-    const formValue = this.passwordForm.value;
-    this.isLoadingPassword.set(true);
-
-    this.accountService.changePassword({
-      currentPassword: formValue.currentPassword,
-      newPassword: formValue.newPassword,
-      confirmPassword: formValue.confirmPassword
-    }).pipe(
-      catchError(error => {
-        console.error('Error changing password:', error);
-        const errorMessage = error.error?.message || 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน';
-        this.toastService.error(errorMessage);
-        return of(null);
-      }),
-      finalize(() => this.isLoadingPassword.set(false))
-    ).subscribe(response => {
-      if (response && response.success) {
-        this.toastService.success('เปลี่ยนรหัสผ่านสำเร็จ');
-        this.passwordForm.reset();
-        this.showPasswordSection.set(false);
-      } else if (response && !response.success) {
-        this.toastService.error(response.message);
-      }
-    });
-  }
-
-  getPasswordErrorMessage(controlName: string): string {
-    const control = this.passwordForm.get(controlName);
-    if (!control || !control.touched) return '';
-
-    if (control.hasError('required')) {
-      return 'กรุณากรอกข้อมูล';
-    }
-    if (controlName === 'newPassword' && control.hasError('minlength')) {
-      return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
-    }
-    if (controlName === 'confirmPassword' && this.passwordForm.hasError('passwordMismatch')) {
-      return 'รหัสผ่านไม่ตรงกัน';
-    }
-    return '';
   }
 
   getAvatarUrl(): string {

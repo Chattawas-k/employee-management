@@ -73,7 +73,7 @@
             </div>
           </div>
           } @else {
-          <div class="bg-white rounded-xl p-3 flex items-center gap-4 shadow-sm transition-all hover:shadow-md border ">
+          <div class="bg-white rounded-xl p-3 flex items-center gap-4 shadow-sm transition-all hover:shadow-md border border-gray-100">
             <div class="flex-shrink-0 w-[40px] text-center bg-gray-100/80 rounded-lg py-1">
               <p class="text-2xl font-medium text-gray-700">{{ staff.queue }}</p>
             </div>
@@ -89,8 +89,9 @@
               <p class="font-medium ">{{ staff.name }}</p>
             </div>
             <div class="flex-shrink-0 text-right">
-              <p class="text-xs text-gray-400">งานทั้งหมด</p>
-              <p class="text-xl font-medium ">{{ staff.servedToday }}</p>
+              <p class="text-xl text-gray-500 ">{{ staff.servedToday }}</p>
+              <span class="text-xs text-gray-400">รอบ</span>
+
             </div>
           </div>
           }
@@ -103,7 +104,7 @@
         <!-- Busy Column -->
         <div>
           <header class="flex items-center gap-2.5 mb-4">
-            <span class="w-3 h-3 bg-orange-600 rounded-full animate-pulse"></span>
+            <span class="w-3 h-3 bg-orange-400 rounded-full animate-pulse"></span>
             <h2 class="text-xl font-medium">กำลังดูแลลูกค้า</h2>
             <span
               class="ml-auto px-2.5 py-1 text-base font-medium text-red-700 bg-red-100 rounded-full">{{busyStaff().length}}</span>
@@ -143,7 +144,7 @@
         <!-- Lunch Break Column -->
         <div>
           <header class="flex items-center gap-2.5 mb-4">
-            <span class="w-3 h-3 bg-yellow-600 rounded-full animate-pulse"></span>
+            <span class="w-3 h-3 bg-yellow-300 rounded-full animate-pulse"></span>
             <button
               type="button"
               (click)="toggleLunchBreak()"

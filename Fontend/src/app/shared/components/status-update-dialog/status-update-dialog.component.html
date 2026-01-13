@@ -1,0 +1,69 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center px-4">
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" (click)="onBackdropClick()"></div>
+
+  <div class="relative w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900">เปลี่ยนสถานะการทำงาน</h3>
+          <p class="text-sm text-slate-500 mt-0.5">เลือกสถานะ แล้วกด “ยืนยัน” เพื่อบันทึก</p>
+        </div>
+        <button type="button" class="p-2 rounded-lg hover:bg-slate-50" (click)="onCancel()" [disabled]="isSubmitting" aria-label="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="p-6">
+      <div class="space-y-2">
+        @for (opt of options(); track opt.value) {
+          <button
+            type="button"
+            class="w-full text-left rounded-xl border px-4 py-3 transition-all flex items-start gap-3"
+            [class.border-blue-500]="selected() === opt.value"
+            [class.bg-blue-50]="selected() === opt.value"
+            [class.border-slate-200]="selected() !== opt.value"
+            [class.bg-white]="selected() !== opt.value"
+            [disabled]="isSubmitting || opt.value === currentStatus"
+            (click)="selected.set(opt.value)">
+            <span class="mt-1 h-2.5 w-2.5 rounded-full flex-shrink-0" [class]="opt.dotClass"></span>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="font-medium text-slate-900">{{ opt.label }}</span>
+                @if (opt.value === currentStatus) {
+                  <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">สถานะปัจจุบัน</span>
+                }
+              </div>
+              @if (opt.description) {
+                <p class="text-sm text-slate-500 mt-0.5">{{ opt.description }}</p>
+              }
+            </div>
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3">
+      <button
+        type="button"
+        class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium"
+        (click)="onCancel()"
+        [disabled]="isSubmitting">
+        ยกเลิก
+      </button>
+      <button
+        type="button"
+        class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+        (click)="onConfirm()"
+        [disabled]="isSubmitting || selected() === currentStatus">
+        @if (isSubmitting) {
+          <span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+        }
+        <span>ยืนยัน</span>
+      </button>
+    </div>
+  </div>
+</div>
+

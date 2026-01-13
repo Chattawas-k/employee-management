@@ -1,0 +1,47 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center px-4">
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" (click)="onBackdropClick()"></div>
+
+  <div class="relative w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900">ออกจากระบบ</h3>
+          <p class="text-sm text-slate-500 mt-0.5">คุณต้องการออกจากระบบใช่หรือไม่?</p>
+        </div>
+        <button
+          type="button"
+          class="p-2 rounded-lg hover:bg-slate-50"
+          (click)="onCancel()"
+          [disabled]="isSubmitting"
+          aria-label="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="p-6">
+      <div class="flex justify-end gap-3">
+        <button
+          type="button"
+          class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium"
+          (click)="onCancel()"
+          [disabled]="isSubmitting">
+          ยกเลิก
+        </button>
+        <button
+          type="button"
+          class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 font-medium flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          (click)="onConfirm()"
+          [disabled]="isSubmitting">
+          @if (isSubmitting) {
+            <span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+          }
+          <span>ออกจากระบบ</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+

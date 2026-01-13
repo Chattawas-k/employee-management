@@ -51,6 +51,18 @@ body {
   box-sizing: border-box;
 }
 
+/* Global typography policy: cap "bold" usage to 500 (medium) across the app */
+strong, b {
+  font-weight: 500;
+}
+
+.font-semibold,
+.font-bold,
+.font-extrabold,
+.font-black {
+  font-weight: 500 !important;
+}
+
 /* Ensure minimum font size is 14px for all text elements */
 p, span, div, a, button, input, textarea, select, label, li, td, th, h1, h2, h3, h4, h5, h6 {
   font-size: max(14px, 1em); /* Minimum 14px, but respect parent size */
