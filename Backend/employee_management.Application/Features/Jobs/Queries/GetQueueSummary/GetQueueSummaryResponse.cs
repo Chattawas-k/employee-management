@@ -11,6 +11,7 @@ namespace employee_management.Application.Features.Jobs.Queries.GetQueueSummary
     public sealed record QueueSummaryJobDto(
         Guid Id,
         string JobNumber,
+        string? JobRunningCode,
         string Title,
         string Customer,
         string Description,

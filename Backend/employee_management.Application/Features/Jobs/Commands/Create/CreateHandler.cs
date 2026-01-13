@@ -67,7 +67,8 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
                 // Create new Job entity (without assignee initially if auto-assigning)
                 var job = new Job
                 {
-                    JobNumber = jobNumber,
+                    JobNumber = jobNumber.JobNumber,
+                    JobRunningCode = jobNumber.JobRunningCode,
                     Title = request.Title,
                     Customer = request.Customer,
                     Description = request.Description,

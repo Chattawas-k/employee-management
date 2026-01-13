@@ -9,6 +9,7 @@ namespace employee_management.Application.Features.Manager.Queries.Dashboard.Get
     public sealed record QueueSnapshotTicketDto(
         Guid Id,
         string JobNumber,
+        string? JobRunningCode,
         string Customer,
         string Channel,
         TimeSpan WaitTime,

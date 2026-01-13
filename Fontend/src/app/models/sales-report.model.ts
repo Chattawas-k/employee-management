@@ -3,6 +3,7 @@ export type ReportStatus = 'Success' | 'Pending' | 'Failed';
 export interface SalesReport {
   id: string;
   jobNumber: string;
+  jobRunningCode?: string | null;
   customerName: string;
   contactInfo: string;
   status: ReportStatus;

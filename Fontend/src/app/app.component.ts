@@ -48,12 +48,13 @@ export class AppComponent implements OnInit, OnDestroy {
   currentEmployee = signal<EmployeeDto | null>(null);
   availabilityStatus = signal<AvailabilityStatusKey>('available');
   isLoginPage = signal(false);
+  isFullScreenPage = signal(false);
   showStatusChangeDialog = signal(false);
   pendingStatusChange = signal<AvailabilityStatusKey | null>(null);
   myQueueInfo = signal<MyQueueInfoResponse | null>(null);
   isLoadingQueueInfo = signal(false);
 
-  showLayout = computed(() => this.isAuthenticated() && !this.isLoginPage());
+  showLayout = computed(() => this.isAuthenticated() && !this.isLoginPage() && !this.isFullScreenPage());
   
   // Check if user is employee (has Basic role)
   isEmployee = computed(() => {
@@ -282,6 +283,9 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private checkRoute(url: string): void {
     this.isLoginPage.set(url.includes('/login'));
+    // Full-screen pages must not render the app shell (sidebar/top/bottom layout)
+    // Example: Monitor should look identical whether logged in or not.
+    this.isFullScreenPage.set(url.includes('/monitor'));
     
     // Close status menu when navigating (except if it's the login page)
     if (!url.includes('/login')) {

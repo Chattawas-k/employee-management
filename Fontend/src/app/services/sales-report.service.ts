@@ -6,6 +6,7 @@ import { environment } from '../../environments/environment';
 export interface SalesReportDto {
   id: string;
   jobNumber: string;
+  jobRunningCode?: string | null;
   customerName: string;
   customerContact: string;
   salesStatus: string;

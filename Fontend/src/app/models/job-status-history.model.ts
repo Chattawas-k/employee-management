@@ -10,6 +10,7 @@ export interface JobStatusHistoryDto {
   id: string;
   jobId: string;
   jobNumber?: string | null;
+  jobRunningCode?: string | null;
   title?: string | null;
   customer?: string | null;
   previousStatus?: JobStatus | string | null;

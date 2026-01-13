@@ -62,7 +62,7 @@ export class ManagerLiveQueueComponent implements OnInit, OnDestroy {
   actionTicketId = signal<string>('');
   actionTicketNumber = computed(() => {
     const ticket = this.tickets().find(t => t.id === this.actionTicketId());
-    return ticket?.jobNumber || '';
+    return ticket?.jobRunningCode || ticket?.jobNumber || '';
   });
   actionTicketAssignee = computed(() => {
     const ticket = this.tickets().find(t => t.id === this.actionTicketId());
@@ -373,6 +373,7 @@ export class ManagerLiveQueueComponent implements OnInit, OnDestroy {
   getTableData(): any[] {
     return this.tickets().map(ticket => ({
       ...ticket,
+      jobNumber: ticket.jobRunningCode || ticket.jobNumber,
       statusBadge: `<span class="px-2 py-1 text-xs font-medium rounded-full ${this.getStatusBadgeClass(ticket.status)}">${ticket.status}</span>`,
       priorityBadge: `<span class="px-2 py-1 text-xs font-medium rounded border ${ticket.priority === 'Urgent' ? 'bg-red-100 text-red-700 border-red-200' : 'bg-gray-100 text-gray-700 border-gray-200'}">${ticket.priority}</span>`,
       waitTime: this.formatWaitTime(ticket.createdDate),

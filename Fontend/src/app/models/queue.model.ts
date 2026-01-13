@@ -18,6 +18,7 @@ export interface GetQueuesByDateResponse extends Array<QueueDto> {}
 export interface QueueSummaryJobDto {
   id: string;
   jobNumber: string;
+  jobRunningCode?: string | null;
   title: string;
   customer: string;
   description: string;

@@ -11,6 +11,7 @@ namespace employee_management.Application.Features.Jobs.Queries.GetQueueSummary
             CreateMap<Job, QueueSummaryJobDto>()
                 .ForCtorParam(nameof(QueueSummaryJobDto.Id), opt => opt.MapFrom(src => src.Id))
                 .ForCtorParam(nameof(QueueSummaryJobDto.JobNumber), opt => opt.MapFrom(src => src.JobNumber))
+                .ForCtorParam(nameof(QueueSummaryJobDto.JobRunningCode), opt => opt.MapFrom(src => src.JobRunningCode))
                 .ForCtorParam(nameof(QueueSummaryJobDto.Title), opt => opt.MapFrom(src => src.Title))
                 .ForCtorParam(nameof(QueueSummaryJobDto.Customer), opt => opt.MapFrom(src => src.Customer))
                 .ForCtorParam(nameof(QueueSummaryJobDto.Description), opt => opt.MapFrom(src => src.Description))

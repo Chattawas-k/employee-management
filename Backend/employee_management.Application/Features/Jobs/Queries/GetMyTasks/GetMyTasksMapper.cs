@@ -10,6 +10,8 @@ namespace employee_management.Application.Features.Jobs.Queries.GetMyTasks
             CreateMap<Job, JobDto>()
                 .ForCtorParam(nameof(JobDto.JobNumber),
                     opt => opt.MapFrom(src => src.JobNumber))
+                .ForCtorParam(nameof(JobDto.JobRunningCode),
+                    opt => opt.MapFrom(src => src.JobRunningCode))
                 .ForCtorParam(nameof(JobDto.AssigneeName),
                     opt => opt.MapFrom(src => src.Employee != null ? src.Employee.Name : null))
                 .ForCtorParam(nameof(JobDto.StatusLogs),

@@ -5,6 +5,7 @@ import { TaskCardComponent, TaskAction } from '../task-card/task-card.component'
 export interface Task {
   id: string;
   jobNumber?: string;
+  jobRunningCode?: string | null;
   createdAt: string;
   priority: string;
   priorityClass: string;

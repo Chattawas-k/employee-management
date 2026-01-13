@@ -15,6 +15,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
     public sealed record UpdateStatusResponse(
         Guid Id,
         string JobNumber,
+        string? JobRunningCode,
         string Title,
         string Customer,
         string Description,

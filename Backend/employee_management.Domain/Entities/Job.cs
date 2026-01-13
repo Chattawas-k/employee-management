@@ -7,6 +7,11 @@ namespace employee_management.Domain.Entities
     public class Job : BaseEntity
     {
         public string JobNumber { get; set; } = string.Empty;
+        /// <summary>
+        /// Running code part of JobNumber (e.g., "004", "1200").
+        /// Used for display across the system.
+        /// </summary>
+        public string? JobRunningCode { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Customer { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;

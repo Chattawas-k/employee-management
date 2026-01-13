@@ -470,6 +470,7 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
       const report: SalesReport = {
         id: id,
         jobNumber: apiReport.jobNumber || '',
+        jobRunningCode: apiReport.jobRunningCode ?? null,
         customerName: apiReport.customerName || '',
         contactInfo: apiReport.customerContact || '',
         status: status,
@@ -571,6 +572,7 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
       report.customerName.toLowerCase().includes(term) ||
       report.contactInfo.toLowerCase().includes(term) ||
       report.jobNumber.toLowerCase().includes(term) ||
+      (report.jobRunningCode || '').toLowerCase().includes(term) ||
       report.interestedProducts.some(p => p.toLowerCase().includes(term))
     );
   });

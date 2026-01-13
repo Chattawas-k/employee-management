@@ -84,6 +84,7 @@ namespace employee_management.Application.Features.Monitor.Queries.GetMonitorSna
                     EmployeeId: q.EmployeeId,
                     EmployeeName: q.Employee?.Name ?? string.Empty,
                     JobNumber: job?.JobNumber,
+                    JobRunningCode: job?.JobRunningCode,
                     QueueStatus: q.Status,
                     AvailabilityStatus: q.AvailabilityStatus
                 );

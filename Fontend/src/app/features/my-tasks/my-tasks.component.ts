@@ -232,6 +232,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     return {
       id: job.id,
       jobNumber: job.jobNumber,
+      jobRunningCode: job.jobRunningCode ?? null,
       createdAt,
       priority: priorityText,
       priorityClass,
@@ -298,6 +299,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     return {
       id: job.id,
       jobNumber: job.jobNumber,
+      jobRunningCode: job.jobRunningCode ?? null,
       createdAt,
       priority: priorityText,
       priorityClass,
@@ -420,6 +422,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     return {
       id: createResponse.id,
       jobNumber: createResponse.jobNumber,
+      jobRunningCode: createResponse.jobRunningCode ?? null,
       createdAt: createResponse.createdDate,
       priority: this.getPriorityText(createResponse.priority),
       priorityClass: this.getPriorityClass(createResponse.priority),

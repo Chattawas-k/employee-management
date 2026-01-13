@@ -27,6 +27,7 @@ namespace employee_management.Application.Features.Manager.Queries.Dashboard.Get
                 return new QueueSnapshotTicketDto(
                     job.Id,
                     job.JobNumber,
+                    job.JobRunningCode,
                     job.Customer,
                     job.Channel,
                     waitTime,

@@ -374,7 +374,7 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
         const job = this.findActiveJobForEmployee(queue.employeeId);
         const startTime = job ? this.getJobStartTime(job) : Date.now();
         const startTimeFormatted = job ? this.formatStartTime(job) : '';
-        const jobId = job?.jobNumber || '';
+        const jobId = job?.jobRunningCode || job?.jobNumber || '';
 
         busyStaffList.push({
           name: employeeName,
@@ -399,7 +399,7 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
         const initial = job.assigneeName ? job.assigneeName.charAt(0).toUpperCase() : '?';
         const startTime = this.getJobStartTime(job);
         const startTimeFormatted = this.formatStartTime(job);
-        const jobId = job.jobNumber || '';
+        const jobId = job.jobRunningCode || job.jobNumber || '';
 
         busyStaffList.push({
           name: employeeName,

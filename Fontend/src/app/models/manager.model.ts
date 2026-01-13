@@ -13,6 +13,7 @@ export interface ManagerDashboardKpis {
 export interface QueueSnapshotTicket {
   id: string;
   jobNumber: string;
+  jobRunningCode?: string | null;
   customer: string;
   channel: string;
   waitTime: string; // ISO duration string
@@ -93,6 +94,7 @@ export interface Alert {
 export interface ManagerTicket {
   id: string;
   jobNumber: string;
+  jobRunningCode?: string | null;
   customer: string;
   channel: string;
   category: string;
@@ -141,6 +143,7 @@ export interface StatusTimelineItem {
 export interface ActiveTicket {
   jobId: string;
   jobNumber: string;
+  jobRunningCode?: string | null;
   customer: string;
   status: string;
   isSlaAtRisk: boolean;
@@ -164,6 +167,7 @@ export interface CategoryPerformance {
 export interface ManagerDeal {
   id: string;
   jobNumber: string;
+  jobRunningCode?: string | null;
   customer: string;
   channel: string;
   category: string;

@@ -9,6 +9,7 @@ namespace employee_management.Application.Features.Jobs.Queries.GetMyTasks
     public sealed record JobDto(
         Guid Id,
         string JobNumber,
+        string? JobRunningCode,
         string Title,
         string Customer,
         string Description,

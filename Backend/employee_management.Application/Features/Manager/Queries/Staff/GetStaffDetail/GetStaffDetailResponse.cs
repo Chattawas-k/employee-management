@@ -20,6 +20,7 @@ namespace employee_management.Application.Features.Manager.Queries.Staff.GetStaf
     public sealed record ActiveTicketDto(
         Guid JobId,
         string JobNumber,
+        string? JobRunningCode,
         string Customer,
         JobStatus Status,
         bool IsSlaAtRisk

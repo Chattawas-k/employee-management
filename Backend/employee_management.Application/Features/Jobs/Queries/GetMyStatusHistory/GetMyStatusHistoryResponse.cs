@@ -10,6 +10,7 @@ namespace employee_management.Application.Features.Jobs.Queries.GetMyStatusHisto
         Guid Id,
         Guid JobId,
         string? JobNumber,
+        string? JobRunningCode,
         string? Title,
         string? Customer,
         JobStatus? PreviousStatus,

@@ -12,6 +12,7 @@ namespace employee_management.Application.Features.Jobs.Queries.GetSalesReports
             CreateMap<Job, SalesReportDto>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.JobNumber, opt => opt.MapFrom(src => src.JobNumber))
+                .ForMember(dest => dest.JobRunningCode, opt => opt.MapFrom(src => src.JobRunningCode))
                 .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Report != null ? src.Report.CustomerName : src.Customer))
                 .ForMember(dest => dest.CustomerContact, opt => opt.MapFrom(src => src.Report != null ? src.Report.CustomerContact : string.Empty))
                 .ForMember(dest => dest.SalesStatus, opt => opt.MapFrom(src => src.Report != null ? src.Report.SalesStatus : string.Empty))

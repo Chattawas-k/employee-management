@@ -49,6 +49,7 @@ namespace employee_management.Application.Features.Manager.Queries.Deals.GetDeal
             var deals = jobs.Select(j => new DealDto(
                 j.Id,
                 j.JobNumber,
+                j.JobRunningCode,
                 j.Customer,
                 j.Channel,
                 j.Category,

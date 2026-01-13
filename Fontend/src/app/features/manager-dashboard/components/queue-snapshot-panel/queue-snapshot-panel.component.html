@@ -32,7 +32,7 @@
           <div class="flex items-start justify-between gap-3">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-2">
-                <span class="font-semibold text-gray-900 text-sm">{{ ticket.jobNumber }}</span>
+                <span class="font-semibold text-gray-900 text-sm">{{ ticket.jobRunningCode || ticket.jobNumber }}</span>
                 <span class="px-2 py-0.5 text-xs font-medium rounded-full {{ getChannelBadgeColor(ticket.channel) }}">
                   {{ ticket.channel }}
                 </span>

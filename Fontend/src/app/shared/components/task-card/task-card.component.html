@@ -1,7 +1,7 @@
 @if (task) {
   <div class="bg-white rounded-xl p-4 border border-gray-200 cursor-pointer transition-all duration-300 mb-3" (click)="detailClick.emit(task)">
     <div class="flex justify-between items-start mb-3">
-      <p class="font-semibold text-gray-900 text-base">#{{ task.jobNumber || task.id }}</p>
+      <p class="font-semibold text-gray-900 text-base">#{{ task.jobRunningCode || task.jobNumber || task.id }}</p>
       <div class="flex items-center gap-2">
         @if (task.priority) {
           <span 

@@ -13,6 +13,7 @@ export interface MonitorServingItem {
   employeeId: string;
   employeeName: string;
   jobNumber?: string | null;
+  jobRunningCode?: string | null;
   queueStatus: string;
   availabilityStatus: string;
 }

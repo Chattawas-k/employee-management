@@ -83,7 +83,7 @@
                      [class.border-red-300]="ticket.isSlaAtRisk">
                   <div class="flex items-center justify-between">
                     <div>
-                      <p class="text-sm font-medium text-gray-900">{{ ticket.jobNumber }}</p>
+                      <p class="text-sm font-medium text-gray-900">{{ ticket.jobRunningCode || ticket.jobNumber }}</p>
                       <p class="text-xs text-gray-500 mt-1">{{ ticket.customer }}</p>
                     </div>
                     <div class="flex items-center gap-2">

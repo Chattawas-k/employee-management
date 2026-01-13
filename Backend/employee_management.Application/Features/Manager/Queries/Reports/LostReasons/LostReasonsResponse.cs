@@ -14,6 +14,7 @@ namespace employee_management.Application.Features.Manager.Queries.Reports.LostR
     public sealed record LostReasonDetail(
         Guid JobId,
         string JobNumber,
+        string? JobRunningCode,
         string Customer,
         string StaffName,
         DateTimeOffset ClosedDate

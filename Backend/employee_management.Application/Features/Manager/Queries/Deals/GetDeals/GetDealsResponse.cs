@@ -9,6 +9,7 @@ namespace employee_management.Application.Features.Manager.Queries.Deals.GetDeal
     public sealed record DealDto(
         Guid Id,
         string JobNumber,
+        string? JobRunningCode,
         string Customer,
         string Channel,
         string Category,

@@ -50,6 +50,7 @@ namespace employee_management.Application.Features.Manager.Queries.Staff.GetStaf
                 .Select(j => new ActiveTicketDto(
                     j.Id,
                     j.JobNumber,
+                    j.JobRunningCode,
                     j.Customer,
                     j.Status,
                     j.SlaAssignedBreachAt.HasValue && DateTime.UtcNow >= j.SlaAssignedBreachAt.Value

@@ -205,6 +205,7 @@ export class ManagerDealsSalesComponent implements OnInit, OnDestroy {
   getTableData(): any[] {
     return this.deals().map(deal => ({
       ...deal,
+      jobNumber: deal.jobRunningCode || deal.jobNumber,
       saleValueFormatted: deal.saleValue ? `฿${deal.saleValue.toLocaleString()}` : '-',
       createdDateFormatted: new Date(deal.createdDate).toLocaleString('th-TH'),
       closedDateFormatted: deal.closedDate ? new Date(deal.closedDate).toLocaleString('th-TH') : '-',

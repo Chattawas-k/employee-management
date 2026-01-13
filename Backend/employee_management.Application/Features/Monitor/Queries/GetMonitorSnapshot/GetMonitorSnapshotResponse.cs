@@ -26,6 +26,7 @@ namespace employee_management.Application.Features.Monitor.Queries.GetMonitorSna
         Guid EmployeeId,
         string EmployeeName,
         string? JobNumber,
+        string? JobRunningCode,
         QueueStatus QueueStatus,
         AvailabilityStatus AvailabilityStatus
     );

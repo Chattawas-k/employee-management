@@ -82,6 +82,7 @@ namespace employee_management.Application.Features.Manager.Queries.Queue.GetTick
                 return new TicketDto(
                     job.Id,
                     job.JobNumber,
+                    job.JobRunningCode,
                     job.Customer,
                     job.Channel,
                     job.Category,

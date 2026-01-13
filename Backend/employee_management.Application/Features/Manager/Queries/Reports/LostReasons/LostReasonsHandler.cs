@@ -74,6 +74,7 @@ namespace employee_management.Application.Features.Manager.Queries.Reports.LostR
                     return new LostReasonDetail(
                         j.Id,
                         j.JobNumber,
+                        j.JobRunningCode,
                         j.Customer,
                         j.Employee?.Name ?? "Unknown",
                         closedDate
