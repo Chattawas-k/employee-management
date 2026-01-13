@@ -15,13 +15,13 @@ export class EditQueueOrderDialogComponent implements OnInit, OnChanges {
   @Input() queues: QueueDto[] = [];
   @Input() queueDate: Date = new Date();
   @Output() close = new EventEmitter<void>();
-  @Output() save = new EventEmitter<QueueDto[]>();
-  @Output() delete = new EventEmitter<string>();
+  @Output() save = new EventEmitter<{ queues: QueueDto[]; deletedQueueIds: string[] }>();
   @Output() addEmployee = new EventEmitter<string[]>();
 
   reorderedQueues = signal<QueueDto[]>([]);
   draggedIndex = signal<number | null>(null);
   showAddDialog = signal(false);
+  deletedQueueIds = signal<string[]>([]);
 
   ngOnInit(): void {
     this.initializeQueues();
@@ -41,6 +41,8 @@ export class EditQueueOrderDialogComponent implements OnInit, OnChanges {
       position: index + 1
     }));
     this.reorderedQueues.set(queuesWithPositions);
+    // Reset staged deletions whenever we receive new input queues
+    this.deletedQueueIds.set([]);
   }
 
   getEmployeeDisplayName(employeeName: string): { thai: string; english?: string } {
@@ -117,7 +119,7 @@ export class EditQueueOrderDialogComponent implements OnInit, OnChanges {
   }
 
   onSave(): void {
-    this.save.emit(this.reorderedQueues());
+    this.save.emit({ queues: this.reorderedQueues(), deletedQueueIds: this.deletedQueueIds() });
   }
 
   onCancel(): void {
@@ -126,7 +128,11 @@ export class EditQueueOrderDialogComponent implements OnInit, OnChanges {
 
   onDelete(queueId: string): void {
     if (confirm('คุณต้องการลบพนักงานออกจากคิวหรือไม่?')) {
-      this.delete.emit(queueId);
+      // Stage deletion locally; actual delete happens on Save (single API call)
+      if (!queueId.startsWith('temp-')) {
+        this.deletedQueueIds.set([...this.deletedQueueIds(), queueId]);
+      }
+
       // Remove from local list and update positions
       const queues = this.reorderedQueues().filter(q => q.id !== queueId);
       const updatedQueues = queues.map((queue, index) => ({

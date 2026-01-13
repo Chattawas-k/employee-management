@@ -70,10 +70,12 @@ export interface BulkUpdateQueueItem {
 
 export interface BulkUpdateQueueRequest {
   queues: BulkUpdateQueueItem[];
+  deletedQueueIds?: string[];
 }
 
 export interface BulkUpdateQueueResponse {
   updatedCount: number;
+  deletedCount?: number;
   updatedDate: string;
 }
 

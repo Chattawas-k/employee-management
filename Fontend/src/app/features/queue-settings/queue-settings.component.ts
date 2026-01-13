@@ -112,11 +112,15 @@ export class QueueSettingsComponent implements OnInit {
     this.showEditDialog.set(false);
   }
 
-  saveQueueOrder(updatedQueues: QueueDto[]): void {
+  saveQueueOrder(payload: { queues: QueueDto[]; deletedQueueIds: string[] }): void {
     this.isLoading.set(true);
+    const updatedQueues = payload.queues;
+    const deletedQueueIds = payload.deletedQueueIds ?? [];
     
     // Separate existing queues and new queues (temp IDs)
-    const existingQueues = updatedQueues.filter(q => !q.id.startsWith('temp-'));
+    const existingQueues = updatedQueues
+      .filter(q => !q.id.startsWith('temp-'))
+      .filter(q => !deletedQueueIds.includes(q.id));
     const newQueues = updatedQueues.filter(q => q.id.startsWith('temp-'));
 
     // Prepare update requests for existing queues
@@ -137,8 +141,8 @@ export class QueueSettingsComponent implements OnInit {
     // Execute updates and creates
     const operations: Observable<any>[] = [];
 
-    if (updateRequests.length > 0) {
-      operations.push(this.queueService.bulkUpdateQueues(updateRequests));
+    if (updateRequests.length > 0 || deletedQueueIds.length > 0) {
+      operations.push(this.queueService.bulkUpdateQueues({ queues: updateRequests, deletedQueueIds }));
     }
 
     if (createRequests.length > 0) {
@@ -172,23 +176,7 @@ export class QueueSettingsComponent implements OnInit {
     });
   }
 
-  deleteQueue(queueId: string): void {
-    this.isLoading.set(true);
-    this.queueService.deleteQueue(queueId).pipe(
-      catchError(error => {
-        console.error('Error deleting queue:', error);
-        this.toastService.error('เกิดข้อผิดพลาดในการลบคิว');
-        return of(null);
-      }),
-      finalize(() => {
-        this.isLoading.set(false);
-      })
-    ).subscribe(() => {
-      this.toastService.success('ลบคิวสำเร็จ');
-      // Reload data to reflect changes
-      this.loadCurrentQueues();
-    });
-  }
+  // Deletion is staged in the edit dialog and applied on Save via bulk update (single API call).
 
   addEmployeeToQueue(employeeIds: string[]): void {
     if (!employeeIds || employeeIds.length === 0) {

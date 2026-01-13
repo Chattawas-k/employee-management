@@ -85,8 +85,30 @@ export class QueueService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
-  bulkUpdateQueues(queues: Array<{ id: string; position: number; status: string }>): Observable<any> {
-    return this.updateQueueOrder(queues);
+  bulkUpdateQueues(
+    payload: Array<{ id: string; position: number; status: string }> | { queues: Array<{ id: string; position: number; status: string }>; deletedQueueIds?: string[] }
+  ): Observable<any> {
+    // Backward compatibility: allow passing just an array (old signature)
+    const queues = Array.isArray(payload) ? payload : payload.queues;
+    const deletedQueueIds = Array.isArray(payload) ? [] : (payload.deletedQueueIds ?? []);
+
+    // Map status to backend QueueStatus enum
+    const queueItems = queues.map((queue: any) => {
+      let normalizedStatus: 'Active' | 'Busy' | 'Inactive' = 'Active';
+      if (typeof queue.status === 'string') {
+        const statusLower = queue.status.toLowerCase();
+        if (statusLower === 'busy') normalizedStatus = 'Busy';
+        else if (statusLower === 'inactive') normalizedStatus = 'Inactive';
+        else if (statusLower === 'active') normalizedStatus = 'Active';
+      }
+      return {
+        id: queue.id,
+        position: queue.position,
+        status: normalizedStatus
+      };
+    });
+
+    return this.http.put(`${this.apiUrl}/bulk-update`, { queues: queueItems, deletedQueueIds });
   }
 
   archiveQueue(sourceDate: Date, targetDate?: Date): Observable<any> {

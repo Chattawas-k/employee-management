@@ -10,7 +10,8 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
     );
 
     public sealed record BulkUpdateRequest(
-        List<QueueUpdateItem> Queues
+        List<QueueUpdateItem> Queues,
+        List<Guid>? DeletedQueueIds = null
     ) : IRequest<BulkUpdateResponse>;
 }
 

@@ -38,10 +38,11 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
             try
             {
                 int updatedCount = 0;
+                int deletedCount = 0;
                 var notFoundIds = new List<Guid>();
 
                 // Capture before/after for audit (Master Queue reorder)
-                var queuesForAudit = new List<(Guid QueueId, Guid EmployeeId, DateTime QueueDate, int BeforePosition, int AfterPosition)>();
+                var queuesForAudit = new List<(Guid QueueId, Guid EmployeeId, DateTime QueueDate, int BeforePosition, int? AfterPosition)>();
 
                 foreach (var queueItem in request.Queues)
                 {
@@ -68,14 +69,36 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
                     updatedCount++;
                 }
 
+                var deleteIds = request.DeletedQueueIds?.Distinct().ToList() ?? new List<Guid>();
+                foreach (var queueId in deleteIds)
+                {
+                    var queue = await _queueRepository.Get(queueId, cancellationToken);
+                    if (queue == null)
+                    {
+                        notFoundIds.Add(queueId);
+                        _logger.LogWarning("Queue with Id: {QueueId} not found for delete in bulk update", queueId);
+                        continue;
+                    }
+
+                    queuesForAudit.Add((
+                        QueueId: queue.Id,
+                        EmployeeId: queue.EmployeeId,
+                        QueueDate: queue.QueueDate.Date,
+                        BeforePosition: queue.Position,
+                        AfterPosition: null));
+
+                    _queueRepository.Delete(queue);
+                    deletedCount++;
+                }
+
                 if (notFoundIds.Any())
                 {
                     _logger.LogWarning("Some queues were not found: {NotFoundIds}", string.Join(", ", notFoundIds));
                 }
 
-                if (updatedCount == 0)
+                if (updatedCount == 0 && deletedCount == 0)
                 {
-                    throw new NoDataFoundException("No queues were found to update.");
+                    throw new NoDataFoundException("No queues were found to update or delete.");
                 }
 
                 // Write audit logs grouped by queue date (so multi-day edits don't mix)
@@ -87,7 +110,8 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
                         .ToList();
 
                     var afterList = group
-                        .Select(x => new { id = x.QueueId, employeeId = x.EmployeeId, position = x.AfterPosition })
+                        .Where(x => x.AfterPosition.HasValue)
+                        .Select(x => new { id = x.QueueId, employeeId = x.EmployeeId, position = x.AfterPosition!.Value })
                         .OrderBy(x => x.position)
                         .ToList();
 
@@ -100,7 +124,7 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
                         EntityId = group.First().QueueId,
                         BeforeJson = JsonSerializer.Serialize(beforeList),
                         AfterJson = JsonSerializer.Serialize(afterList),
-                        Reason = $"Master Queue reorder for {group.Key:yyyy-MM-dd}",
+                        Reason = $"Master Queue update (reorder/delete) for {group.Key:yyyy-MM-dd}",
                         Timestamp = DateTimeOffset.UtcNow
                     };
                     _auditLogRepository.Create(auditLog);
@@ -108,8 +132,8 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
 
                 await _unitOfWork.Save(cancellationToken);
 
-                _logger.LogInformation("Bulk updated {Count} queues successfully", updatedCount);
-                return new BulkUpdateResponse(updatedCount, DateTimeOffset.UtcNow);
+                _logger.LogInformation("Bulk update completed. Updated: {UpdatedCount}, Deleted: {DeletedCount}", updatedCount, deletedCount);
+                return new BulkUpdateResponse(updatedCount, deletedCount, DateTimeOffset.UtcNow);
             }
             catch (NoDataFoundException)
             {
