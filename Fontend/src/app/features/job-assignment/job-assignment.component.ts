@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, signal, computed, OnInit, OnDestroy
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { JobAssignmentCardComponent, StaffMember } from '../../shared/components/job-assignment-card/job-assignment-card.component';
-import { OpenJobDialogComponent } from '../../shared/components/open-job-dialog/open-job-dialog.component';
+import { AssignCustomerConfirmDialogComponent } from '../../shared/components/assign-customer-confirm-dialog/assign-customer-confirm-dialog.component';
 import { EmployeeService } from '../../services/employee.service';
 import { TaskService } from '../../services/task.service';
 import { QueueService } from '../../services/queue.service';
@@ -23,7 +23,7 @@ import { AvailabilityStatusKey, normalizeAvailabilityStatus } from '../../shared
   standalone: true,
   templateUrl: './job-assignment.component.html',
   styleUrls: ['./job-assignment.component.scss'],
-  imports: [CommonModule, FormsModule, JobAssignmentCardComponent, OpenJobDialogComponent],
+  imports: [CommonModule, FormsModule, JobAssignmentCardComponent, AssignCustomerConfirmDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit {
@@ -34,6 +34,7 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
   activeTab = signal<'all' | AvailabilityStatusKey>('all');
 
   showAssignDialog = signal(false);
+  isSubmittingAssign = signal(false);
   selectedStaff = signal<StaffMember | null>(null);
 
   staffMembers = signal<StaffMember[]>([]);
@@ -363,11 +364,12 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   closeAssignDialog() {
+    if (this.isSubmittingAssign()) return;
     this.showAssignDialog.set(false);
     this.selectedStaff.set(null);
   }
 
-  confirmAssignment(jobData: any) {
+  confirmAssignment(): void {
     const staff = this.selectedStaff();
     if (!staff || !staff.employeeId) {
       this.toastService.error('ไม่พบข้อมูลพนักงาน');
@@ -375,26 +377,16 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
       return;
     }
 
-    let priority: JobPriority = JobPriority.Normal;
-    if (jobData.priority === 'Urgent') {
-      priority = JobPriority.Urgent;
-    } else if (jobData.priority === 'High') {
-      priority = JobPriority.High;
-    } else if (jobData.priority === 'Low') {
-      priority = JobPriority.Low;
-    }
-
     const createJobRequest = {
-      title: jobData.jobTitle || 'Walk-in Customer',
-      customer: jobData.customerName || 'ลูกค้าทั่วไป',
-      description: jobData.details || 'บริการลูกค้าหน้าร้าน',
+      title: 'Walk-in Customer',
+      customer: 'ลูกค้าทั่วไป',
+      description: 'บริการลูกค้าหน้าร้าน',
       assigneeId: staff.employeeId,
-      priority: priority,
-      channel: jobData.channel || 'Walk-in',
-      productCategoryId: jobData.productCategoryId || undefined
+      priority: JobPriority.Normal,
+      channel: 'Walk-in',
     };
 
-    this.isLoading.set(true);
+    this.isSubmittingAssign.set(true);
     this.taskService.createJob(createJobRequest).pipe(
       catchError(error => {
         console.error('Error creating job:', error);
@@ -402,12 +394,12 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
         return of(null);
       }),
       finalize(() => {
-        this.isLoading.set(false);
+        this.isSubmittingAssign.set(false);
         this.closeAssignDialog();
       })
     ).subscribe(response => {
       if (response) {
-        this.toastService.success('มอบหมายงานสำเร็จ');
+        this.toastService.success('สร้างงานในสถานะ "งานที่ต้องทำ" เรียบร้อย');
         // Reload employees to get updated data
         setTimeout(() => {
           this.loadEmployees();

@@ -211,9 +211,11 @@
 </div>
 
 @if (showAssignDialog() && selectedStaff()) {
-  <app-open-job-dialog
-    [userName]="selectedStaff()!.name"
+  <app-assign-customer-confirm-dialog
+    [staffName]="selectedStaff()!.name"
+    [isSubmitting]="isSubmittingAssign()"
     (close)="closeAssignDialog()"
-    (confirm)="confirmAssignment($event)">
-  </app-open-job-dialog>
+    (cancel)="closeAssignDialog()"
+    (confirm)="confirmAssignment()">
+  </app-assign-customer-confirm-dialog>
 }
