@@ -2,6 +2,7 @@ using MediatR;
 using employee_management.Application.Repository;
 using employee_management.Application.Repository.EmployeesRepository;
 using employee_management.Application.Repository.QueuesRepository;
+using employee_management.Application.Common.Services;
 using employee_management.Domain.Enums;
 
 namespace employee_management.Application.Features.Queues.Commands.ResetDaily
@@ -11,15 +12,18 @@ namespace employee_management.Application.Features.Queues.Commands.ResetDaily
         private readonly IUnitOfWork _unitOfWork;
         private readonly IEmployeeRepository _employeeRepository;
         private readonly IQueueRepository _queueRepository;
+        private readonly IBusinessDateTimeProvider _dateTimeProvider;
 
         public ResetDailyHandler(
             IUnitOfWork unitOfWork,
             IEmployeeRepository employeeRepository,
-            IQueueRepository queueRepository)
+            IQueueRepository queueRepository,
+            IBusinessDateTimeProvider dateTimeProvider)
         {
             _unitOfWork = unitOfWork;
             _employeeRepository = employeeRepository;
             _queueRepository = queueRepository;
+            _dateTimeProvider = dateTimeProvider;
         }
 
         public async Task<ResetDailyResponse> Handle(ResetDailyRequest request, CancellationToken cancellationToken)
@@ -31,8 +35,44 @@ namespace employee_management.Application.Features.Queues.Commands.ResetDaily
                 .OrderBy(e => e.CreatedDate)
                 .ToList();
 
+            var businessDate = request.Date.Date;
+            var previousDate = businessDate.AddDays(-1);
+
+            // Rotate Master Queue based on previous day (head -> tail)
+            var previousQueues = await _queueRepository.GetByDateAsync(previousDate, cancellationToken);
+            var previousOrdered = previousQueues
+                .Where(q => !q.IsDeleted)
+                .OrderBy(q => q.Position)
+                .ToList();
+
+            var rotatedEmployeeIds = new List<Guid>();
+            if (previousOrdered.Count > 0)
+            {
+                rotatedEmployeeIds.AddRange(previousOrdered.Skip(1).Select(q => q.EmployeeId));
+                rotatedEmployeeIds.Add(previousOrdered[0].EmployeeId);
+            }
+
+            var activeEmployeeIds = new HashSet<Guid>(employeesToQueue.Select(e => e.Id));
+            rotatedEmployeeIds = rotatedEmployeeIds.Where(activeEmployeeIds.Contains).ToList();
+
+            var remainingEmployees = employeesToQueue
+                .Where(e => !rotatedEmployeeIds.Contains(e.Id))
+                .ToList();
+
+            var finalOrder = new List<Guid>();
+            if (rotatedEmployeeIds.Count > 0)
+            {
+                finalOrder.AddRange(rotatedEmployeeIds);
+                finalOrder.AddRange(remainingEmployees.Select(e => e.Id));
+            }
+            else
+            {
+                // No previous queue → fallback to created date ordering for the day
+                finalOrder.AddRange(employeesToQueue.Select(e => e.Id));
+            }
+
             // Delete existing queues for the date
-            var existingQueues = await _queueRepository.GetByDateAsync(request.Date, cancellationToken);
+            var existingQueues = await _queueRepository.GetByDateAsync(businessDate, cancellationToken);
             foreach (var queue in existingQueues)
             {
                 _queueRepository.Delete(queue);
@@ -40,16 +80,17 @@ namespace employee_management.Application.Features.Queues.Commands.ResetDaily
 
             // Create new queues
             int position = 1;
-            // Ensure date is in UTC for PostgreSQL (use SpecifyKind for consistency)
-            var queueDateUtc = DateTime.SpecifyKind(request.Date.Date, DateTimeKind.Utc);
+            var queueDateUtc = _dateTimeProvider.ToUtcKindDate(businessDate);
             
-            foreach (var employee in employeesToQueue)
+            foreach (var employeeId in finalOrder)
             {
                 var queue = new Domain.Entities.Queue
                 {
-                    EmployeeId = employee.Id,
+                    EmployeeId = employeeId,
                     Position = position++,
-                    Status = QueueStatus.Active,
+                    // Daily reset: everyone starts "not ready"
+                    Status = QueueStatus.Inactive,
+                    AvailabilityStatus = AvailabilityStatus.Unavailable,
                     Round = 1,
                     QueueDate = queueDateUtc
                 };
@@ -58,7 +99,7 @@ namespace employee_management.Application.Features.Queues.Commands.ResetDaily
 
             await _unitOfWork.Save(cancellationToken);
 
-            return new ResetDailyResponse(employeesToQueue.Count, queueDateUtc);
+            return new ResetDailyResponse(finalOrder.Count, queueDateUtc);
         }
     }
 }

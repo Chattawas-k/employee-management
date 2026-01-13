@@ -6,6 +6,7 @@ using employee_management.Application.Repository.JobsRepository;
 using employee_management.Application.Repository.EmployeesRepository;
 using employee_management.Application.Repository.AuditLogsRepository;
 using employee_management.Application.Repository.JobStatusHistoriesRepository;
+using employee_management.Application.Repository.QueuesRepository;
 using employee_management.Domain.Entities;
 using employee_management.Domain.Enums;
 using System.Text.Json;
@@ -18,26 +19,35 @@ namespace employee_management.Application.Features.Manager.Commands.Queue.ForceA
         private readonly IUnitOfWork _unitOfWork;
         private readonly IJobRepository _jobRepository;
         private readonly IEmployeeRepository _employeeRepository;
+        private readonly IQueueRepository _queueRepository;
         private readonly IAuditLogRepository _auditLogRepository;
         private readonly IJobStatusHistoryRepository _jobStatusHistoryRepository;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IBusinessDateTimeProvider _dateTimeProvider;
+        private readonly INotificationService _notificationService;
         private readonly ILogger<ForceAssignHandler> _logger;
 
         public ForceAssignHandler(
             IUnitOfWork unitOfWork,
             IJobRepository jobRepository,
             IEmployeeRepository employeeRepository,
+            IQueueRepository queueRepository,
             IAuditLogRepository auditLogRepository,
             IJobStatusHistoryRepository jobStatusHistoryRepository,
             ICurrentUserService currentUserService,
+            IBusinessDateTimeProvider dateTimeProvider,
+            INotificationService notificationService,
             ILogger<ForceAssignHandler> logger)
         {
             _unitOfWork = unitOfWork;
             _jobRepository = jobRepository;
             _employeeRepository = employeeRepository;
+            _queueRepository = queueRepository;
             _auditLogRepository = auditLogRepository;
             _jobStatusHistoryRepository = jobStatusHistoryRepository;
             _currentUserService = currentUserService;
+            _dateTimeProvider = dateTimeProvider;
+            _notificationService = notificationService;
             _logger = logger;
         }
 
@@ -110,7 +120,17 @@ namespace employee_management.Application.Features.Manager.Commands.Queue.ForceA
             };
             _auditLogRepository.Create(auditLog);
 
+            // Queue effects on assignment:
+            // - Make assignee non-READY immediately (Busy)
+            // - Increment Round exactly once per assignment
+            var businessToday = _dateTimeProvider.GetBangkokTodayDate();
+            await _queueRepository.UpdateAvailabilityStatusAsync(request.StaffId, businessToday, AvailabilityStatus.Busy, cancellationToken);
+            await _queueRepository.IncrementRoundAsync(request.StaffId, businessToday, cancellationToken);
+
             await _unitOfWork.Save(cancellationToken);
+
+            await _notificationService.SendQueueUpdatedNotificationAsync();
+            await _notificationService.SendEmployeeStatusChangedNotificationAsync();
 
             _logger.LogInformation(
                 "Manager {ManagerId} force assigned job {JobId} from {PreviousAssignee} to {NewAssignee}",

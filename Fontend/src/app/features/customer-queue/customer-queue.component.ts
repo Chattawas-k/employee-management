@@ -295,7 +295,13 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
           : String(q.status || '').toLowerCase();
         return status === 'active';
       })
-      .sort((a, b) => a.position - b.position); // Sort by master position
+      // Fair ordering: Round ASC, then Master Queue (Position) ASC
+      .sort((a, b) => {
+        const roundA = typeof a.round === 'number' && a.round >= 1 ? a.round : 1;
+        const roundB = typeof b.round === 'number' && b.round >= 1 ? b.round : 1;
+        if (roundA !== roundB) return roundA - roundB;
+        return a.position - b.position;
+      });
 
     // Assign relative positions for Ready Queue display (1, 2, 3...)
     availableQueues.forEach((queue, index) => {

@@ -27,7 +27,9 @@ namespace employee_management.Application.Features.Monitor.Queries.GetMonitorSna
             // Active = waiting list (ready queue)
             var activeQueues = queues
                 .Where(q => !q.IsDeleted && q.Status == QueueStatus.Active)
-                .OrderBy(q => q.Position)
+                // Fair ordering: Round ASC, then Master Queue (Position) ASC
+                .OrderBy(q => q.Round < 1 ? 1 : q.Round)
+                .ThenBy(q => q.Position)
                 .ToList();
 
             MonitorStaffItem? nextQueue = null;

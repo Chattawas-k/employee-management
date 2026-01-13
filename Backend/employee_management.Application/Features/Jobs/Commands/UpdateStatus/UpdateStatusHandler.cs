@@ -25,6 +25,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
         private readonly INotificationService _notificationService;
         private readonly ICurrentUserService _currentUserService;
         private readonly IClientSourceProvider _clientSourceProvider;
+        private readonly IBusinessDateTimeProvider _dateTimeProvider;
         private readonly IMapper _mapper;
         private readonly ILogger<UpdateStatusHandler> _logger;
 
@@ -39,6 +40,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
             INotificationService notificationService,
             ICurrentUserService currentUserService,
             IClientSourceProvider clientSourceProvider,
+            IBusinessDateTimeProvider dateTimeProvider,
             IMapper mapper, 
             ILogger<UpdateStatusHandler> logger)
         {
@@ -52,6 +54,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
             _notificationService = notificationService;
             _currentUserService = currentUserService;
             _clientSourceProvider = clientSourceProvider;
+            _dateTimeProvider = dateTimeProvider;
             _mapper = mapper;
             _logger = logger;
         }
@@ -96,6 +99,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                     job.AssignedDate = DateTime.UtcNow;
                 }
 
+                var assignedNow = request.Status == JobStatus.Assigned && previousStatus != JobStatus.Assigned;
                 var startedNow = request.Status == JobStatus.InProgress && !job.StartedDate.HasValue;
 
                 // Set StartedDate when transitioning to InProgress
@@ -142,8 +146,8 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                 await _unitOfWork.Save(cancellationToken);
 
                 // Automatically update queue status based on job status
-                // startedNow is used to increment Queue.Round exactly once per job start
-                await UpdateQueueStatusBasedOnJobStatus(job, startedNow, cancellationToken);
+                // assignedNow is used to increment Queue.Round exactly once per assignment
+                await UpdateQueueStatusBasedOnJobStatus(job, assignedNow, cancellationToken);
 
                 return _mapper.Map<UpdateStatusResponse>(job);
             }
@@ -158,11 +162,11 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
             }
         }
 
-        private async Task UpdateQueueStatusBasedOnJobStatus(Job job, bool startedNow, CancellationToken cancellationToken)
+        private async Task UpdateQueueStatusBasedOnJobStatus(Job job, bool assignedNow, CancellationToken cancellationToken)
         {
             try
             {
-                var today = DateTime.UtcNow.Date;
+                var today = _dateTimeProvider.GetBangkokTodayDate();
                 var queue = await _queueRepository.GetByEmployeeIdAndDateAsync(job.AssigneeId, today, cancellationToken);
                 
                 if (queue == null)
@@ -171,71 +175,46 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                     return; // No queue entry exists, skip update
                 }
 
-                // Don't override manual status (lunchBreak/unavailable/leave/offsiteCustomer)
-                // If AvailabilityStatus is LunchBreak, Unavailable, Leave, or OffsiteCustomer, it means employee manually set it
-                // We should respect this manual setting and not override it automatically
-                if (queue.AvailabilityStatus == AvailabilityStatus.LunchBreak || 
-                    queue.AvailabilityStatus == AvailabilityStatus.Unavailable || 
-                    queue.AvailabilityStatus == AvailabilityStatus.Leave ||
-                    queue.AvailabilityStatus == AvailabilityStatus.OffsiteCustomer)
-                {
-                    _logger.LogInformation(
-                        "AvailabilityStatus is {Status} (manual) for employee {EmployeeId}, skipping automatic status update for job {JobId}",
-                        queue.AvailabilityStatus, job.AssigneeId, job.Id);
-                    
-                    // Still do rotation if job is starting (InProgress) to maintain queue order
-                    // But don't change the status
-                    if (job.Status == JobStatus.InProgress)
-                    {
-                        await _queueRepository.RotateQueueToTailAsync(job.AssigneeId, today, cancellationToken);
-
-                        if (startedNow)
-                        {
-                            await _queueRepository.IncrementRoundAsync(job.AssigneeId, today, cancellationToken);
-                        }
-
-                        await _unitOfWork.Save(cancellationToken);
-                        await _notificationService.SendQueueUpdatedNotificationAsync();
-                        _logger.LogInformation(
-                            "Rotated queue for employee {EmployeeId} but kept AvailabilityStatus as {Status} (manual) for job {JobId}",
-                            job.AssigneeId, queue.AvailabilityStatus, job.Id);
-                    }
-                    return; // Don't override manual status
-                }
-
                 AvailabilityStatus? newAvailabilityStatus = null;
                 var previousAvailabilityStatus = queue.AvailabilityStatus;
 
-                if (job.Status == JobStatus.InProgress)
+                if (job.Status == JobStatus.Assigned)
                 {
-                    // When job starts (InProgress):
-                    // 1. Rotate queue: move staff to tail (Round-Robin) - MUST happen first
-                    await _queueRepository.RotateQueueToTailAsync(job.AssigneeId, today, cancellationToken);
-
-                    // 1.1 Increment Round exactly once per job start
-                    if (startedNow)
+                    // "Receive job successfully" happens on assignment:
+                    // - make staff non-READY immediately (Busy)
+                    // - increment Round exactly once per assignment
+                    newAvailabilityStatus = AvailabilityStatus.Busy;
+                }
+                else if (job.Status == JobStatus.InProgress)
+                {
+                    // Don't override manual status (lunchBreak/unavailable/leave/offsiteCustomer)
+                    if (queue.AvailabilityStatus == AvailabilityStatus.LunchBreak ||
+                        queue.AvailabilityStatus == AvailabilityStatus.Unavailable ||
+                        queue.AvailabilityStatus == AvailabilityStatus.Leave ||
+                        queue.AvailabilityStatus == AvailabilityStatus.OffsiteCustomer)
                     {
-                        await _queueRepository.IncrementRoundAsync(job.AssigneeId, today, cancellationToken);
+                        _logger.LogInformation(
+                            "AvailabilityStatus is {Status} (manual) for employee {EmployeeId}, skipping automatic Busy update for job {JobId}",
+                            queue.AvailabilityStatus, job.AssigneeId, job.Id);
+                        return;
                     }
-                    
-                    // 2. Set availability status to Busy
+
+                    // When job starts (InProgress), keep staff Busy
                     newAvailabilityStatus = AvailabilityStatus.Busy;
                 }
                 else if (job.Status == JobStatus.ClosedWon || job.Status == JobStatus.ClosedLost)
                 {
-                    // When job is closed (ClosedWon or ClosedLost), check if employee has other InProgress jobs
-                    // Only set to Available if no other InProgress jobs exist
+                    // When job is closed, set to Available only if employee has no other Assigned/InProgress jobs
                     var employeeJobs = await _jobRepository.GetMyTasksAsync(job.AssigneeId, cancellationToken);
-                    var hasOtherInProgressJobs = employeeJobs
-                        .Any(j => j.Id != job.Id && j.Status == JobStatus.InProgress);
+                    var hasOtherOpenJobs = employeeJobs.Any(j =>
+                        j.Id != job.Id && (j.Status == JobStatus.Assigned || j.Status == JobStatus.InProgress));
 
-                    if (!hasOtherInProgressJobs)
+                    if (!hasOtherOpenJobs)
                     {
-                        // No other InProgress jobs, set to Available
-                        // Note: Position stays at tail (already rotated when job was accepted)
+                        // No other open jobs, set to Available
                         newAvailabilityStatus = AvailabilityStatus.Available;
                     }
-                    // If there are other InProgress jobs, keep status as Busy (don't change)
+                    // If there are other open jobs, keep Busy (don't change)
                 }
 
                 // Update availability status if needed
@@ -260,6 +239,12 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                             changedAt: DateTimeOffset.UtcNow,
                             cancellationToken: cancellationToken);
                     }
+                }
+
+                // Increment Round exactly once per assignment (even if already Busy)
+                if (job.Status == JobStatus.Assigned && assignedNow)
+                {
+                    await _queueRepository.IncrementRoundAsync(job.AssigneeId, today, cancellationToken);
                 }
                 
                 // Save all changes (rotation + status update + history) in single transaction
@@ -342,15 +327,11 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                     _waitingJobRepository.Update(waitingJob);
 
                     // Rotate queue: move assigned staff to tail
-                    await _queueRepository.RotateQueueToTailAsync(availableStaff.EmployeeId, date, cancellationToken);
-
-                    // Update queue status to Busy
-                    var queue = await _queueRepository.GetByEmployeeIdAndDateAsync(availableStaff.EmployeeId, date, cancellationToken);
-                    if (queue != null)
-                    {
-                        queue.Status = QueueStatus.Busy;
-                        _queueRepository.Update(queue);
-                    }
+                    // Assignment effects:
+                    // - mark staff Busy (non-READY)
+                    // - increment Round exactly once per assignment
+                    await _queueRepository.UpdateAvailabilityStatusAsync(availableStaff.EmployeeId, date, AvailabilityStatus.Busy, cancellationToken);
+                    await _queueRepository.IncrementRoundAsync(availableStaff.EmployeeId, date, cancellationToken);
 
                     // Save changes
                     await _unitOfWork.Save(cancellationToken);

@@ -14,13 +14,38 @@ export class QueueService {
 
   constructor(private http: HttpClient) {}
 
+  private formatBangkokDate(date: Date): string {
+    // Always format as YYYY-MM-DD in Asia/Bangkok (avoid toISOString() UTC day shift)
+    try {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Bangkok',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(date);
+
+      const get = (type: string) => parts.find(p => p.type === type)?.value ?? '';
+      const y = get('year');
+      const m = get('month');
+      const d = get('day');
+      if (y && m && d) return `${y}-${m}-${d}`;
+    } catch {
+      // Fallback below
+    }
+
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   getQueuesByDate(date: Date): Observable<GetQueuesByDateResponse> {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = this.formatBangkokDate(date);
     return this.http.get<GetQueuesByDateResponse>(`${this.apiUrl}/date/${dateStr}`);
   }
 
   getQueueSummary(date: Date): Observable<QueueSummaryResponse> {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = this.formatBangkokDate(date);
     let params = new HttpParams().set('date', dateStr);
     return this.http.get<QueueSummaryResponse>(`${this.jobApiUrl}/queue-summary`, { params });
   }
@@ -66,10 +91,10 @@ export class QueueService {
 
   archiveQueue(sourceDate: Date, targetDate?: Date): Observable<any> {
     const requestBody: { sourceDate: string; targetDate?: string } = {
-      sourceDate: sourceDate.toISOString().split('T')[0]
+      sourceDate: this.formatBangkokDate(sourceDate)
     };
     if (targetDate) {
-      requestBody.targetDate = targetDate.toISOString().split('T')[0];
+      requestBody.targetDate = this.formatBangkokDate(targetDate);
     }
     return this.http.post(`${this.apiUrl}/archive`, requestBody);
   }

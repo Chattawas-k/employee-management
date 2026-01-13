@@ -6,6 +6,7 @@ using employee_management.Application.Repository.JobsRepository;
 using employee_management.Application.Repository.EmployeesRepository;
 using employee_management.Application.Repository.AuditLogsRepository;
 using employee_management.Application.Repository.JobStatusHistoriesRepository;
+using employee_management.Application.Repository.QueuesRepository;
 using employee_management.Domain.Entities;
 using employee_management.Domain.Enums;
 using System.Text.Json;
@@ -18,26 +19,35 @@ namespace employee_management.Application.Features.Manager.Commands.Queue.Transf
         private readonly IUnitOfWork _unitOfWork;
         private readonly IJobRepository _jobRepository;
         private readonly IEmployeeRepository _employeeRepository;
+        private readonly IQueueRepository _queueRepository;
         private readonly IAuditLogRepository _auditLogRepository;
         private readonly IJobStatusHistoryRepository _jobStatusHistoryRepository;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IBusinessDateTimeProvider _dateTimeProvider;
+        private readonly INotificationService _notificationService;
         private readonly ILogger<TransferHandler> _logger;
 
         public TransferHandler(
             IUnitOfWork unitOfWork,
             IJobRepository jobRepository,
             IEmployeeRepository employeeRepository,
+            IQueueRepository queueRepository,
             IAuditLogRepository auditLogRepository,
             IJobStatusHistoryRepository jobStatusHistoryRepository,
             ICurrentUserService currentUserService,
+            IBusinessDateTimeProvider dateTimeProvider,
+            INotificationService notificationService,
             ILogger<TransferHandler> logger)
         {
             _unitOfWork = unitOfWork;
             _jobRepository = jobRepository;
             _employeeRepository = employeeRepository;
+            _queueRepository = queueRepository;
             _auditLogRepository = auditLogRepository;
             _jobStatusHistoryRepository = jobStatusHistoryRepository;
             _currentUserService = currentUserService;
+            _dateTimeProvider = dateTimeProvider;
+            _notificationService = notificationService;
             _logger = logger;
         }
 
@@ -110,7 +120,34 @@ namespace employee_management.Application.Features.Manager.Commands.Queue.Transf
             };
             _auditLogRepository.Create(auditLog);
 
+            var businessToday = _dateTimeProvider.GetBangkokTodayDate();
+
+            // Queue effects on assignment to new staff:
+            // - Make assignee non-READY immediately (Busy)
+            // - Increment Round exactly once per assignment
+            await _queueRepository.UpdateAvailabilityStatusAsync(request.ToStaffId, businessToday, AvailabilityStatus.Busy, cancellationToken);
+            await _queueRepository.IncrementRoundAsync(request.ToStaffId, businessToday, cancellationToken);
+
+            // Best-effort: if old staff was Busy only due to this job and has no other open jobs,
+            // allow them to become Available again (do not override manual statuses).
+            if (fromStaffId != Guid.Empty)
+            {
+                var fromQueue = await _queueRepository.GetByEmployeeIdAndDateAsync(fromStaffId, businessToday, cancellationToken);
+                if (fromQueue != null && fromQueue.AvailabilityStatus == AvailabilityStatus.Busy)
+                {
+                    var fromJobs = await _jobRepository.GetMyTasksAsync(fromStaffId, cancellationToken);
+                    var hasOtherOpenJobs = fromJobs.Any(j => j.Status == JobStatus.Assigned || j.Status == JobStatus.InProgress);
+                    if (!hasOtherOpenJobs)
+                    {
+                        await _queueRepository.UpdateAvailabilityStatusAsync(fromStaffId, businessToday, AvailabilityStatus.Available, cancellationToken);
+                    }
+                }
+            }
+
             await _unitOfWork.Save(cancellationToken);
+
+            await _notificationService.SendQueueUpdatedNotificationAsync();
+            await _notificationService.SendEmployeeStatusChangedNotificationAsync();
 
             _logger.LogInformation(
                 "Manager {ManagerId} transferred job {JobId} from {FromStaff} to {ToStaff}: {Reason}",

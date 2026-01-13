@@ -27,6 +27,7 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
         private readonly IJobNumberService _jobNumberService;
         private readonly IJobStatusHistoryRepository _jobStatusHistoryRepository;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IBusinessDateTimeProvider _dateTimeProvider;
 
         public CreateHandler(
             IUnitOfWork unitOfWork,
@@ -39,7 +40,8 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
             INotificationService notificationService,
             IJobNumberService jobNumberService,
             IJobStatusHistoryRepository jobStatusHistoryRepository,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            IBusinessDateTimeProvider dateTimeProvider)
         {
             _unitOfWork = unitOfWork;
             _jobRepository = jobRepository;
@@ -52,6 +54,7 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
             _jobNumberService = jobNumberService;
             _jobStatusHistoryRepository = jobStatusHistoryRepository;
             _currentUserService = currentUserService;
+            _dateTimeProvider = dateTimeProvider;
         }
 
         public async Task<CreateResponse> Handle(CreateRequest request, CancellationToken cancellationToken)
@@ -63,6 +66,7 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
                 // Generate job number for today
                 var today = DateTime.UtcNow;
                 var jobNumber = await _jobNumberService.GenerateJobNumberAsync(today, cancellationToken);
+                var businessToday = _dateTimeProvider.GetBangkokTodayDate();
 
                 // Create new Job entity (without assignee initially if auto-assigning)
                 var job = new Job
@@ -107,8 +111,7 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
                 // Auto-assign to first Available staff if AssigneeId is not provided (Guid.Empty)
                 if (assigneeId == Guid.Empty)
                 {
-                    var todayDate = today.Date;
-                    var firstAvailableQueue = await _queueRepository.GetFirstAvailableStaffAsync(todayDate, cancellationToken);
+                    var firstAvailableQueue = await _queueRepository.GetFirstAvailableStaffAsync(businessToday, cancellationToken);
                     
                     if (firstAvailableQueue == null)
                     {
@@ -177,6 +180,11 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
                     
                     _logger.LogInformation("Auto-assigned job to employee {EmployeeId} (position {Position})", 
                         assigneeId, firstAvailableQueue.Position);
+
+                    // Assignment is considered "received job successfully":
+                    // - Make staff non-READY immediately (Busy)
+                    // - Increment Round exactly once per assignment
+                    await ApplyAssignmentEffectsAsync(assigneeId, businessToday, cancellationToken);
                 }
                 else
                 {
@@ -218,6 +226,11 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
                         Notes = "Assigned during job creation"
                     });
                     await _unitOfWork.Save(cancellationToken);
+
+                    // Assignment is considered "received job successfully":
+                    // - Make staff non-READY immediately (Busy)
+                    // - Increment Round exactly once per assignment
+                    await ApplyAssignmentEffectsAsync(assigneeId, businessToday, cancellationToken);
                 }
 
                 // Reload the job with employee relationship for mapping
@@ -255,6 +268,21 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
                 _logger.LogError(ex, "Error creating job with Title: {Title}", request.Title);
                 throw;
             }
+        }
+
+        private async Task ApplyAssignmentEffectsAsync(Guid assigneeId, DateTime businessDate, CancellationToken cancellationToken)
+        {
+            // Ensure queue exists and mark staff as Busy (non-READY) immediately after assignment
+            await _queueRepository.UpdateAvailabilityStatusAsync(assigneeId, businessDate, AvailabilityStatus.Busy, cancellationToken);
+
+            // Round starts at 1 each day; on each assignment we increment once
+            await _queueRepository.IncrementRoundAsync(assigneeId, businessDate, cancellationToken);
+
+            await _unitOfWork.Save(cancellationToken);
+
+            // Notify dashboards/monitors that READY list changed
+            await _notificationService.SendQueueUpdatedNotificationAsync();
+            await _notificationService.SendEmployeeStatusChangedNotificationAsync();
         }
     }
 }

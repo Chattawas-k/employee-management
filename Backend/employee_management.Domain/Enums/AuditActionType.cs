@@ -10,6 +10,7 @@ namespace employee_management.Domain.Enums
         RuleChange = 6,
         ForceAssign = 7,
         Escalate = 8,
-        Cancel = 9
+        Cancel = 9,
+        QueueReorder = 10
     }
 }

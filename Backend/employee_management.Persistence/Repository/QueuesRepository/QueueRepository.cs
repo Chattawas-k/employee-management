@@ -153,7 +153,9 @@ namespace employee_management.Persistence.Repository.QueuesRepository
                 .ThenInclude(e => e!.Position)
                 .ThenInclude(p => p!.Department)
                 .Where(q => q.QueueDate >= targetDate && q.QueueDate < nextDate && q.Status == QueueStatus.Active && !q.IsDeleted)
-                .OrderBy(q => q.Position) // Order by master position
+                // Fair ordering: Round ASC, then Master Queue (Position) ASC
+                .OrderBy(q => q.Round < 1 ? 1 : q.Round)
+                .ThenBy(q => q.Position)
                 .FirstOrDefaultAsync(cancellationToken);
         }
 

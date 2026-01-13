@@ -43,21 +43,33 @@ namespace employee_management.Application.Features.Queues.Queries.GetMyQueueInfo
                 };
             }
 
-            // Get all queues for today, ordered by position
+            // Get all queues for today
             var allQueues = await _queueRepository.GetByDateAsync(today, cancellationToken);
-            var myPosition = myQueue.Position;
 
-            // Calculate queues remaining (number of people before me with Active status)
-            var queuesRemaining = allQueues
-                .Where(q => q.Position < myPosition && q.Status == QueueStatus.Active && !q.IsDeleted)
-                .Count();
+            // READY list uses the global ordering rule:
+            // Round ASC, then Master Queue (Position) ASC
+            var readyQueuesOrdered = allQueues
+                .Where(q => q.Status == QueueStatus.Active && !q.IsDeleted)
+                .OrderBy(q => Math.Max(q.Round, 1))
+                .ThenBy(q => q.Position)
+                .ToList();
+
+            // My queue position is relative position in READY list (1..N).
+            // If I'm not currently READY, position is 0.
+            var myReadyIndex = readyQueuesOrdered.FindIndex(q => q.EmployeeId == request.EmployeeId);
+            var myQueuePosition = myReadyIndex >= 0 ? myReadyIndex + 1 : 0;
+
+            // Queues remaining = number of READY people before me
+            var queuesRemaining = myReadyIndex >= 0 ? myReadyIndex : 0;
 
             // Find currently serving person (first person with Active or Busy status, lowest position)
             CurrentlyServingDto? currentlyServing = null;
+            // Prefer "Busy" (actually serving) if any; otherwise fall back to next READY.
             var servingQueue = allQueues
-                .Where(q => (q.Status == QueueStatus.Active || q.Status == QueueStatus.Busy) && !q.IsDeleted)
+                .Where(q => q.Status == QueueStatus.Busy && !q.IsDeleted)
                 .OrderBy(q => q.Position)
-                .FirstOrDefault();
+                .FirstOrDefault()
+                ?? readyQueuesOrdered.FirstOrDefault();
 
             if (servingQueue != null && servingQueue.Employee != null)
             {
@@ -87,7 +99,7 @@ namespace employee_management.Application.Features.Queues.Queries.GetMyQueueInfo
 
             return new GetMyQueueInfoResponse
             {
-                MyQueuePosition = myPosition,
+                MyQueuePosition = myQueuePosition,
                 QueuesRemaining = queuesRemaining,
                 CurrentlyServing = currentlyServing,
                 IsInQueue = true,
