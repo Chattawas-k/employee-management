@@ -12,6 +12,8 @@ namespace employee_management.Domain.Entities
         public ChangeReason ChangeReason { get; set; }
         public Guid? ChangedBy { get; set; }
         public Employee? ChangedByEmployee { get; set; }
+        public StatusActorType ActorType { get; set; } = StatusActorType.Unknown;
+        public StatusChangeSource Source { get; set; } = StatusChangeSource.Unknown;
         public DateTimeOffset ChangedDate { get; set; }
         public string? Notes { get; set; }
     }

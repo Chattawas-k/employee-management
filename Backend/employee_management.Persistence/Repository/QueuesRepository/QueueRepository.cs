@@ -220,6 +220,24 @@ namespace employee_management.Persistence.Repository.QueuesRepository
             // Note: Don't save here - let the calling method save via UnitOfWork
             // This ensures rotation and status update are in the same transaction
         }
+
+        public async Task IncrementRoundAsync(Guid employeeId, DateTime date, CancellationToken cancellationToken)
+        {
+            var queue = await GetByEmployeeIdAndDateAsync(employeeId, date, cancellationToken);
+            if (queue == null)
+            {
+                return;
+            }
+
+            // Round must be >= 1 (Round=1 means "not received any job today yet")
+            if (queue.Round < 1)
+            {
+                queue.Round = 1;
+            }
+
+            queue.Round += 1;
+            Context.Queues.Update(queue);
+        }
     }
 }
 

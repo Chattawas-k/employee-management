@@ -26,8 +26,9 @@ export interface EmployeeStatusHistoryDto {
   id: string;
   employeeId: string;
   employeeName: string;
-  previousStatus: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking' | 'Available' | 'Busy' | 'Break' | 'Unavailable' | 'NotWorking' | null;
-  newStatus: 'available' | 'busy' | 'break' | 'unavailable' | 'notworking' | 'Available' | 'Busy' | 'Break' | 'Unavailable' | 'NotWorking';
+  // Backend returns enum values (number) by default; keep as union for safety.
+  previousStatus: string | number | null;
+  newStatus: string | number;
   changeReason: ChangeReason;
   changedBy: string | null;
   changedByName: string | null;

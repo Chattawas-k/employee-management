@@ -14,6 +14,7 @@ import { MyAccountComponent } from './features/my-account/my-account.component';
 import { MyAccountLayoutComponent } from './features/my-account/my-account-layout.component';
 import { authGuard } from './guards/auth.guard';
 import { managerGuard } from './guards/manager.guard';
+import { adminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -82,6 +83,30 @@ export const routes: Routes = [
     path: 'manager/settings', 
     loadComponent: () => import('./features/manager-settings/manager-settings.component').then(m => m.ManagerSettingsComponent),
     canActivate: [managerGuard] 
+  },
+  {
+    path: 'manager/employee-status-history',
+    loadComponent: () =>
+      import('./features/employee-status-history/employee-status-history.component').then(
+        m => m.EmployeeStatusHistoryComponent
+      ),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'manager/employee-status-audit',
+    loadComponent: () =>
+      import('./features/employee-status-audit/employee-status-audit-list.component').then(
+        m => m.EmployeeStatusAuditListComponent
+      ),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'manager/employee-status-audit/:employeeId',
+    loadComponent: () =>
+      import('./features/employee-status-audit/employee-status-audit-detail.component').then(
+        m => m.EmployeeStatusAuditDetailComponent
+      ),
+    canActivate: [adminGuard]
   },
   { path: '**', redirectTo: '/my-tasks' }
 ];

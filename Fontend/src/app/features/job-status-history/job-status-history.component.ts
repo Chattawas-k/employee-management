@@ -32,6 +32,7 @@ export class JobStatusHistoryComponent implements OnInit {
 
   availabilityStatus = this.myStatusStore.availabilityStatus;
   isMyTurn = this.myStatusStore.isMyTurn;
+  queueInfo = this.myStatusStore.myQueueInfo;
 
   isLoading = signal(false);
   histories = signal<JobStatusHistoryDto[]>([]);

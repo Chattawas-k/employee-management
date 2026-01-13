@@ -21,6 +21,8 @@ namespace employee_management.Application
 
             // Business time (Asia/Bangkok)
             services.AddSingleton<IBusinessDateTimeProvider, BusinessDateTimeProvider>();
+
+            services.AddScoped<IEmployeeStatusHistoryWriter, EmployeeStatusHistoryWriter>();
         }
     }
 }

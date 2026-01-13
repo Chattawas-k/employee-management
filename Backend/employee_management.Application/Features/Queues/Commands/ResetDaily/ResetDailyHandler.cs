@@ -50,6 +50,7 @@ namespace employee_management.Application.Features.Queues.Commands.ResetDaily
                     EmployeeId = employee.Id,
                     Position = position++,
                     Status = QueueStatus.Active,
+                    Round = 1,
                     QueueDate = queueDateUtc
                 };
                 _queueRepository.Create(queue);

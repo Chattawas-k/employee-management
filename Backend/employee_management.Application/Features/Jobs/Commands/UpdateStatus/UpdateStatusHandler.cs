@@ -20,9 +20,11 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
         private readonly IQueueRepository _queueRepository;
         private readonly IWaitingJobRepository _waitingJobRepository;
         private readonly IEmployeeStatusHistoryRepository _historyRepository;
+        private readonly IEmployeeStatusHistoryWriter _historyWriter;
         private readonly IJobStatusHistoryRepository _jobStatusHistoryRepository;
         private readonly INotificationService _notificationService;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IClientSourceProvider _clientSourceProvider;
         private readonly IMapper _mapper;
         private readonly ILogger<UpdateStatusHandler> _logger;
 
@@ -32,9 +34,11 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
             IQueueRepository queueRepository,
             IWaitingJobRepository waitingJobRepository,
             IEmployeeStatusHistoryRepository historyRepository,
+            IEmployeeStatusHistoryWriter historyWriter,
             IJobStatusHistoryRepository jobStatusHistoryRepository,
             INotificationService notificationService,
             ICurrentUserService currentUserService,
+            IClientSourceProvider clientSourceProvider,
             IMapper mapper, 
             ILogger<UpdateStatusHandler> logger)
         {
@@ -43,9 +47,11 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
             _queueRepository = queueRepository;
             _waitingJobRepository = waitingJobRepository;
             _historyRepository = historyRepository;
+            _historyWriter = historyWriter;
             _jobStatusHistoryRepository = jobStatusHistoryRepository;
             _notificationService = notificationService;
             _currentUserService = currentUserService;
+            _clientSourceProvider = clientSourceProvider;
             _mapper = mapper;
             _logger = logger;
         }
@@ -90,8 +96,10 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                     job.AssignedDate = DateTime.UtcNow;
                 }
 
+                var startedNow = request.Status == JobStatus.InProgress && !job.StartedDate.HasValue;
+
                 // Set StartedDate when transitioning to InProgress
-                if (request.Status == JobStatus.InProgress && !job.StartedDate.HasValue)
+                if (startedNow)
                 {
                     job.StartedDate = DateTime.UtcNow;
                 }
@@ -134,7 +142,8 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                 await _unitOfWork.Save(cancellationToken);
 
                 // Automatically update queue status based on job status
-                await UpdateQueueStatusBasedOnJobStatus(job, cancellationToken);
+                // startedNow is used to increment Queue.Round exactly once per job start
+                await UpdateQueueStatusBasedOnJobStatus(job, startedNow, cancellationToken);
 
                 return _mapper.Map<UpdateStatusResponse>(job);
             }
@@ -149,7 +158,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
             }
         }
 
-        private async Task UpdateQueueStatusBasedOnJobStatus(Job job, CancellationToken cancellationToken)
+        private async Task UpdateQueueStatusBasedOnJobStatus(Job job, bool startedNow, CancellationToken cancellationToken)
         {
             try
             {
@@ -179,6 +188,12 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                     if (job.Status == JobStatus.InProgress)
                     {
                         await _queueRepository.RotateQueueToTailAsync(job.AssigneeId, today, cancellationToken);
+
+                        if (startedNow)
+                        {
+                            await _queueRepository.IncrementRoundAsync(job.AssigneeId, today, cancellationToken);
+                        }
+
                         await _unitOfWork.Save(cancellationToken);
                         await _notificationService.SendQueueUpdatedNotificationAsync();
                         _logger.LogInformation(
@@ -196,6 +211,12 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                     // When job starts (InProgress):
                     // 1. Rotate queue: move staff to tail (Round-Robin) - MUST happen first
                     await _queueRepository.RotateQueueToTailAsync(job.AssigneeId, today, cancellationToken);
+
+                    // 1.1 Increment Round exactly once per job start
+                    if (startedNow)
+                    {
+                        await _queueRepository.IncrementRoundAsync(job.AssigneeId, today, cancellationToken);
+                    }
                     
                     // 2. Set availability status to Busy
                     newAvailabilityStatus = AvailabilityStatus.Busy;
@@ -227,18 +248,17 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                         // Update availability status (this will also update QueueStatus)
                         await _queueRepository.UpdateAvailabilityStatusAsync(job.AssigneeId, today, newAvailabilityStatus.Value, cancellationToken);
                         
-                        // Create history record (Auto change)
-                        var history = new Domain.Entities.EmployeeStatusHistory
-                        {
-                            EmployeeId = job.AssigneeId,
-                            PreviousStatus = previousAvailabilityStatus,
-                            NewStatus = newAvailabilityStatus.Value,
-                            ChangeReason = ChangeReason.Auto,
-                            ChangedBy = null, // Auto change, no user
-                            ChangedDate = DateTimeOffset.UtcNow,
-                            Notes = $"Auto change due to job {job.JobNumber} status change to {job.Status}"
-                        };
-                        _historyRepository.Create(history);
+                        await _historyWriter.TryWriteAsync(
+                            employeeId: job.AssigneeId,
+                            previousStatus: previousAvailabilityStatus,
+                            newStatus: newAvailabilityStatus.Value,
+                            changeReason: ChangeReason.Auto,
+                            changedBy: null,
+                            actorType: StatusActorType.System,
+                            source: _clientSourceProvider.GetSource(),
+                            notes: $"Auto change due to job {job.JobNumber} status change to {job.Status}",
+                            changedAt: DateTimeOffset.UtcNow,
+                            cancellationToken: cancellationToken);
                     }
                 }
                 

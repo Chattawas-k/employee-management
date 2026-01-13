@@ -15,6 +15,7 @@
       preset="queue"
       [availabilityStatus]="availabilityStatus()"
       [isMyTurn]="isMyTurn()"
+      [queuesRemaining]="queueInfo()?.queuesRemaining ?? null"
       queueActionLabel="รับลูกค้า"
       queueActionIcon="user-plus"
       queueActionButtonClass="bg-green-600 hover:bg-green-700 text-white"

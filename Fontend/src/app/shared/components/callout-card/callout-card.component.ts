@@ -32,6 +32,7 @@ export class CalloutCardComponent {
   // Queue preset inputs
   @Input() availabilityStatus: string | null = null;
   @Input() isMyTurn: boolean | null = null;
+  @Input() queuesRemaining: number | null = null;
   @Input() queueActionLabel: string = 'รับลูกค้า';
   @Input() queueActionIcon: CalloutIcon = 'user-plus';
   @Input() queueActionButtonClass: string = 'bg-green-600 hover:bg-green-700 text-white';
@@ -125,6 +126,7 @@ export class CalloutCardComponent {
   private get queueConfig(): { title: string; subtitle: string; variant: CalloutVariant; icon: CalloutIcon; showAction: boolean } | null {
     const status: AvailabilityStatusKey = normalizeAvailabilityStatus(this.availabilityStatus ?? 'available');
     const myTurn = !!this.isMyTurn;
+    const remaining = typeof this.queuesRemaining === 'number' ? this.queuesRemaining : null;
 
     // If not available => show status banner
     if (status !== 'available') {
@@ -185,7 +187,18 @@ export class CalloutCardComponent {
       };
     }
 
-    // Available + not my turn => show nothing
+    // Available + in queue but not my turn => show remaining queue info
+    if (remaining !== null && remaining > 0) {
+      return {
+        title: `รออีก ${remaining} คิว`,
+        subtitle: 'เตรียมตัวให้พร้อม เมื่อถึงคิวจะแสดงปุ่มรับลูกค้า',
+        variant: 'info',
+        icon: 'info',
+        showAction: false,
+      };
+    }
+
+    // Available + not in queue (or unknown) => show nothing
     return null;
   }
 

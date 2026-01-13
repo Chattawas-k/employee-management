@@ -12,7 +12,7 @@ namespace employee_management.Domain.Entities
         /// Number of jobs started (InProgress) by this employee for the given QueueDate.
         /// Used to compute fair runtime ordering: Round ASC, then Position ASC.
         /// </summary>
-        public int Round { get; set; } = 0;
+        public int Round { get; set; } = 1;
         public QueueStatus Status { get; set; } = QueueStatus.Active;
         public AvailabilityStatus AvailabilityStatus { get; set; } = AvailabilityStatus.Available;
         public DateTime QueueDate { get; set; } = DateTime.Today;

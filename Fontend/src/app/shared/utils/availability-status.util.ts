@@ -13,6 +13,18 @@ export type AvailabilityStatusKey =
  * We also accept legacy values (`break`, `notworking`) and Thai labels.
  */
 export function normalizeAvailabilityStatus(value: unknown): AvailabilityStatusKey {
+  // Support backend enums serialized as numbers (AvailabilityStatus: 1..6)
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    switch (value) {
+      case 1: return 'available';
+      case 2: return 'busy';
+      case 3: return 'lunchBreak';
+      case 4: return 'unavailable';
+      case 5: return 'leave';
+      case 6: return 'offsiteCustomer';
+    }
+  }
+
   const raw = String(value ?? '').trim();
   if (!raw) return 'unavailable';
 

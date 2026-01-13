@@ -273,6 +273,11 @@ namespace employee_management.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("ActorType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<int>("ChangeReason")
                         .HasColumnType("integer");
 
@@ -306,6 +311,11 @@ namespace employee_management.Persistence.Migrations
                     b.Property<int?>("PreviousStatus")
                         .HasColumnType("integer");
 
+                    b.Property<int>("Source")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
 
@@ -323,6 +333,8 @@ namespace employee_management.Persistence.Migrations
                     b.HasIndex("EmployeeId");
 
                     b.HasIndex("IsDeleted");
+
+                    b.HasIndex("EmployeeId", "ChangedDate");
 
                     b.ToTable("EmployeeStatusHistories", (string)null);
                 });
@@ -619,7 +631,9 @@ namespace employee_management.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Round")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -634,7 +648,7 @@ namespace employee_management.Persistence.Migrations
 
                     b.HasIndex("EmployeeId");
 
-                    b.ToTable("Queues");
+                    b.ToTable("Queues", (string)null);
                 });
 
             modelBuilder.Entity("employee_management.Domain.Entities.QueueRule", b =>

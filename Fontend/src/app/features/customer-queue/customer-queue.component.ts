@@ -75,6 +75,7 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
   // Centralized status (same across pages)
   private myStatusStore = inject(MyStatusStore);
   private receiveCustomerService = inject(ReceiveCustomerService);
+  queueInfo = this.myStatusStore.myQueueInfo;
   isMyTurn = this.myStatusStore.isMyTurn;
   availabilityStatus = this.myStatusStore.availabilityStatus;
   showOpenJobDialog = signal(false);
@@ -301,14 +302,14 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
       const relativePosition = index + 1; // Relative position in Ready Queue
       const employeeName = queue.employeeName || 'ไม่ระบุชื่อ';
       const initial = queue.employeeName ? queue.employeeName.charAt(0).toUpperCase() : '?';
-      const servedToday = this.countServedToday(queue.employeeId);
+      const servedToday = typeof queue.round === 'number' && queue.round >= 1 ? queue.round : 1;
       const isNext = relativePosition === 1; // First in Ready Queue is "next"
 
       readyQueueList.push({
         queue: relativePosition, // Use relative position, not master position
         name: employeeName,
         avatar: initial,
-        status: isNext ? 'รับลูกค้าวันนี้' : 'รอรับลูกค้า',
+        status: isNext ? 'รอบ' : 'รอรับลูกค้า',
         servedToday,
         isNext,
         isAvatarLetter: true
@@ -321,7 +322,7 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     sortedQueues.forEach((queue) => {
       const employeeName = queue.employeeName || 'ไม่ระบุชื่อ';
       const initial = queue.employeeName ? queue.employeeName.charAt(0).toUpperCase() : '?';
-      const servedToday = this.countServedToday(queue.employeeId);
+      const servedToday = typeof queue.round === 'number' && queue.round >= 1 ? queue.round : 1;
 
       const normalizedStatus = typeof queue.status === 'string' ? queue.status.toLowerCase() : String(queue.status || '').toLowerCase();
       const availabilityKey = normalizeAvailabilityStatus(queue.availabilityStatus);

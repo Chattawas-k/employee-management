@@ -5,6 +5,7 @@ export interface QueueDto {
   positionName?: string;
   departmentName?: string;
   position: number;
+  round?: number;
   status: 'active' | 'inactive' | 'busy' | 'Active' | 'Inactive' | 'Busy';
   // Backend returns enum as string (camelCase). Keep this as string and normalize in UI.
   availabilityStatus: string;

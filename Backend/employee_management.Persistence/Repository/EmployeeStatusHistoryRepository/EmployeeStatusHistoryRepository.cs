@@ -86,6 +86,59 @@ namespace employee_management.Persistence.Repository.EmployeeStatusHistoryReposi
                 .OrderByDescending(e => e.ChangedDate)
                 .ToListAsync(cancellationToken);
         }
+
+        public async Task<EmployeeStatusHistory?> GetLatestAsync(Guid employeeId, CancellationToken cancellationToken = default)
+        {
+            return await Context.EmployeeStatusHistories
+                .Where(e => !e.IsDeleted && e.EmployeeId == employeeId)
+                .OrderByDescending(e => e.ChangedDate)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        public async Task<EmployeeStatusHistory?> GetLatestBeforeAsync(Guid employeeId, DateTimeOffset before, CancellationToken cancellationToken = default)
+        {
+            return await Context.EmployeeStatusHistories
+                .Where(e => !e.IsDeleted && e.EmployeeId == employeeId && e.ChangedDate < before)
+                .OrderByDescending(e => e.ChangedDate)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        public async Task<List<EmployeeStatusHistory>> GetAuditRangeAsync(
+            DateTimeOffset start,
+            DateTimeOffset end,
+            Guid? employeeId,
+            StatusActorType? actorType,
+            IEnumerable<AvailabilityStatus>? statuses,
+            CancellationToken cancellationToken = default)
+        {
+            var query = Context.EmployeeStatusHistories
+                .Include(e => e.Employee)
+                .Include(e => e.ChangedByEmployee)
+                .Where(e => !e.IsDeleted && e.ChangedDate >= start && e.ChangedDate < end);
+
+            if (employeeId.HasValue)
+            {
+                query = query.Where(e => e.EmployeeId == employeeId.Value);
+            }
+
+            if (actorType.HasValue)
+            {
+                query = query.Where(e => e.ActorType == actorType.Value);
+            }
+
+            if (statuses != null)
+            {
+                var list = statuses.ToList();
+                if (list.Count > 0)
+                {
+                    query = query.Where(e => list.Contains(e.NewStatus));
+                }
+            }
+
+            return await query
+                .OrderBy(e => e.ChangedDate)
+                .ToListAsync(cancellationToken);
+        }
     }
 }
 

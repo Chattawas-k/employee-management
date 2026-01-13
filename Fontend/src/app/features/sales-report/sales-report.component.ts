@@ -44,6 +44,7 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   // Centralized status (same across pages)
   private myStatusStore = inject(MyStatusStore);
   private receiveCustomerService = inject(ReceiveCustomerService);
+  queueInfo = this.myStatusStore.myQueueInfo;
   availabilityStatus = this.myStatusStore.availabilityStatus;
   isMyTurn = this.myStatusStore.isMyTurn;
   showOpenJobDialog = signal(false);

@@ -2,6 +2,7 @@ using MediatR;
 using employee_management.Application.Repository.QueuesRepository;
 using employee_management.Application.Repository;
 using employee_management.Application.Common.Services;
+using employee_management.Application.Common.Exceptions;
 using employee_management.Domain.Entities;
 using employee_management.Domain.Enums;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,8 @@ namespace employee_management.Application.Features.Queues.Commands.UpdateMyStatu
         private readonly IUnitOfWork _unitOfWork;
         private readonly IQueueRepository _queueRepository;
         private readonly IEmployeeStatusHistoryRepository _historyRepository;
+        private readonly IEmployeeStatusHistoryWriter _historyWriter;
+        private readonly IClientSourceProvider _clientSourceProvider;
         private readonly INotificationService _notificationService;
         private readonly IBusinessDateTimeProvider _dateTimeProvider;
         private readonly ILogger<UpdateMyQueueStatusHandler> _logger;
@@ -21,6 +24,8 @@ namespace employee_management.Application.Features.Queues.Commands.UpdateMyStatu
             IUnitOfWork unitOfWork,
             IQueueRepository queueRepository,
             IEmployeeStatusHistoryRepository historyRepository,
+            IEmployeeStatusHistoryWriter historyWriter,
+            IClientSourceProvider clientSourceProvider,
             INotificationService notificationService,
             IBusinessDateTimeProvider dateTimeProvider,
             ILogger<UpdateMyQueueStatusHandler> logger)
@@ -28,6 +33,8 @@ namespace employee_management.Application.Features.Queues.Commands.UpdateMyStatu
             _unitOfWork = unitOfWork;
             _queueRepository = queueRepository;
             _historyRepository = historyRepository;
+            _historyWriter = historyWriter;
+            _clientSourceProvider = clientSourceProvider;
             _notificationService = notificationService;
             _dateTimeProvider = dateTimeProvider;
             _logger = logger;
@@ -43,6 +50,12 @@ namespace employee_management.Application.Features.Queues.Commands.UpdateMyStatu
                 var currentQueue = await _queueRepository.GetByEmployeeIdAndDateAsync(request.EmployeeId, today, cancellationToken);
                 var previousStatus = currentQueue?.AvailabilityStatus;
 
+                // Disallow manual status changes while employee is Busy (serving customer)
+                if (previousStatus == AvailabilityStatus.Busy && request.Status != AvailabilityStatus.Busy)
+                {
+                    throw new BadRequestException("ขณะนี้คุณติดลูกค้า ไม่สามารถเปลี่ยนสถานะได้จนกว่าจะปิดงาน");
+                }
+
                 // Update availability status (this will also update QueueStatus)
                 // The method now returns the updated/created queue
                 var queue = await _queueRepository.UpdateAvailabilityStatusAsync(request.EmployeeId, today, request.Status, cancellationToken);
@@ -53,17 +66,17 @@ namespace employee_management.Application.Features.Queues.Commands.UpdateMyStatu
                     throw new InvalidOperationException($"Failed to update or create queue for employee {request.EmployeeId} on {today:yyyy-MM-dd}");
                 }
 
-                // Create history record (Manual change)
-                var history = new Domain.Entities.EmployeeStatusHistory
-                {
-                    EmployeeId = request.EmployeeId,
-                    PreviousStatus = previousStatus,
-                    NewStatus = request.Status,
-                    ChangeReason = ChangeReason.Manual,
-                    ChangedBy = request.EmployeeId, // Employee changed their own status
-                    ChangedDate = DateTimeOffset.UtcNow
-                };
-                _historyRepository.Create(history);
+                await _historyWriter.TryWriteAsync(
+                    employeeId: request.EmployeeId,
+                    previousStatus: previousStatus,
+                    newStatus: request.Status,
+                    changeReason: ChangeReason.Manual,
+                    changedBy: request.EmployeeId,
+                    actorType: StatusActorType.Self,
+                    source: _clientSourceProvider.GetSource(),
+                    notes: null,
+                    changedAt: DateTimeOffset.UtcNow,
+                    cancellationToken: cancellationToken);
 
                 await _unitOfWork.Save(cancellationToken);
 

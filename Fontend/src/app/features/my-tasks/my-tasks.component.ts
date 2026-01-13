@@ -37,6 +37,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
   // Centralized status (same across pages)
   private myStatusStore = inject(MyStatusStore);
   private receiveCustomerService = inject(ReceiveCustomerService);
+  queueInfo = this.myStatusStore.myQueueInfo;
   availabilityStatus = this.myStatusStore.availabilityStatus;
   
   constructor(
@@ -49,13 +50,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
   private signalRSub = new Subscription();
   currentUser = signal('สมศักดิ์ รักงาน (Bob)');
   
-  queuesRemaining = signal(0);
-  myQueuePosition = signal(0);
-  currentlyServing = signal<{
-    name: string;
-    avatarUrl: string;
-    queuePosition: number;
-  } | null>(null);
+  // Queue related UI is driven by MyStatusStore now
 
   showStartDialog = signal(false);
   showRejectDialog = signal(false);

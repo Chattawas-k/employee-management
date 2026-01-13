@@ -65,6 +65,7 @@ namespace employee_management.Persistence
             //Services
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.AddScoped<IClientSourceProvider, ClientSourceProvider>();
 
             // Register authentication/login related services
             services.AddScoped<ILoginService, LoginService>();

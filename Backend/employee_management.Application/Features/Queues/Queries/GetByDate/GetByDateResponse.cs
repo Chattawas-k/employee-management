@@ -9,6 +9,7 @@ namespace employee_management.Application.Features.Queues.Queries.GetByDate
         string? PositionName,
         string? DepartmentName,
         int Position,
+        int Round,
         QueueStatus Status,
         AvailabilityStatus AvailabilityStatus,
         DateTime QueueDate,

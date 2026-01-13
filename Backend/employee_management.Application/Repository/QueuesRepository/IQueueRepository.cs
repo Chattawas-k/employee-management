@@ -12,6 +12,7 @@ namespace employee_management.Application.Repository.QueuesRepository
         Task<Queue> UpdateAvailabilityStatusAsync(Guid employeeId, DateTime date, AvailabilityStatus availabilityStatus, CancellationToken cancellationToken);
         Task<Queue?> GetFirstAvailableStaffAsync(DateTime date, CancellationToken cancellationToken);
         Task RotateQueueToTailAsync(Guid employeeId, DateTime date, CancellationToken cancellationToken);
+        Task IncrementRoundAsync(Guid employeeId, DateTime date, CancellationToken cancellationToken);
     }
 }
 

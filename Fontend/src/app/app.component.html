@@ -46,6 +46,21 @@
           Dashboard ผู้บริหาร
         </a>
       }
+      @if (hasAdminAccess()) {
+        <a routerLink="/manager/employee-status-history" routerLinkActive="bg-indigo-600 text-white"
+          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+          <app-icon name="history" className="w-5 h-5"></app-icon>
+          ประวัติสถานะพนักงาน
+        </a>
+      }
+
+      @if (hasAdminAccess()) {
+        <a routerLink="/manager/employee-status-audit" routerLinkActive="bg-indigo-600 text-white"
+          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+          <app-icon name="list-checks" className="w-5 h-5"></app-icon>
+          Audit สถานะพนักงาน
+        </a>
+      }
 
       @if (hasAdminAccess()) {
         <div class="pt-4 mt-4 border-t border-slate-100">
@@ -106,6 +121,11 @@
           <div class="px-4 py-2 text-xs font-medium text-gray uppercase tracking-wider">
             สถานะการทำงาน
           </div>
+          @if (availabilityStatus() === 'busy') {
+            <div class="px-4 py-2 text-sm text-amber-800 bg-amber-50 border-y border-amber-100">
+              ขณะนี้คุณติดลูกค้า ไม่สามารถเปลี่ยนสถานะได้จนกว่าจะปิดงาน
+            </div>
+          }
           @for (status of getAvailableStatuses(); track status.value) {
           <a href="#" (click)="setStatus(status.value); $event.preventDefault()"
             class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150">
@@ -210,6 +230,20 @@
           </a>
         }
         @if (hasAdminAccess()) {
+          <a routerLink="/manager/employee-status-history" routerLinkActive="bg-indigo-600 text-white" (click)="isMobileMenuOpen.set(false)"
+            class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+            <app-icon name="history" className="w-5 h-5"></app-icon>
+            ประวัติสถานะพนักงาน
+          </a>
+        }
+        @if (hasAdminAccess()) {
+          <a routerLink="/manager/employee-status-audit" routerLinkActive="bg-indigo-600 text-white" (click)="isMobileMenuOpen.set(false)"
+            class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+            <app-icon name="list-checks" className="w-5 h-5"></app-icon>
+            Audit สถานะพนักงาน
+          </a>
+        }
+        @if (hasAdminAccess()) {
           <div class="pt-4 mt-4 border-t border-slate-200">
             <button (click)="isSettingsOpen.set(!isSettingsOpen())"
               class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors bg-slate-50">
@@ -267,6 +301,11 @@
             <div class="px-4 py-2 text-xs font-medium text-gray uppercase tracking-wider">
               สถานะการทำงาน
             </div>
+            @if (availabilityStatus() === 'busy') {
+              <div class="px-4 py-2 text-sm text-amber-800 bg-amber-50 border-y border-amber-100">
+                ขณะนี้คุณติดลูกค้า ไม่สามารถเปลี่ยนสถานะได้จนกว่าจะปิดงาน
+              </div>
+            }
             @for (status of getAvailableStatuses(); track status.value) {
             <a href="#" (click)="setStatus(status.value); $event.preventDefault()"
               class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150">

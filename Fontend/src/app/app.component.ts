@@ -330,9 +330,13 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   getAvailableStatuses(): Array<{ value: AvailabilityStatusKey; label: string; dotClass: string }> {
+    // While busy, disallow manual status changes
+    if (this.availabilityStatus() === 'busy') {
+      return [];
+    }
+
     const allStatuses: Array<{ value: AvailabilityStatusKey; label: string; dotClass: string }> = [
       { value: 'available', label: getAvailabilityStatusLabel('available'), dotClass: getAvailabilityStatusDotClass('available') },
-      { value: 'busy', label: getAvailabilityStatusLabel('busy'), dotClass: getAvailabilityStatusDotClass('busy') },
       { value: 'lunchBreak', label: getAvailabilityStatusLabel('lunchBreak'), dotClass: getAvailabilityStatusDotClass('lunchBreak') },
       { value: 'unavailable', label: getAvailabilityStatusLabel('unavailable'), dotClass: getAvailabilityStatusDotClass('unavailable') },
       { value: 'leave', label: getAvailabilityStatusLabel('leave'), dotClass: getAvailabilityStatusDotClass('leave') },
@@ -347,6 +351,12 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   setStatus(status: AvailabilityStatusKey): void {
+    // While busy (serving customer), employee cannot change status manually until job is closed.
+    if (this.availabilityStatus() === 'busy') {
+      this.isStatusMenuOpen.set(false);
+      return;
+    }
+
     // Show confirmation dialog first
     this.pendingStatusChange.set(status);
     this.showStatusChangeDialog.set(true);

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Identity;
 using employee_management.Domain.Entities;
 using employee_management.Persistence.Seeds;
 using DefaultProductCategories = employee_management.Persistence.Seeds.DefaultProductCategories;
+using employee_management.Application.Common.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -159,6 +160,9 @@ builder.Services.AddHealthChecks()
 
 builder.Services.ConfigurePersistence(builder.Configuration);
 builder.Services.ConfigureApplication();
+
+builder.Services.Configure<EmployeeStatusAuditOptions>(
+    builder.Configuration.GetSection(EmployeeStatusAuditOptions.SectionName));
 
 // Add SignalR
 builder.Services.AddSignalR(options =>

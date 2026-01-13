@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using employee_management.Domain.Entities;
+using employee_management.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -123,8 +124,21 @@ namespace employee_management.Persistence.Context
                 // Create indexes
                 entity.HasIndex(e => e.EmployeeId);
                 entity.HasIndex(e => e.ChangedDate);
+                entity.HasIndex(e => new { e.EmployeeId, e.ChangedDate });
                 entity.HasIndex(e => e.ChangeReason);
                 entity.HasIndex(e => e.IsDeleted);
+
+                entity.Property(e => e.ActorType)
+                    .HasDefaultValue(StatusActorType.Unknown);
+
+                entity.Property(e => e.Source)
+                    .HasDefaultValue(StatusChangeSource.Unknown);
+            });
+
+            modelBuilder.Entity<Queue>(entity =>
+            {
+                entity.ToTable("Queues");
+                entity.Property(e => e.Round).HasDefaultValue(1);
             });
 
             // Configure JobStatusHistory entity

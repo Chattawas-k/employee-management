@@ -27,6 +27,8 @@ export class StatusUpdateDialogComponent {
 
   selected = signal<AvailabilityStatusKey>('available');
 
+  isBusy = computed(() => this.currentStatus === 'busy');
+
   options = computed<StatusUpdateOption[]>(() => {
     // Only manual statuses + available (back to ready)
     const base: AvailabilityStatusKey[] = ['available', 'lunchBreak', 'unavailable', 'leave', 'offsiteCustomer'];
@@ -56,7 +58,7 @@ export class StatusUpdateDialogComponent {
   }
 
   onConfirm(): void {
-    if (this.isSubmitting) return;
+    if (this.isSubmitting || this.isBusy()) return;
     this.confirm.emit(this.selected());
   }
 }

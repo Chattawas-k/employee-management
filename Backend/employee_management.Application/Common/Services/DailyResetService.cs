@@ -11,17 +11,20 @@ namespace employee_management.Application.Common.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IQueueRepository _queueRepository;
         private readonly IEmployeeStatusHistoryRepository _historyRepository;
+        private readonly IEmployeeStatusHistoryWriter _historyWriter;
         private readonly ILogger<DailyResetService> _logger;
 
         public DailyResetService(
             IUnitOfWork unitOfWork,
             IQueueRepository queueRepository,
             IEmployeeStatusHistoryRepository historyRepository,
+            IEmployeeStatusHistoryWriter historyWriter,
             ILogger<DailyResetService> logger)
         {
             _unitOfWork = unitOfWork;
             _queueRepository = queueRepository;
             _historyRepository = historyRepository;
+            _historyWriter = historyWriter;
             _logger = logger;
         }
 
@@ -44,18 +47,17 @@ namespace employee_management.Application.Common.Services
                         // Reset to Available
                         await _queueRepository.UpdateAvailabilityStatusAsync(queue.EmployeeId, today, AvailabilityStatus.Available, cancellationToken);
                         
-                        // Create history record (Auto change)
-                        var history = new Domain.Entities.EmployeeStatusHistory
-                        {
-                            EmployeeId = queue.EmployeeId,
-                            PreviousStatus = previousStatus,
-                            NewStatus = AvailabilityStatus.Available,
-                            ChangeReason = ChangeReason.Auto,
-                            ChangedBy = null, // Auto change
-                            ChangedDate = DateTimeOffset.UtcNow,
-                            Notes = "Daily reset to Available"
-                        };
-                        _historyRepository.Create(history);
+                        await _historyWriter.TryWriteAsync(
+                            employeeId: queue.EmployeeId,
+                            previousStatus: previousStatus,
+                            newStatus: AvailabilityStatus.Available,
+                            changeReason: ChangeReason.Auto,
+                            changedBy: null,
+                            actorType: StatusActorType.System,
+                            source: StatusChangeSource.Cron,
+                            notes: "Daily reset to Available",
+                            changedAt: DateTimeOffset.UtcNow,
+                            cancellationToken: cancellationToken);
                         
                         resetCount++;
                     }
