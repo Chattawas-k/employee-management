@@ -3,6 +3,16 @@ import { CommonModule } from '@angular/common';
 import { Task } from '../task-column/task-column.component';
 import { ReportStatus } from '../../../models/sales-report.model';
 
+interface HistoryEntry {
+  key: string;
+  title: string;
+  timestamp?: string | null;
+  description?: string;
+  iconColor: string;
+  iconBg: string;
+  iconPath: string;
+}
+
 @Component({
   selector: 'app-task-detail-dialog',
   standalone: true,
@@ -106,6 +116,60 @@ export class TaskDetailDialogComponent {
   setActiveTab(tab: 'details' | 'history') {
     this.activeTab.set(tab);
   }
+
+  historyEntries = computed(() => {
+    const entries: HistoryEntry[] = [];
+
+    const pushEntry = (entry: HistoryEntry) => {
+      if (entry.timestamp) {
+        entries.push(entry);
+      }
+    };
+
+    pushEntry({
+      key: 'created',
+      title: 'สร้างงานในระบบ',
+      timestamp: this.task.createdAt,
+      description: 'ลูกค้า Walk-in เข้ามาที่ร้าน และพนักงานรับคิว',
+      iconColor: 'text-blue-600',
+      iconBg: 'bg-blue-100',
+      iconPath: 'M12 4v16m8-8H4'
+    });
+
+    if (this.task.startedAt) {
+      pushEntry({
+        key: 'started',
+        title: 'พนักงานเริ่มดำเนินการ',
+        timestamp: this.task.startedAt,
+        iconColor: 'text-yellow-600',
+        iconBg: 'bg-yellow-100',
+        iconPath: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
+      });
+    }
+
+    if (this.task.completedAt) {
+      const isRejected = this.task.status === 'rejected';
+      pushEntry({
+        key: isRejected ? 'rejected' : 'completed',
+        title: isRejected ? 'ปฏิเสธงาน' : 'ปิดงานเรียบร้อย',
+        timestamp: this.task.completedAt,
+        description: isRejected && this.task.rejectionReason ? `เหตุผล: ${this.task.rejectionReason}` : undefined,
+        iconColor: isRejected ? 'text-red-600' : 'text-green-600',
+        iconBg: isRejected ? 'bg-red-100' : 'bg-green-100',
+        iconPath: isRejected
+          ? 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z'
+          : 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
+      });
+    }
+
+    entries.sort((a, b) => {
+      const dateA = new Date(a.timestamp!).getTime();
+      const dateB = new Date(b.timestamp!).getTime();
+      return dateB - dateA;
+    });
+
+    return entries;
+  });
 
   formatThaiDateTime(dateString?: string | null): string {
     if (!dateString) {

@@ -13,6 +13,7 @@ namespace employee_management.Application.Repository.QueuesRepository
         Task<Queue?> GetFirstAvailableStaffAsync(DateTime date, CancellationToken cancellationToken);
         Task RotateQueueToTailAsync(Guid employeeId, DateTime date, CancellationToken cancellationToken);
         Task IncrementRoundAsync(Guid employeeId, DateTime date, CancellationToken cancellationToken);
+        Task DecrementRoundAsync(Guid employeeId, DateTime date, CancellationToken cancellationToken);
     }
 }
 

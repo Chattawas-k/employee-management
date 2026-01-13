@@ -124,7 +124,7 @@ export class SalesReportDialogComponent implements OnInit {
     } else if (taskData) {
       this.salesReportForm.patchValue({
         customerName: taskData.customerName || '',
-        contactInfo: '08x-xxx-xxxx'
+        contactInfo: ''
       });
       this.setStatus('Success');
     } else {

@@ -240,6 +240,19 @@ namespace employee_management.Persistence.Repository.QueuesRepository
             queue.Round += 1;
             Context.Queues.Update(queue);
         }
+
+        public async Task DecrementRoundAsync(Guid employeeId, DateTime date, CancellationToken cancellationToken)
+        {
+            var queue = await GetByEmployeeIdAndDateAsync(employeeId, date, cancellationToken);
+            if (queue == null)
+            {
+                return;
+            }
+
+            // Prevent round from dropping below 1 to maintain fair ordering baseline
+            queue.Round = Math.Max(queue.Round - 1, 1);
+            Context.Queues.Update(queue);
+        }
     }
 }
 

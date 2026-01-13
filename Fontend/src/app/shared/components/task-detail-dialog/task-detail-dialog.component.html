@@ -2,7 +2,7 @@
   <div class="bg-gray-50 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col relative max-h-[90vh]" (click)="$event.stopPropagation()">
     <!-- Header -->
     <header class="p-5 border-b border-gray-200 flex justify-between items-center flex-shrink-0 bg-white rounded-t-2xl">
-      <h2 class="text-xl font-medium ">รายละเอียดงาน {{ task.jobRunningCode || task.jobNumber || task.id }}</h2>
+      <h2 class="text-xl font-medium ">รายละเอียดงาน #{{ task.jobRunningCode || task.jobNumber || task.id }}</h2>
       <button (click)="close.emit()" class="text-gray-400 hover:text-gray-600">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -146,52 +146,18 @@
             <!-- Task History -->
             <section>
               <div class="bg-white p-4 rounded-lg border border-gray-200">
-                <ol class="relative border-l-2 border-gray-100 ml-1">                  
-                  <!-- Step 1: Created -->
-                  <li class="ml-6" [class.mb-6]="task.startedAt">            
-                    <span class="absolute flex items-center justify-center w-6 h-6 bg-blue-100 rounded-full -left-[13px] ring-4 ring-white">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
-                    </span>
-                    <h4 class="font-medium  text-base">สร้างงานในระบบ</h4>
-                    <time class="block text-sm font-normal leading-none text-gray-400 mt-0.5">{{ formatThaiDateTime(task.createdAt) }}</time>
-                    <p class="text-sm text-gray-500 mt-1.5">ลูกค้า Walk-in เข้ามาที่ร้าน และพนักงานรับคิว</p>
-                  </li>
-                  
-                  <!-- Step 2: In Progress -->
-                  @if (task.startedAt) {
-                    <li class="ml-6" [class.mb-6]="task.completedAt">
-                      <span class="absolute flex items-center justify-center w-6 h-6 bg-yellow-100 rounded-full -left-[13px] ring-4 ring-white">
-                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                           <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <ol class="relative border-l-2 border-gray-100 ml-1">
+                  @for (entry of historyEntries(); track entry.key + entry.timestamp) {
+                    <li class="ml-6 mb-4">
+                      <span class="absolute flex items-center justify-center w-6 h-6 rounded-full -left-[13px] ring-4 ring-white" [class]="entry.iconBg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                          <path [attr.d]="entry.iconPath" stroke-linecap="round" stroke-linejoin="round" [class]="entry.iconColor"></path>
                         </svg>
                       </span>
-                      <h4 class="font-medium  text-base">พนักงานเริ่มดำเนินการ</h4>
-                      <time class="block text-sm font-normal leading-none text-gray-400 mt-0.5">{{ formatThaiDateTime(task.startedAt) }}</time>
-                    </li>
-                  }
-
-                  <!-- Step 3: Completed / Rejected -->
-                  @if (task.completedAt) {
-                    <li class="ml-6">
-                      @if (task.status === 'completed') {
-                        <span class="absolute flex items-center justify-center w-6 h-6 bg-green-100 rounded-full -left-[13px] ring-4 ring-white">
-                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                           </svg>
-                        </span>
-                        <h4 class="font-medium  text-base">ปิดงานเรียบร้อย</h4>
-                        <time class="block text-sm font-normal leading-none text-gray-400 mt-0.5">{{ formatThaiDateTime(task.completedAt) }}</time>
-                      } @else if (task.status === 'rejected') {
-                        <span class="absolute flex items-center justify-center w-6 h-6 bg-red-100 rounded-full -left-[13px] ring-4 ring-white">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </span>
-                        <h4 class="font-medium  text-base">ปฏิเสธงาน</h4>
-                        <time class="block text-sm font-normal leading-none text-gray-400 mt-0.5">{{ formatThaiDateTime(task.completedAt) }}</time>
-                        @if(task.rejectionReason) {
-                          <p class="text-sm text-gray-500 mt-1.5">เหตุผล: {{ task.rejectionReason }}</p>
-                        }
+                      <h4 class="font-medium text-base">{{ entry.title }}</h4>
+                      <time class="block text-sm font-normal leading-none text-gray-400 mt-0.5">{{ formatThaiDateTime(entry.timestamp) }}</time>
+                      @if (entry.description) {
+                        <p class="text-sm text-gray-500 mt-1.5">{{ entry.description }}</p>
                       }
                     </li>
                   }

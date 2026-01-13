@@ -100,6 +100,8 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                 }
 
                 var assignedNow = request.Status == JobStatus.Assigned && previousStatus != JobStatus.Assigned;
+                var restoreRound = request.Status == JobStatus.Cancelled &&
+                    (previousStatus == JobStatus.Assigned || previousStatus == JobStatus.InProgress);
                 var startedNow = request.Status == JobStatus.InProgress && !job.StartedDate.HasValue;
 
                 // Set StartedDate when transitioning to InProgress
@@ -147,7 +149,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
 
                 // Automatically update queue status based on job status
                 // assignedNow is used to increment Queue.Round exactly once per assignment
-                await UpdateQueueStatusBasedOnJobStatus(job, assignedNow, cancellationToken);
+                await UpdateQueueStatusBasedOnJobStatus(job, assignedNow, restoreRound, cancellationToken);
 
                 return _mapper.Map<UpdateStatusResponse>(job);
             }
@@ -162,7 +164,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
             }
         }
 
-        private async Task UpdateQueueStatusBasedOnJobStatus(Job job, bool assignedNow, CancellationToken cancellationToken)
+        private async Task UpdateQueueStatusBasedOnJobStatus(Job job, bool assignedNow, bool restoreRound, CancellationToken cancellationToken)
         {
             try
             {
@@ -202,9 +204,9 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                     // When job starts (InProgress), keep staff Busy
                     newAvailabilityStatus = AvailabilityStatus.Busy;
                 }
-                else if (job.Status == JobStatus.ClosedWon || job.Status == JobStatus.ClosedLost)
+                else if (job.Status == JobStatus.ClosedWon || job.Status == JobStatus.ClosedLost || job.Status == JobStatus.Cancelled)
                 {
-                    // When job is closed, set to Available only if employee has no other Assigned/InProgress jobs
+                    // When job finishes/cancels, set to Available only if employee has no other Assigned/InProgress jobs
                     var employeeJobs = await _jobRepository.GetMyTasksAsync(job.AssigneeId, cancellationToken);
                     var hasOtherOpenJobs = employeeJobs.Any(j =>
                         j.Id != job.Id && (j.Status == JobStatus.Assigned || j.Status == JobStatus.InProgress));
@@ -245,6 +247,11 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                 if (job.Status == JobStatus.Assigned && assignedNow)
                 {
                     await _queueRepository.IncrementRoundAsync(job.AssigneeId, today, cancellationToken);
+                }
+                
+                if (restoreRound)
+                {
+                    await _queueRepository.DecrementRoundAsync(job.AssigneeId, today, cancellationToken);
                 }
                 
                 // Save all changes (rotation + status update + history) in single transaction
