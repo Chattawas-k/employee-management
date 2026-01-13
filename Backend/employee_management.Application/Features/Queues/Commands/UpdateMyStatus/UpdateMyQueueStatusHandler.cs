@@ -14,6 +14,7 @@ namespace employee_management.Application.Features.Queues.Commands.UpdateMyStatu
         private readonly IQueueRepository _queueRepository;
         private readonly IEmployeeStatusHistoryRepository _historyRepository;
         private readonly INotificationService _notificationService;
+        private readonly IBusinessDateTimeProvider _dateTimeProvider;
         private readonly ILogger<UpdateMyQueueStatusHandler> _logger;
 
         public UpdateMyQueueStatusHandler(
@@ -21,12 +22,14 @@ namespace employee_management.Application.Features.Queues.Commands.UpdateMyStatu
             IQueueRepository queueRepository,
             IEmployeeStatusHistoryRepository historyRepository,
             INotificationService notificationService,
+            IBusinessDateTimeProvider dateTimeProvider,
             ILogger<UpdateMyQueueStatusHandler> logger)
         {
             _unitOfWork = unitOfWork;
             _queueRepository = queueRepository;
             _historyRepository = historyRepository;
             _notificationService = notificationService;
+            _dateTimeProvider = dateTimeProvider;
             _logger = logger;
         }
 
@@ -34,7 +37,7 @@ namespace employee_management.Application.Features.Queues.Commands.UpdateMyStatu
         {
             try
             {
-                var today = DateTime.UtcNow.Date;
+                var today = _dateTimeProvider.GetBangkokTodayDate();
                 
                 // Get current queue to track previous status
                 var currentQueue = await _queueRepository.GetByEmployeeIdAndDateAsync(request.EmployeeId, today, cancellationToken);

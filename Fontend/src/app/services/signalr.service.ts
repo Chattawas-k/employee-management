@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Observable, Subject, Subscription } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +11,35 @@ export class SignalRService {
   private hubConnection?: HubConnection;
   private connectionPromise?: Promise<void>;
 
+  // Event streams (single source of truth)
+  private readonly queueUpdatedSubject = new Subject<void>();
+  private readonly jobStatusChangedSubject = new Subject<void>();
+  private readonly employeeStatusChangedSubject = new Subject<void>();
+  private readonly jobAssignedSubject = new Subject<{ jobId: string; jobTitle: string; customer: string }>();
+
+  // Backward-compat callback subscriptions
+  private readonly queueUpdatedSubscriptions: Subscription[] = [];
+  private readonly jobStatusChangedSubscriptions: Subscription[] = [];
+  private readonly employeeStatusChangedSubscriptions: Subscription[] = [];
+  private readonly jobAssignedSubscriptions: Subscription[] = [];
+
   constructor(private authService: AuthService) {}
+
+  get queueUpdated$(): Observable<void> {
+    return this.queueUpdatedSubject.asObservable();
+  }
+
+  get jobStatusChanged$(): Observable<void> {
+    return this.jobStatusChangedSubject.asObservable();
+  }
+
+  get employeeStatusChanged$(): Observable<void> {
+    return this.employeeStatusChangedSubject.asObservable();
+  }
+
+  get jobAssigned$(): Observable<{ jobId: string; jobTitle: string; customer: string }> {
+    return this.jobAssignedSubject.asObservable();
+  }
 
   async startConnection(): Promise<void> {
     if (this.hubConnection?.state === HubConnectionState.Connected) {
@@ -95,6 +123,29 @@ export class SignalRService {
         })
         .build();
 
+      // Ensure we don't register duplicate handlers on reconnect
+      this.hubConnection.off('QueueUpdated');
+      this.hubConnection.off('JobStatusChanged');
+      this.hubConnection.off('EmployeeStatusChanged');
+      this.hubConnection.off('ReceiveJobAssigned');
+
+      // Register handlers ONCE: push to Subjects
+      this.hubConnection.on('QueueUpdated', () => {
+        this.queueUpdatedSubject.next();
+      });
+
+      this.hubConnection.on('JobStatusChanged', () => {
+        this.jobStatusChangedSubject.next();
+      });
+
+      this.hubConnection.on('EmployeeStatusChanged', () => {
+        this.employeeStatusChangedSubject.next();
+      });
+
+      this.hubConnection.on('ReceiveJobAssigned', (jobId: string, jobTitle: string, customer: string) => {
+        this.jobAssignedSubject.next({ jobId, jobTitle, customer });
+      });
+
       // Handle connection closed events (e.g., due to expired token)
       this.hubConnection.onclose(async (error) => {
         if (error) {
@@ -173,74 +224,50 @@ export class SignalRService {
   }
 
   onQueueUpdated(callback: () => void): void {
-    if (!this.hubConnection) {
-      console.warn('SignalR connection not established');
-      return;
-    }
-
-    this.hubConnection.on('QueueUpdated', () => {
-      console.log('Queue updated notification received');
-      callback();
-    });
+    this.queueUpdatedSubscriptions.push(
+      this.queueUpdated$.subscribe(() => callback())
+    );
   }
 
   onJobStatusChanged(callback: () => void): void {
-    if (!this.hubConnection) {
-      console.warn('SignalR connection not established');
-      return;
-    }
-
-    this.hubConnection.on('JobStatusChanged', () => {
-      console.log('Job status changed notification received');
-      callback();
-    });
+    this.jobStatusChangedSubscriptions.push(
+      this.jobStatusChanged$.subscribe(() => callback())
+    );
   }
 
   onJobAssigned(callback: (jobId: string, jobTitle: string, customer: string) => void): void {
-    if (!this.hubConnection) {
-      console.warn('SignalR connection not established');
-      return;
-    }
-
-    this.hubConnection.on('ReceiveJobAssigned', (jobId: string, jobTitle: string, customer: string) => {
-      console.log('Job assigned notification received', { jobId, jobTitle, customer });
-      callback(jobId, jobTitle, customer);
-    });
+    this.jobAssignedSubscriptions.push(
+      this.jobAssigned$.subscribe(({ jobId, jobTitle, customer }) => callback(jobId, jobTitle, customer))
+    );
   }
 
   onEmployeeStatusChanged(callback: () => void): void {
-    if (!this.hubConnection) {
-      console.warn('SignalR connection not established');
-      return;
-    }
-
-    this.hubConnection.on('EmployeeStatusChanged', () => {
-      console.log('Employee status changed notification received');
-      callback();
-    });
+    this.employeeStatusChangedSubscriptions.push(
+      this.employeeStatusChanged$.subscribe(() => callback())
+    );
   }
 
   offQueueUpdated(): void {
-    if (this.hubConnection) {
-      this.hubConnection.off('QueueUpdated');
+    while (this.queueUpdatedSubscriptions.length > 0) {
+      this.queueUpdatedSubscriptions.pop()?.unsubscribe();
     }
   }
 
   offJobStatusChanged(): void {
-    if (this.hubConnection) {
-      this.hubConnection.off('JobStatusChanged');
-    }
-  }
-
-  offJobAssigned(): void {
-    if (this.hubConnection) {
-      this.hubConnection.off('ReceiveJobAssigned');
+    while (this.jobStatusChangedSubscriptions.length > 0) {
+      this.jobStatusChangedSubscriptions.pop()?.unsubscribe();
     }
   }
 
   offEmployeeStatusChanged(): void {
-    if (this.hubConnection) {
-      this.hubConnection.off('EmployeeStatusChanged');
+    while (this.employeeStatusChangedSubscriptions.length > 0) {
+      this.employeeStatusChangedSubscriptions.pop()?.unsubscribe();
+    }
+  }
+
+  offJobAssigned(): void {
+    while (this.jobAssignedSubscriptions.length > 0) {
+      this.jobAssignedSubscriptions.pop()?.unsubscribe();
     }
   }
 

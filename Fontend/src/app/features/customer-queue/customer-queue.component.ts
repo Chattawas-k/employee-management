@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal, OnInit, OnDestroy, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, OnInit, OnDestroy, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SummaryCardComponent } from '../../shared/components/summary-card/summary-card.component';
 import { CalloutCardComponent } from '../../shared/components/callout-card/callout-card.component';
@@ -11,9 +11,11 @@ import { ToastService } from '../../services/toast.service';
 import { QueueDto, QueueSummaryJobDto, MyQueueInfoResponse } from '../../models/queue.model';
 import { JobPriority, JobStatus } from '../../models/task.model';
 import { getEmployeeIdFromToken } from '../../utils/jwt.util';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin, of, Subscription } from 'rxjs';
 import { catchError, finalize, switchMap, map } from 'rxjs/operators';
 import { AvailabilityStatusKey, getAvailabilityStatusLabel, normalizeAvailabilityStatus } from '../../shared/utils/availability-status.util';
+import { MyStatusStore } from '../../services/my-status.store';
+import { ReceiveCustomerService } from '../../services/receive-customer.service';
 
 interface ReadyQueueStaff {
   queue: number;
@@ -66,11 +68,15 @@ interface SummaryCardData {
 export class CustomerQueueComponent implements OnInit, OnDestroy {
   private timerId?: number;
   private refreshTimerId?: number;
+  private signalRSub = new Subscription();
   isLoading = signal(false);
   allJobs: QueueSummaryJobDto[] = [];
 
-  isMyTurn = signal(false);
-  availabilityStatus = signal<AvailabilityStatusKey>('available');
+  // Centralized status (same across pages)
+  private myStatusStore = inject(MyStatusStore);
+  private receiveCustomerService = inject(ReceiveCustomerService);
+  isMyTurn = this.myStatusStore.isMyTurn;
+  availabilityStatus = this.myStatusStore.availabilityStatus;
   showOpenJobDialog = signal(false);
 
   constructor(
@@ -142,13 +148,13 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadQueueData();
-    this.loadQueueInfo();
+    this.myStatusStore.init();
     this.setupSignalR();
 
     // Auto-refresh every 30 seconds (fallback if SignalR fails)
     this.refreshTimerId = window.setInterval(() => {
       this.loadQueueData();
-      this.loadQueueInfo();
+      this.myStatusStore.requestRefresh();
     }, 30000);
 
     // Update busy staff durations every second
@@ -164,51 +170,22 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     if (this.refreshTimerId) {
       clearInterval(this.refreshTimerId);
     }
-    this.signalRService.stopConnection();
-    this.signalRService.offQueueUpdated();
-    this.signalRService.offJobStatusChanged();
-    this.signalRService.offEmployeeStatusChanged();
+    this.signalRSub.unsubscribe();
   }
 
   private setupSignalR(): void {
-    this.signalRService.startConnection().then(() => {
-      this.signalRService.onQueueUpdated(() => {
-        this.loadQueueData();
-        this.loadQueueInfo();
-      });
-      this.signalRService.onJobStatusChanged(() => {
-        this.loadQueueData();
-        this.loadQueueInfo();
-      });
-      this.signalRService.onEmployeeStatusChanged(() => {
-        this.loadQueueData();
-        this.loadQueueInfo();
-      });
-    }).catch(err => console.error('SignalR Connection Error in CustomerQueueComponent: ', err));
-  }
-
-  loadQueueInfo(): void {
-    this.queueService.getMyQueueInfo().pipe(
-      catchError(error => {
-        console.error('Error loading queue info:', error);
-        this.isMyTurn.set(false);
-        this.availabilityStatus.set('unavailable');
-        return of(null);
+    this.signalRService
+      .startConnection()
+      .then(() => {
+        this.signalRSub.add(this.signalRService.queueUpdated$.subscribe(() => this.loadQueueData()));
+        this.signalRSub.add(this.signalRService.jobStatusChanged$.subscribe(() => this.loadQueueData()));
+        this.signalRSub.add(this.signalRService.employeeStatusChanged$.subscribe(() => this.loadQueueData()));
       })
-    ).subscribe(queueInfo => {
-      if (queueInfo && queueInfo.isInQueue) {
-        this.isMyTurn.set(queueInfo.queuesRemaining === 0);
-        const s = (queueInfo.availabilityStatus || 'available').toLowerCase() as any;
-        this.availabilityStatus.set(s);
-      } else {
-        this.isMyTurn.set(false);
-        this.availabilityStatus.set('unavailable');
-      }
-    });
+      .catch(err => console.error('SignalR Connection Error in CustomerQueueComponent: ', err));
   }
 
   acceptCustomer() {
-    this.showOpenJobDialog.set(true);
+    this.receiveCustomerService.open();
   }
 
   closeOpenJobDialog() {
@@ -260,13 +237,13 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
         // Reload queue data after a short delay to ensure backend has updated
         setTimeout(() => {
           this.loadQueueData();
-          this.loadQueueInfo();
+          this.myStatusStore.requestRefresh();
         }, 200);
       })
     ).subscribe(response => {
       if (response) {
         this.toastService.success('สร้างงานและเริ่มงานสำเร็จ');
-        this.isMyTurn.set(false);
+        this.myStatusStore.requestRefresh();
       }
     });
   }

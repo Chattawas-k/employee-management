@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal, computed, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, computed, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CalloutCardComponent } from '../../shared/components/callout-card/callout-card.component';
@@ -7,16 +7,15 @@ import { SalesReportDialogComponent } from '../../shared/components/sales-report
 import { OpenJobDialogComponent } from '../../shared/components/open-job-dialog/open-job-dialog.component';
 import { SalesReport, ReportStatus } from '../../models/sales-report.model';
 import { SalesReportService } from '../../services/sales-report.service';
-import { QueueService } from '../../services/queue.service';
 import { TaskService } from '../../services/task.service';
 import { AuthService } from '../../services/auth.service';
-import { SignalRService } from '../../services/signalr.service';
-import { MyQueueInfoResponse } from '../../models/queue.model';
 import { JobPriority, JobStatus } from '../../models/task.model';
 import { getEmployeeIdFromToken } from '../../utils/jwt.util';
 import { catchError, finalize, switchMap, map } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { ToastService } from '../../services/toast.service';
+import { MyStatusStore } from '../../services/my-status.store';
+import { ReceiveCustomerService } from '../../services/receive-customer.service';
 
 // Re-export for backward compatibility
 export type { ReportStatus } from '../../models/sales-report.model';
@@ -42,16 +41,18 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   totalCount = signal(0); // Total count from API for pagination
   private maxSeenCount = 0; // Track maximum count we've seen to improve estimation
   
-  isMyTurn = signal(false);
+  // Centralized status (same across pages)
+  private myStatusStore = inject(MyStatusStore);
+  private receiveCustomerService = inject(ReceiveCustomerService);
+  availabilityStatus = this.myStatusStore.availabilityStatus;
+  isMyTurn = this.myStatusStore.isMyTurn;
   showOpenJobDialog = signal(false);
 
   constructor(
     private salesReportService: SalesReportService,
-    private queueService: QueueService,
     private taskService: TaskService,
     private authService: AuthService,
-    private signalRService: SignalRService,
-    private toastService: ToastService
+    private toastService: ToastService,
   ) {}
   
   // Mock data removed - now using API data
@@ -155,8 +156,7 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   */
 
   ngOnInit(): void {
-    this.loadQueueInfo();
-    this.setupSignalR();
+    this.myStatusStore.init();
     // Load initial data with current tab and page
     this.loadSalesReports(this.activeTab(), this.currentPage());
     // Load counts separately to show in tabs
@@ -175,44 +175,10 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
-    this.signalRService.stopConnection();
-    this.signalRService.offQueueUpdated();
-    this.signalRService.offJobStatusChanged();
-    this.signalRService.offEmployeeStatusChanged();
-  }
-
-  private setupSignalR(): void {
-    this.signalRService.startConnection().then(() => {
-      this.signalRService.onQueueUpdated(() => {
-        this.loadQueueInfo();
-      });
-      this.signalRService.onJobStatusChanged(() => {
-        this.loadQueueInfo();
-      });
-      this.signalRService.onEmployeeStatusChanged(() => {
-        this.loadQueueInfo();
-      });
-    }).catch(err => console.error('SignalR Connection Error in SalesReportComponent: ', err));
-  }
-
-  loadQueueInfo(): void {
-    this.queueService.getMyQueueInfo().pipe(
-      catchError(error => {
-        console.error('Error loading queue info:', error);
-        this.isMyTurn.set(false);
-        return of(null);
-      })
-    ).subscribe(queueInfo => {
-      if (queueInfo && queueInfo.isInQueue) {
-        this.isMyTurn.set(queueInfo.queuesRemaining === 0);
-      } else {
-        this.isMyTurn.set(false);
-      }
-    });
   }
 
   acceptCustomer() {
-    this.showOpenJobDialog.set(true);
+    this.receiveCustomerService.open();
   }
 
   closeOpenJobDialog() {
@@ -263,13 +229,13 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
         this.closeOpenJobDialog();
         // Reload queue info after a short delay to ensure backend has updated
         setTimeout(() => {
-          this.loadQueueInfo();
+          this.myStatusStore.requestRefresh();
         }, 200);
       })
     ).subscribe(response => {
       if (response) {
         this.toastService.success('สร้างงานและเริ่มงานสำเร็จ');
-        this.isMyTurn.set(false);
+        this.myStatusStore.requestRefresh();
       }
     });
   }

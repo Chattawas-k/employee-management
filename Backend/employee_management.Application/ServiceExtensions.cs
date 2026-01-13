@@ -1,5 +1,6 @@
 using System.Reflection;
 using employee_management.Application.Common.Behaviors;
+using employee_management.Application.Common.Services;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using FluentValidation;
@@ -17,6 +18,9 @@ namespace employee_management.Application
             
             // Register JobNumberService
             services.AddScoped<Common.Services.IJobNumberService, Common.Services.JobNumberService>();
+
+            // Business time (Asia/Bangkok)
+            services.AddSingleton<IBusinessDateTimeProvider, BusinessDateTimeProvider>();
         }
     }
 }

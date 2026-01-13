@@ -157,11 +157,6 @@
       </div>
     </div>
 
-    @if (showStatusChangeDialog() && pendingStatusChange()) {
-    <app-status-change-dialog [currentStatus]="availabilityStatus()" [newStatus]="pendingStatusChange()!"
-      (confirm)="confirmStatusChange()" (cancel)="cancelStatusChange()" (close)="closeStatusChangeDialog()">
-    </app-status-change-dialog>
-    }
   </aside>
 
   <!-- Mobile Sidebar Overlay (Hidden for Basic role on mobile only) -->
@@ -460,6 +455,22 @@
       }
     </div>
   </main>
+
+  <!-- Global dialogs (must be outside hidden sidebar so they work on all screen sizes) -->
+  @if (showStatusChangeDialog() && pendingStatusChange()) {
+  <app-status-change-dialog [currentStatus]="availabilityStatus()" [newStatus]="pendingStatusChange()!"
+    (confirm)="confirmStatusChange()" (cancel)="cancelStatusChange()" (close)="closeStatusChangeDialog()">
+  </app-status-change-dialog>
+  }
+
+  @if (receiveCustomerService.isOpen()) {
+  <app-receive-customer-confirm-dialog
+    [isSubmitting]="receiveCustomerService.isSubmitting()"
+    (confirm)="confirmReceiveCustomer()"
+    (cancel)="closeReceiveCustomerDialog()"
+    (close)="closeReceiveCustomerDialog()">
+  </app-receive-customer-confirm-dialog>
+  }
 
 </div>
 } @else {

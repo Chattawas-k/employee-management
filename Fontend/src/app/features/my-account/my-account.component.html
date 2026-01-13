@@ -10,6 +10,17 @@
 
   <!-- Main Content -->
   <div class="flex-1 p-4 sm:p-6 lg:p-8">
+    <!-- Queue/Status Callout (consistent across pages) -->
+    <app-callout-card
+      preset="queue"
+      [availabilityStatus]="availabilityStatus()"
+      [isMyTurn]="isMyTurn()"
+      queueActionLabel="รับลูกค้า"
+      queueActionIcon="user-plus"
+      queueActionButtonClass="bg-green-600 hover:bg-green-700 text-white"
+      (action)="goToCustomerQueue()"
+    />
+
     <!-- Employee Info Card -->
     @if (employee(); as emp) {
       <div class="bg-white rounded-xl p-6 shadow-sm mb-6">

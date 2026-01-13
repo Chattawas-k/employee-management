@@ -1,4 +1,5 @@
 using MediatR;
+using employee_management.Application.Common.Services;
 using employee_management.Application.Repository.QueuesRepository;
 using employee_management.Domain.Enums;
 using Microsoft.Extensions.Logging;
@@ -8,19 +9,22 @@ namespace employee_management.Application.Features.Queues.Queries.GetMyQueueInfo
     public sealed class GetMyQueueInfoHandler : IRequestHandler<GetMyQueueInfoRequest, GetMyQueueInfoResponse>
     {
         private readonly IQueueRepository _queueRepository;
+        private readonly IBusinessDateTimeProvider _dateTimeProvider;
         private readonly ILogger<GetMyQueueInfoHandler> _logger;
 
         public GetMyQueueInfoHandler(
             IQueueRepository queueRepository,
+            IBusinessDateTimeProvider dateTimeProvider,
             ILogger<GetMyQueueInfoHandler> logger)
         {
             _queueRepository = queueRepository;
+            _dateTimeProvider = dateTimeProvider;
             _logger = logger;
         }
 
         public async Task<GetMyQueueInfoResponse> Handle(GetMyQueueInfoRequest request, CancellationToken cancellationToken)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = _dateTimeProvider.GetBangkokTodayDate();
 
             // Get current employee's queue entry
             var myQueue = await _queueRepository.GetByEmployeeIdAndDateAsync(request.EmployeeId, today, cancellationToken);

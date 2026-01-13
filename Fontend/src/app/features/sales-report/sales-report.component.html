@@ -32,19 +32,16 @@
     </div>
   </header>
 
-  <!-- Alert: "ถึงคิวคุณแล้ว" when it's my turn -->
-  @if (isMyTurn()) {
-    <app-callout-card
-      variant="success"
-      icon="bell"
-      title="ถึงคิวคุณแล้ว เชิญรับลูกค้าได้เลย!"
-      subtitle="มีลูกค้ากำลังรอรับบริการอยู่ที่หน้าร้าน"
-      actionLabel="รับลูกค้า"
-      actionIcon="user-plus"
-      actionButtonClass="bg-green-600 hover:bg-green-700 text-white"
-      (action)="acceptCustomer()"
-    />
-  }
+  <!-- Queue/Status Callout (centralized, consistent across pages) -->
+  <app-callout-card
+    preset="queue"
+    [availabilityStatus]="availabilityStatus()"
+    [isMyTurn]="isMyTurn()"
+    queueActionLabel="รับลูกค้า"
+    queueActionIcon="user-plus"
+    queueActionButtonClass="bg-green-600 hover:bg-green-700 text-white"
+    (action)="acceptCustomer()"
+  />
 
   <!-- Tabs -->
   <div class="mb-4 sm:mb-6 border-b border-gray-200 relative w-full min-w-0 overflow-hidden" style="box-sizing: border-box; width: 100%; max-width: 100%;">

@@ -6,18 +6,18 @@ import { LucideAngularModule } from 'lucide-angular';
 import { IconComponent } from './shared/components/icon/icon.component';
 import { ToastContainerComponent } from './shared/components/toast/toast-container.component';
 import { StatusChangeDialogComponent } from './shared/components/status-change-dialog/status-change-dialog.component';
+import { ReceiveCustomerConfirmDialogComponent } from './shared/components/receive-customer-confirm-dialog/receive-customer-confirm-dialog.component';
 import { AuthService } from './services/auth.service';
 import { QueueService } from './services/queue.service';
-import { TaskService } from './services/task.service';
 import { ToastService } from './services/toast.service';
 import { EmployeeService } from './services/employee.service';
-import { SignalRService } from './services/signalr.service';
 import { EmployeeDto } from './models/employee.model';
 import { MyQueueInfoResponse } from './models/queue.model';
 import { catchError } from 'rxjs/operators';
-import { forkJoin, of } from 'rxjs';
-import { getEmployeeIdFromToken } from './utils/jwt.util';
-import { AvailabilityStatusKey, getAvailabilityStatusDotClass, getAvailabilityStatusLabel, normalizeAvailabilityStatus } from './shared/utils/availability-status.util';
+import { of } from 'rxjs';
+import { AvailabilityStatusKey, getAvailabilityStatusDotClass, getAvailabilityStatusLabel } from './shared/utils/availability-status.util';
+import { MyStatusStore } from './services/my-status.store';
+import { ReceiveCustomerService } from './services/receive-customer.service';
 
 @Component({
   selector: 'app-root',
@@ -30,7 +30,8 @@ import { AvailabilityStatusKey, getAvailabilityStatusDotClass, getAvailabilitySt
     LucideAngularModule,
     IconComponent,
     ToastContainerComponent,
-    StatusChangeDialogComponent
+    StatusChangeDialogComponent,
+    ReceiveCustomerConfirmDialogComponent
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
@@ -159,11 +160,24 @@ export class AppComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private router: Router,
     private queueService: QueueService,
-    private taskService: TaskService,
     private toastService: ToastService,
     private employeeService: EmployeeService,
-    private signalRService: SignalRService
-  ) {}
+    private myStatusStore: MyStatusStore,
+    public receiveCustomerService: ReceiveCustomerService
+  ) {
+    // Bind to centralized status store for consistent UI across the app
+    this.availabilityStatus = this.myStatusStore.availabilityStatus;
+    this.myQueueInfo = this.myStatusStore.myQueueInfo;
+    this.isLoadingQueueInfo = this.myStatusStore.isRefreshing;
+  }
+
+  confirmReceiveCustomer(): void {
+    this.receiveCustomerService.confirm();
+  }
+
+  closeReceiveCustomerDialog(): void {
+    this.receiveCustomerService.close();
+  }
 
   // --- Disable zoom (Ctrl/Cmd + wheel / +/- / 0) ---
   private readonly onWheelBlockZoom = (event: WheelEvent) => {
@@ -219,8 +233,7 @@ export class AppComponent implements OnInit, OnDestroy {
       
       if (user) {
         this.loadEmployeeInfo();
-        this.loadMyQueueInfo();
-        this.setupSignalR();
+        this.myStatusStore.init();
       } else {
         this.currentEmployee.set(null);
         this.myQueueInfo.set(null);
@@ -233,8 +246,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     if (this.isAuthenticated()) {
       this.loadEmployeeInfo();
-      this.loadMyQueueInfo();
-      this.setupSignalR();
+      this.myStatusStore.init();
       
       // Status is now stored in database, no need for localStorage
     }
@@ -257,105 +269,7 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadMyQueueInfo(): void {
-    this.isLoadingQueueInfo.set(true);
-    
-    // Load both queue info and tasks to check for in-progress tasks
-    const token = this.authService.getToken();
-    const employeeId = getEmployeeIdFromToken(token);
-    
-    if (!employeeId) {
-      this.isLoadingQueueInfo.set(false);
-      this.myQueueInfo.set(null);
-      this.availabilityStatus.set('unavailable');
-      return;
-    }
-
-    forkJoin({
-      queueInfo: this.queueService.getMyQueueInfo().pipe(
-        catchError(error => {
-          console.error('Error loading queue info:', error);
-          return of(null);
-        })
-      ),
-      tasks: this.taskService.getMyTasks().pipe(
-        catchError(error => {
-          console.error('Error loading tasks:', error);
-          return of({ jobs: [] });
-        })
-      )
-    }).subscribe(({ queueInfo, tasks }) => {
-      this.isLoadingQueueInfo.set(false);
-      
-      if (queueInfo && queueInfo.isInQueue) {
-        this.myQueueInfo.set(queueInfo);
-        
-        // Update availability status from queue info
-        // Use AvailabilityStatus from API (stored in database)
-        const currentStatus = this.availabilityStatus();
-        const manualStatuses: AvailabilityStatusKey[] = ['lunchBreak', 'unavailable', 'leave', 'offsiteCustomer'];
-        
-        // Check for in-progress tasks
-        const inProgressTasks = tasks.jobs.filter(job => {
-          const status = job.status?.toString().toLowerCase() || '';
-          return status === 'inprogress' || status === 'in_progress' || status === '2';
-        });
-
-        const rawApiStatus = (queueInfo.availabilityStatus ?? '').trim();
-
-        if (rawApiStatus) {
-          const apiStatus = normalizeAvailabilityStatus(rawApiStatus);
-
-          // Respect manual statuses from API always
-          if (manualStatuses.includes(apiStatus)) {
-            this.availabilityStatus.set(apiStatus);
-            return;
-          }
-
-          if (apiStatus === 'busy') {
-            this.availabilityStatus.set('busy');
-            return;
-          }
-
-          // apiStatus === 'available'
-          if (manualStatuses.includes(currentStatus)) {
-            // Keep current manual status (should be rare if API says available)
-            return;
-          }
-
-          this.availabilityStatus.set(inProgressTasks.length > 0 ? 'busy' : 'available');
-          return;
-        }
-
-        // Fallback: use queueStatus for backward compatibility
-        const queueStatusLower = queueInfo.queueStatus?.toLowerCase() || '';
-        if (queueStatusLower === 'busy') {
-          this.availabilityStatus.set('busy');
-        } else if (queueStatusLower === 'active') {
-          this.availabilityStatus.set(inProgressTasks.length > 0 ? 'busy' : 'available');
-        } else {
-          this.availabilityStatus.set('unavailable');
-        }
-      } else {
-        this.myQueueInfo.set(null);
-        this.availabilityStatus.set('unavailable'); // Not in queue = unavailable
-      }
-    });
-  }
-
-  private async setupSignalR(): Promise<void> {
-    try {
-      await this.signalRService.startConnection();
-      
-      // Subscribe to queue updates for real-time refresh
-      this.signalRService.onQueueUpdated(() => {
-        this.loadMyQueueInfo();
-      });
-    } catch (error) {
-      console.error('Failed to start SignalR connection:', error);
-      // Continue without real-time updates if SignalR fails
-    }
-  }
+  // Status/queue info is managed centrally by MyStatusStore
 
   generateAvatar(name: string): string {
     if (!name) return '';
@@ -454,21 +368,8 @@ export class AppComponent implements OnInit, OnDestroy {
       })
     ).subscribe(response => {
       if (response) {
-        // Update availability status from response
-        if (response.availabilityStatus) {
-          this.availabilityStatus.set(normalizeAvailabilityStatus(response.availabilityStatus));
-        } else {
-          this.availabilityStatus.set(status);
-        }
         this.toastService.success('อัปเดตสถานะสำเร็จ');
-        
-        // Reload queue info to sync with backend
-        // This will trigger QueueUpdated notification which will update my-tasks component
-        this.loadMyQueueInfo();
-        
-        // Also trigger a manual queue update notification to ensure immediate sync
-        // The backend already sends QueueUpdated, but we can also manually trigger it
-        // by calling loadMyQueueInfo which will update the status
+        this.myStatusStore.requestRefresh();
       }
       this.showStatusChangeDialog.set(false);
       this.pendingStatusChange.set(null);

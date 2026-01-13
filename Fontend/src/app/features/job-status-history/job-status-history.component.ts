@@ -4,8 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { catchError, finalize } from 'rxjs/operators';
 import { of } from 'rxjs';
 
+import { Router } from '@angular/router';
+import { CalloutCardComponent } from '../../shared/components/callout-card/callout-card.component';
 import { ToastService } from '../../services/toast.service';
 import { JobStatusHistoryService } from '../../services/job-status-history.service';
+import { MyStatusStore } from '../../services/my-status.store';
+import { ReceiveCustomerService } from '../../services/receive-customer.service';
 import { JobChangeSource, JobStatusHistoryDto } from '../../models/job-status-history.model';
 import { JobStatus } from '../../models/task.model';
 
@@ -14,7 +18,7 @@ type SourceFilter = 'all' | 'auto' | 'manual' | 'assigned';
 @Component({
   selector: 'app-job-status-history',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CalloutCardComponent],
   templateUrl: './job-status-history.component.html',
   styleUrls: ['./job-status-history.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -22,6 +26,12 @@ type SourceFilter = 'all' | 'auto' | 'manual' | 'assigned';
 export class JobStatusHistoryComponent implements OnInit {
   private historyService = inject(JobStatusHistoryService);
   private toastService = inject(ToastService);
+  private myStatusStore = inject(MyStatusStore);
+  private router = inject(Router);
+  private receiveCustomerService = inject(ReceiveCustomerService);
+
+  availabilityStatus = this.myStatusStore.availabilityStatus;
+  isMyTurn = this.myStatusStore.isMyTurn;
 
   isLoading = signal(false);
   histories = signal<JobStatusHistoryDto[]>([]);
@@ -33,6 +43,8 @@ export class JobStatusHistoryComponent implements OnInit {
   hasData = computed(() => (this.histories() ?? []).length > 0);
 
   ngOnInit(): void {
+    this.myStatusStore.init();
+
     const now = new Date();
     const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -41,6 +53,10 @@ export class JobStatusHistoryComponent implements OnInit {
     this.endDate.set(this.toDateInputValue(end));
 
     this.load();
+  }
+
+  goToCustomerQueue(): void {
+    this.receiveCustomerService.open();
   }
 
   load(): void {

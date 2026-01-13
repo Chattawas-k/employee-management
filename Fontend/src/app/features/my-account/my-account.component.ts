@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AccountService } from '../../services/account.service';
 import { AuthService } from '../../services/auth.service';
 import { EmployeeService } from '../../services/employee.service';
@@ -9,22 +9,25 @@ import { QueueService } from '../../services/queue.service';
 import { TaskService } from '../../services/task.service';
 import { ToastService } from '../../services/toast.service';
 import { SummaryCardComponent } from '../../shared/components/summary-card/summary-card.component';
+import { CalloutCardComponent } from '../../shared/components/callout-card/callout-card.component';
 import { EmployeeDto } from '../../models/employee.model';
 import { WorkStatsResponse, TimePeriod, ChangePasswordRequest } from '../../models/account.model';
-import { MyQueueInfoResponse, UpdateMyQueueStatusResponse } from '../../models/queue.model';
+import { UpdateMyQueueStatusResponse } from '../../models/queue.model';
 import { JobDto, JobPriority, JobStatus } from '../../models/task.model';
 import { catchError, finalize } from 'rxjs/operators';
 import { of } from 'rxjs';
-import { AvailabilityStatusKey, getAvailabilityStatusBadgeClass, getAvailabilityStatusLabel, normalizeAvailabilityStatus } from '../../shared/utils/availability-status.util';
+import { AvailabilityStatusKey, getAvailabilityStatusBadgeClass, getAvailabilityStatusLabel } from '../../shared/utils/availability-status.util';
 import { StatusUpdateDialogComponent } from '../../shared/components/status-update-dialog/status-update-dialog.component';
 import { PasswordChangeDialogComponent } from '../../shared/components/password-change-dialog/password-change-dialog.component';
 import { LogoutConfirmDialogComponent } from '../../shared/components/logout-confirm-dialog/logout-confirm-dialog.component';
 import { DateRangePickerDialogComponent } from '../../shared/components/date-range-picker-dialog/date-range-picker-dialog.component';
+import { MyStatusStore } from '../../services/my-status.store';
+import { ReceiveCustomerService } from '../../services/receive-customer.service';
 
 @Component({
   selector: 'app-my-account',
   standalone: true,
-  imports: [CommonModule, RouterModule, SummaryCardComponent, StatusUpdateDialogComponent, PasswordChangeDialogComponent, LogoutConfirmDialogComponent, DateRangePickerDialogComponent],
+  imports: [CommonModule, RouterModule, SummaryCardComponent, CalloutCardComponent, StatusUpdateDialogComponent, PasswordChangeDialogComponent, LogoutConfirmDialogComponent, DateRangePickerDialogComponent],
   templateUrl: './my-account.component.html',
   styleUrls: ['./my-account.component.scss']
 })
@@ -36,11 +39,14 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   private queueService = inject(QueueService);
   private taskService = inject(TaskService);
   private toastService = inject(ToastService);
+  private myStatusStore = inject(MyStatusStore);
+  private router = inject(Router);
+  private receiveCustomerService = inject(ReceiveCustomerService);
 
   // Signals for state management
   employee = signal<EmployeeDto | null>(null);
   workStats = signal<WorkStatsResponse | null>(null);
-  queueInfo = signal<MyQueueInfoResponse | null>(null);
+  queueInfo = this.myStatusStore.myQueueInfo;
   myJobs = signal<JobDto[]>([]);
   selectedPeriod = signal<TimePeriod>('today');
   customStartDate = signal<string>('');
@@ -77,11 +83,8 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   });
 
   // Computed values
-  availabilityStatus = computed(() => {
-    const info = this.queueInfo();
-    if (!info || !info.isInQueue) return 'leave' as AvailabilityStatusKey;
-    return normalizeAvailabilityStatus(info.availabilityStatus);
-  });
+  availabilityStatus = this.myStatusStore.availabilityStatus;
+  isMyTurn = this.myStatusStore.isMyTurn;
 
   statusDisplayName = computed(() => {
     return getAvailabilityStatusLabel(this.availabilityStatus());
@@ -110,12 +113,16 @@ export class MyAccountComponent implements OnInit, OnDestroy {
     this.setDisplayDateRangeForPeriod(this.selectedPeriod());
 
     this.loadEmployeeInfo();
-    this.loadQueueInfo();
+    this.myStatusStore.init();
     this.loadWorkStats();
   }
 
   ngOnDestroy(): void {
     // Cleanup if needed
+  }
+
+  goToCustomerQueue(): void {
+    this.receiveCustomerService.open();
   }
 
   openStatusDialog(): void {
@@ -170,18 +177,8 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   }
 
   loadQueueInfo(): void {
-    this.isLoadingQueue.set(true);
-    this.queueService.getMyQueueInfo().pipe(
-      catchError(error => {
-        console.error('Error loading queue info:', error);
-        return of(null);
-      }),
-      finalize(() => this.isLoadingQueue.set(false))
-    ).subscribe(queueInfo => {
-      if (queueInfo) {
-        this.queueInfo.set(queueInfo);
-      }
-    });
+    // Centralized: ensure status/cards are consistent across pages
+    this.myStatusStore.requestRefresh();
   }
 
   loadWorkStats(): void {
@@ -302,7 +299,7 @@ export class MyAccountComponent implements OnInit, OnDestroy {
     ).subscribe(response => {
       if (response) {
         this.toastService.success('อัพเดทสถานะสำเร็จ');
-        this.loadQueueInfo();
+        this.myStatusStore.requestRefresh();
       }
     });
   }
@@ -324,7 +321,7 @@ export class MyAccountComponent implements OnInit, OnDestroy {
       this.isSubmittingStatus.set(false);
       if (response) {
         this.toastService.success('อัพเดทสถานะสำเร็จ');
-        this.loadQueueInfo();
+        this.myStatusStore.requestRefresh();
         this.closeStatusDialog(true);
       }
     });

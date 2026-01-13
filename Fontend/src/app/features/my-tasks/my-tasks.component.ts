@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal, computed, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, computed, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TaskColumnComponent, Task } from '../../shared/components/task-column/task-column.component';
 import { ConfirmationDialogComponent } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
@@ -9,14 +9,13 @@ import { RejectTaskDialogComponent } from '../../shared/components/reject-task-d
 import { TaskService } from '../../services/task.service';
 import { AuthService } from '../../services/auth.service';
 import { SignalRService } from '../../services/signalr.service';
-import { QueueService } from '../../services/queue.service';
 import { JobDto, JobStatus, JobPriority, UpdateJobStatusRequest, UpdateJobStatusReportDto, JobGetResponse, MyTaskStatusLogDto } from '../../models/task.model';
-import { MyQueueInfoResponse } from '../../models/queue.model';
 import { getEmployeeIdFromToken } from '../../utils/jwt.util';
 import { catchError, finalize, switchMap, map } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { of, Subscription } from 'rxjs';
 import { ToastService } from '../../services/toast.service';
-import { AvailabilityStatusKey, normalizeAvailabilityStatus } from '../../shared/utils/availability-status.util';
+import { MyStatusStore } from '../../services/my-status.store';
+import { ReceiveCustomerService } from '../../services/receive-customer.service';
 
 @Component({
   selector: 'app-my-tasks',
@@ -35,16 +34,19 @@ import { AvailabilityStatusKey, normalizeAvailabilityStatus } from '../../shared
   ]
 })
 export class MyTasksComponent implements OnInit, OnDestroy {
-  availabilityStatus = signal<AvailabilityStatusKey>('available');
+  // Centralized status (same across pages)
+  private myStatusStore = inject(MyStatusStore);
+  private receiveCustomerService = inject(ReceiveCustomerService);
+  availabilityStatus = this.myStatusStore.availabilityStatus;
   
   constructor(
     private taskService: TaskService,
     private authService: AuthService,
     private toastService: ToastService,
-    private signalRService: SignalRService,
-    private queueService: QueueService
+    private signalRService: SignalRService
   ) {}
-  isMyTurn = signal(false);
+  isMyTurn = this.myStatusStore.isMyTurn;
+  private signalRSub = new Subscription();
   currentUser = signal('สมศักดิ์ รักงาน (Bob)');
   
   queuesRemaining = signal(0);
@@ -76,36 +78,20 @@ export class MyTasksComponent implements OnInit, OnDestroy {
 
   async ngOnInit(): Promise<void> {
     this.loadTasks();
-    this.loadQueueInfo();
+    this.myStatusStore.init();
 
     // Start SignalR connection for real-time updates
     try {
       await this.signalRService.startConnection();
       
       // Subscribe to real-time notifications
-      this.signalRService.onJobStatusChanged(() => {
-        // When job status changes, reload tasks to update availability status
-        this.loadTasks();
-      });
-
-      this.signalRService.onQueueUpdated(() => {
-        // When queue status changes, reload tasks and queue info
-        this.loadTasks();
-        // Reload queue info which will update availabilityStatus
-        this.loadQueueInfo();
-      });
-
-      this.signalRService.onEmployeeStatusChanged(() => {
-        // When employee status changes, reload queue info to sync status
-        this.loadQueueInfo();
-      });
-
-      this.signalRService.onJobAssigned((jobId, jobTitle, customer) => {
-        // Show notification when new job is assigned
+      this.signalRSub.add(this.signalRService.jobStatusChanged$.subscribe(() => this.loadTasks()));
+      this.signalRSub.add(this.signalRService.queueUpdated$.subscribe(() => this.loadTasks()));
+      this.signalRSub.add(this.signalRService.employeeStatusChanged$.subscribe(() => this.myStatusStore.requestRefresh()));
+      this.signalRSub.add(this.signalRService.jobAssigned$.subscribe(({ jobTitle }) => {
         this.toastService.success(`ได้รับงานใหม่: ${jobTitle}`);
-        // Refresh tasks to show the new job
         this.loadTasks();
-      });
+      }));
     } catch (error) {
       console.error('Failed to start SignalR connection:', error);
       // Continue without real-time updates if SignalR fails
@@ -113,11 +99,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Unsubscribe from SignalR notifications
-    this.signalRService.offJobStatusChanged();
-    this.signalRService.offQueueUpdated();
-    this.signalRService.offEmployeeStatusChanged();
-    this.signalRService.offJobAssigned();
+    this.signalRSub.unsubscribe();
   }
 
   loadTasks(): void {
@@ -136,81 +118,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadQueueInfo(): void {
-    this.queueService.getMyQueueInfo().pipe(
-      catchError(error => {
-        console.error('Error loading queue info:', error);
-        // If employee is not in queue, set defaults
-        this.queuesRemaining.set(0);
-        this.myQueuePosition.set(0);
-        this.currentlyServing.set(null);
-        this.isMyTurn.set(false);
-        return of(null);
-      })
-    ).subscribe(queueInfo => {
-      if (queueInfo && queueInfo.isInQueue) {
-        this.queuesRemaining.set(queueInfo.queuesRemaining);
-        this.myQueuePosition.set(queueInfo.myQueuePosition);
-        this.isMyTurn.set(queueInfo.queuesRemaining === 0);
-        
-        // Update availability status from queue info (stored in database)
-        const currentStatus = this.availabilityStatus();
-        const manualStatuses: AvailabilityStatusKey[] = ['lunchBreak', 'unavailable', 'leave', 'offsiteCustomer'];
-        const inProgressCount = this.inProgressTasks().length;
-
-        const rawApiStatus = (queueInfo.availabilityStatus ?? '').trim();
-        if (rawApiStatus) {
-          const apiStatus = normalizeAvailabilityStatus(rawApiStatus);
-
-          // Respect manual statuses from API always
-          if (manualStatuses.includes(apiStatus)) {
-            this.availabilityStatus.set(apiStatus);
-          } else if (apiStatus === 'busy') {
-            this.availabilityStatus.set('busy');
-          } else {
-            // apiStatus === 'available'
-            if (!manualStatuses.includes(currentStatus)) {
-              this.availabilityStatus.set(inProgressCount > 0 ? 'busy' : 'available');
-            }
-          }
-        } else {
-          // Fallback: use queueStatus for backward compatibility
-          const queueStatusLower = queueInfo.queueStatus?.toLowerCase() || '';
-          if (queueStatusLower === 'busy') {
-            this.availabilityStatus.set('busy');
-          } else if (queueStatusLower === 'active') {
-            this.availabilityStatus.set(inProgressCount > 0 ? 'busy' : 'available');
-          } else {
-            this.availabilityStatus.set('unavailable');
-          }
-        }
-        
-        if (queueInfo.currentlyServing) {
-          // Generate avatar URL if not provided
-          let avatarUrl = queueInfo.currentlyServing.avatarUrl;
-          if (!avatarUrl) {
-            const firstChar = queueInfo.currentlyServing.name.charAt(0).toUpperCase();
-            // Use a placeholder or generate avatar URL
-            avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(queueInfo.currentlyServing.name)}&background=6366f1&color=fff&size=128`;
-          }
-          
-          this.currentlyServing.set({
-            name: queueInfo.currentlyServing.name,
-            avatarUrl: avatarUrl,
-            queuePosition: queueInfo.currentlyServing.queuePosition
-          });
-        } else {
-          this.currentlyServing.set(null);
-        }
-      } else {
-        // Employee not in queue
-        this.queuesRemaining.set(0);
-        this.myQueuePosition.set(0);
-        this.currentlyServing.set(null);
-        this.isMyTurn.set(false);
-      }
-    });
-  }
+  // Queue status for callouts is managed centrally by MyStatusStore to keep all pages in sync.
 
   private mapTasksFromApi(jobs: JobDto[]): void {
     const todo: Task[] = [];
@@ -257,31 +165,8 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     this.inProgressTasks.set(inProgress);
     this.completedTasks.set(completed);
 
-    // Update availability status based on InProgress tasks
-    // Only update if status is 'available' or 'busy' (don't override manual statuses)
-    // This should sync with queue status from loadQueueInfo()
-    const currentStatus = this.availabilityStatus();
-    
-    // Don't override manual status
-    if (currentStatus === 'lunchBreak' || currentStatus === 'unavailable' || currentStatus === 'leave' || currentStatus === 'offsiteCustomer') {
-      return; // Don't update status based on tasks
-    }
-    
-    // Only update if status is 'available' or 'busy'
-    if (inProgress.length > 0) {
-      // Has InProgress tasks → should be 'busy'
-      if (currentStatus === 'available') {
-        this.availabilityStatus.set('busy');
-      }
-    } else {
-      // No InProgress tasks → should be 'available' (unless manually set to 'break' or 'unavailable')
-      if (currentStatus === 'busy') {
-        // Only change from busy to available if queue status is also Active
-        // This will be handled by loadQueueInfo() which syncs with backend
-        // For now, we'll update it here but loadQueueInfo() will override if needed
-        this.availabilityStatus.set('available');
-      }
-    }
+    // Status is derived centrally; keep this component focused on task lists.
+    this.myStatusStore.requestRefresh();
   }
 
   private getStatusString(status: JobStatus): string {
@@ -533,38 +418,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
   }
 
   acceptCustomer() {
-    // Create a walk-in job automatically, then confirm start (as per requirement)
-    const token = this.authService.getToken();
-    const employeeId = getEmployeeIdFromToken(token);
-
-    if (!employeeId) {
-      this.toastService.error('ไม่พบข้อมูลพนักงาน');
-      return;
-    }
-
-    this.isLoading.set(true);
-    this.taskService.createJob({
-      title: 'Walk-in Customer',
-      customer: 'ลูกค้าทั่วไป',
-      description: 'บริการลูกค้าหน้าร้าน',
-      assigneeId: employeeId,
-      priority: JobPriority.Normal,
-      channel: 'Walk-in'
-    }).pipe(
-      catchError(error => {
-        console.error('Error creating walk-in job:', error);
-        this.toastService.error('เกิดข้อผิดพลาดในการเปิดใบงาน');
-        return of(null);
-      }),
-      finalize(() => this.isLoading.set(false))
-    ).subscribe(createResponse => {
-      if (!createResponse) return;
-
-      // Open start confirmation dialog (same UI as screenshot)
-      this.startDialogContext.set('walkInJob');
-      this.selectedTask.set(this.mapCreateJobResponseToTask(createResponse));
-      this.showStartDialog.set(true);
-    });
+    this.receiveCustomerService.open();
   }
 
   private mapCreateJobResponseToTask(createResponse: any): Task {
