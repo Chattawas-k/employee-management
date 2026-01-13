@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
+import { RouterModule } from '@angular/router';
 import { AccountService } from '../../services/account.service';
 import { AuthService } from '../../services/auth.service';
 import { EmployeeService } from '../../services/employee.service';
@@ -18,11 +19,12 @@ import { AvailabilityStatusKey, getAvailabilityStatusBadgeClass, getAvailability
 import { StatusUpdateDialogComponent } from '../../shared/components/status-update-dialog/status-update-dialog.component';
 import { PasswordChangeDialogComponent } from '../../shared/components/password-change-dialog/password-change-dialog.component';
 import { LogoutConfirmDialogComponent } from '../../shared/components/logout-confirm-dialog/logout-confirm-dialog.component';
+import { DateRangePickerDialogComponent } from '../../shared/components/date-range-picker-dialog/date-range-picker-dialog.component';
 
 @Component({
   selector: 'app-my-account',
   standalone: true,
-  imports: [CommonModule, SummaryCardComponent, StatusUpdateDialogComponent, PasswordChangeDialogComponent, LogoutConfirmDialogComponent],
+  imports: [CommonModule, RouterModule, SummaryCardComponent, StatusUpdateDialogComponent, PasswordChangeDialogComponent, LogoutConfirmDialogComponent, DateRangePickerDialogComponent],
   templateUrl: './my-account.component.html',
   styleUrls: ['./my-account.component.scss']
 })
@@ -56,6 +58,7 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   showPasswordDialog = signal(false);
   showLogoutDialog = signal(false);
   isSubmittingLogout = signal(false);
+  showDateRangeDialog = signal(false);
 
   // Date range display state (controls the blue label)
   displayDateRange = signal<{ start: Date; end: Date } | null>(null);
@@ -119,18 +122,18 @@ export class MyAccountComponent implements OnInit, OnDestroy {
     this.showStatusDialog.set(true);
   }
 
-  closeStatusDialog(): void {
-    if (this.isSubmittingStatus()) return;
-    this.showStatusDialog.set(false);
-  }
-
   openPasswordDialog(): void {
     this.showPasswordDialog.set(true);
   }
 
-  closePasswordDialog(): void {
-    if (this.isSubmittingPassword()) return;
+  closePasswordDialog(force: boolean = false): void {
+    if (!force && this.isSubmittingPassword()) return;
     this.showPasswordDialog.set(false);
+  }
+
+  closeStatusDialog(force: boolean = false): void {
+    if (!force && this.isSubmittingStatus()) return;
+    this.showStatusDialog.set(false);
   }
 
   openLogoutDialog(): void {
@@ -254,6 +257,22 @@ export class MyAccountComponent implements OnInit, OnDestroy {
     this.loadWorkStats();
   }
 
+  openDateRangeDialog(): void {
+    this.showDateRangeDialog.set(true);
+  }
+
+  closeDateRangeDialog(): void {
+    this.showDateRangeDialog.set(false);
+  }
+
+  applyDateRangeFromDialog(range: { startYmd: string; endYmd: string }): void {
+    this.customStartDate.set(range.startYmd);
+    this.customEndDate.set(range.endYmd);
+    this.setDisplayDateRangeForCustomInputs();
+    this.closeDateRangeDialog();
+    this.loadWorkStats();
+  }
+
   onCustomStartDateChange(value: string): void {
     this.customStartDate.set(value);
     // Keep end date >= start date
@@ -290,7 +309,7 @@ export class MyAccountComponent implements OnInit, OnDestroy {
 
   confirmStatusChange(status: AvailabilityStatusKey): void {
     if (status === this.availabilityStatus()) {
-      this.closeStatusDialog();
+      this.closeStatusDialog(true);
       return;
     }
 
@@ -300,13 +319,13 @@ export class MyAccountComponent implements OnInit, OnDestroy {
         console.error('Error updating status:', error);
         this.toastService.error('เกิดข้อผิดพลาดในการอัพเดทสถานะ');
         return of(null);
-      }),
-      finalize(() => this.isSubmittingStatus.set(false))
+      })
     ).subscribe((response: UpdateMyQueueStatusResponse | null) => {
+      this.isSubmittingStatus.set(false);
       if (response) {
         this.toastService.success('อัพเดทสถานะสำเร็จ');
         this.loadQueueInfo();
-        this.closeStatusDialog();
+        this.closeStatusDialog(true);
       }
     });
   }
@@ -319,12 +338,12 @@ export class MyAccountComponent implements OnInit, OnDestroy {
         const rawMessage = this.extractHttpErrorMessage(error, 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน');
         this.toastService.error(this.translateChangePasswordMessage(rawMessage));
         return of(null);
-      }),
-      finalize(() => this.isSubmittingPassword.set(false))
+      })
     ).subscribe(response => {
+      this.isSubmittingPassword.set(false);
       if (response && response.success) {
         this.toastService.success('เปลี่ยนรหัสผ่านสำเร็จ');
-        this.closePasswordDialog();
+        this.closePasswordDialog(true);
       } else if (response && !response.success) {
         this.toastService.error(this.translateChangePasswordMessage(response.message));
       }

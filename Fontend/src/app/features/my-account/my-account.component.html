@@ -40,37 +40,37 @@
       <div class="flex flex-wrap gap-1 mb-6">
         <button 
           (click)="selectPeriod('today')"
-          [class]="selectedPeriod() === 'today' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 border border'"
+          [class]="selectedPeriod() === 'today' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 bg-slate-100'"
           class="px-2 py-1 rounded-lg text-[13px] font-medium transition-colors ">
           วันนี้
         </button>
         <button 
           (click)="selectPeriod('yesterday')"
-          [class]="selectedPeriod() === 'yesterday' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 border border'"
+          [class]="selectedPeriod() === 'yesterday' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 bg-slate-100'"
           class="px-2 py-1 rounded-lg text-[13px] font-medium transition-colors">
           เมื่อวาน
         </button>
         <button 
           (click)="selectPeriod('last7days')"
-          [class]="selectedPeriod() === 'last7days' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 border border'"
+          [class]="selectedPeriod() === 'last7days' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 bg-slate-100'"
           class="px-2 py-1 rounded-lg text-[13px] font-medium transition-colors">
           7 วัน
         </button>
         <button 
           (click)="selectPeriod('last15days')"
-          [class]="selectedPeriod() === 'last15days' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 border border'"
+          [class]="selectedPeriod() === 'last15days' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 bg-slate-100'"
           class="px-2 py-1 rounded-lg text-[13px] font-medium transition-colors">
           15 วัน
         </button>
         <button 
           (click)="selectPeriod('thisMonth')"
-          [class]="selectedPeriod() === 'thisMonth' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 border border'"
+          [class]="selectedPeriod() === 'thisMonth' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 bg-slate-100'"
           class="px-2 py-1 rounded-lg text-[13px] font-medium transition-colors">
           เดือนนี้
         </button>
         <button 
           (click)="selectPeriod('custom')"
-          [class]="selectedPeriod() === 'custom' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 border border'"
+          [class]="selectedPeriod() === 'custom' ? 'bg-blue-600 text-white' : 'bg-white-500 text-gray-700 bg-slate-100'"
           class="px-2 py-1 rounded-lg text-[13px] font-medium transition-colors">
           กำหนดเอง
         </button>
@@ -81,34 +81,21 @@
 
       <!-- Custom Date Picker -->
       @if (showCustomDatePicker()) {
-        <div class="bg-gray-50 rounded-lg p-4 mb-6">
-          <div class="flex flex-col lg:flex-row gap-4">
-            <div class="flex-1">
-              <label class="block text-sm font-medium text-gray-700 mb-2">วันที่เริ่มต้น</label>
-              <input 
-                type="date" 
-                [value]="customStartDate()"
-                [max]="customEndDate()"
-                (change)="onCustomStartDateChange($any($event.target).value)"
-                class="w-full bg-white px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        <div class="bg-slate-100 rounded-lg p-2 mb-6">
+          <button
+            type="button"
+            (click)="openDateRangeDialog()"
+            class="w-full flex items-center justify-between gap-3 bg-white px-4 py-3 bg-gray-50-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            <div class="text-left min-w-0">
+              <p class="text-[13px] text-gray-500">ช่วงวันที่</p>
+              <p class="text-base text-gray-900 font-medium truncate">
+                {{ displayDateRangeLabel() || 'เลือกช่วงวันที่' }}
+              </p>
             </div>
-            <div class="flex-1">
-              <label class="block text-sm font-medium text-gray-700 mb-2">วันที่สิ้นสุด</label>
-              <input 
-                type="date" 
-                [value]="customEndDate()"
-                [min]="customStartDate()"
-                (change)="onCustomEndDateChange($any($event.target).value)"
-                class="w-full bg-white px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            </div>
-            <div class="flex lg:items-end lg:flex-shrink-0">
-              <button 
-                (click)="applyCustomDateRange()"
-                class="w-full lg:w-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium whitespace-nowrap">
-                ค้นหา
-              </button>
-            </div>
-          </div>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7l4-4 4 4m0 10l-4 4-4-4" />
+            </svg>
+          </button>
         </div>
       }
 
@@ -130,7 +117,7 @@
             valueClass="text-gray-900"
             iconBgClass="bg-blue-100"
             iconClass="text-blue-600"
-            containerClass="rounded-xl shadow-sm border border-gray-200"
+            containerClass="rounded-xl shadow-sm border border-gray-100"
           />
 
           <app-summary-card
@@ -141,7 +128,7 @@
             valueClass="text-gray-900"
             iconBgClass="bg-green-100"
             iconClass="text-green-600"
-            containerClass="rounded-xl shadow-sm border border-gray-200"
+            containerClass="rounded-xl shadow-sm border border-gray-100"
           />
 
           <app-summary-card
@@ -152,7 +139,7 @@
             valueClass="text-gray-900"
             iconBgClass="bg-yellow-100"
             iconClass="text-yellow-600"
-            containerClass="rounded-xl shadow-sm border border-gray-200"
+            containerClass="rounded-xl shadow-sm border border-gray-100"
           />
 
           <app-summary-card
@@ -163,7 +150,7 @@
             valueClass="text-gray-900"
             iconBgClass="bg-red-100"
             iconClass="text-red-600"
-            containerClass="rounded-xl shadow-sm border border-gray-200"
+            containerClass="rounded-xl shadow-sm border border-gray-100"
           />
         </div>
       }
@@ -214,20 +201,20 @@
           </div>
         </button>
   
-        <button
-        type="button"
-        class="bg-white rounded p-4 text-left transition-all">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <p class="text-gray-900">ประวัติเปลี่ยนสถานะงาน</p>
+        <a
+          routerLink="/my-account/job-status-history"
+          class="bg-white rounded p-4 text-left transition-all block">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-gray-900">ประวัติเปลี่ยนสถานะงาน</p>
+            </div>
+            <div class="mt-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
           </div>
-          <div class="mt-1">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        </div>
-       </button>
+        </a>
   
         <!-- Mobile only: Logout button (below Change Password) -->
         <button
@@ -278,6 +265,16 @@
           (cancel)="closeLogoutDialog()"
           (close)="closeLogoutDialog()">
         </app-logout-confirm-dialog>
+      }
+
+      @if (showDateRangeDialog()) {
+        <app-date-range-picker-dialog
+          [startYmd]="customStartDate()"
+          [endYmd]="customEndDate()"
+          (apply)="applyDateRangeFromDialog($event)"
+          (cancel)="closeDateRangeDialog()"
+          (close)="closeDateRangeDialog()">
+        </app-date-range-picker-dialog>
       }
     </div>
 

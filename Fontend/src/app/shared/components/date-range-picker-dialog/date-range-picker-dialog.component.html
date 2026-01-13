@@ -1,0 +1,88 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center px-4">
+  <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" (click)="onBackdropClick()"></div>
+
+  <div class="relative w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-medium text-slate-900">เลือกช่วงวันที่</h3>
+          <p class="text-sm text-slate-500 mt-0.5">{{ rangeLabel() }}</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-medium hover:bg-slate-200" (click)="selectPreset(1)">1d</button>
+          <button type="button" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-medium hover:bg-slate-200" (click)="selectPreset(7)">7d</button>
+          <button type="button" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-medium hover:bg-slate-200" (click)="selectPreset(30)">30d</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="text-base font-medium text-slate-900">{{ monthTitle() }}</div>
+        <div class="flex items-center gap-2">
+          <button type="button" class="p-2 rounded-lg hover:bg-slate-50" (click)="prevMonth()" [disabled]="isSubmitting" aria-label="Previous month">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button type="button" class="p-2 rounded-lg hover:bg-slate-50" (click)="nextMonth()" [disabled]="isSubmitting" aria-label="Next month">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-7 gap-1 text-xs text-slate-500 mb-2">
+        <div class="text-center py-1">อา</div>
+        <div class="text-center py-1">จ</div>
+        <div class="text-center py-1">อ</div>
+        <div class="text-center py-1">พ</div>
+        <div class="text-center py-1">พฤ</div>
+        <div class="text-center py-1">ศ</div>
+        <div class="text-center py-1">ส</div>
+      </div>
+
+      <div class="space-y-1">
+        @for (week of weeks(); track $index) {
+          <div class="grid grid-cols-7 gap-1">
+            @for (day of week; track day.ymd) {
+              <button
+                type="button"
+                (click)="onDayClick(day)"
+                [disabled]="isSubmitting"
+                class="h-10 rounded-lg text-sm font-medium transition-colors"
+                [class.text-slate-400]="!day.inMonth"
+                [class.text-slate-900]="day.inMonth"
+                [class.bg-blue-600]="isRangeStart(day.ymd) || isRangeEnd(day.ymd)"
+                [class.text-white]="isRangeStart(day.ymd) || isRangeEnd(day.ymd)"
+                [class.bg-blue-100]="isInRange(day.ymd) && !(isRangeStart(day.ymd) || isRangeEnd(day.ymd))"
+                [class.text-blue-800]="isInRange(day.ymd) && !(isRangeStart(day.ymd) || isRangeEnd(day.ymd))"
+                [class.hover:bg-slate-100]="!isInRange(day.ymd)">
+                {{ dayLabel(day) }}
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+      <button
+        type="button"
+        class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium"
+        (click)="onCancel()"
+        [disabled]="isSubmitting">
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+        (click)="onApply()"
+        [disabled]="isSubmitting || !selectedStartYmd() || !selectedEndYmd()">
+        Apply
+      </button>
+    </div>
+  </div>
+</div>
+
