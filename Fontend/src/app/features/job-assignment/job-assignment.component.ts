@@ -17,6 +17,7 @@ import { QueueDto } from '../../models/queue.model';
 import { QueueSummaryResponse } from '../../models/queue.model';
 import { getEmployeeIdFromToken } from '../../utils/jwt.util';
 import { AvailabilityStatusKey, normalizeAvailabilityStatus } from '../../shared/utils/availability-status.util';
+import { ReceiveCustomerService } from '../../services/receive-customer.service';
 
 @Component({
   selector: 'app-job-assignment',
@@ -51,7 +52,8 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
     private queueService: QueueService,
     private signalRService: SignalRService,
     private authService: AuthService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private receiveCustomerService: ReceiveCustomerService
   ) {
     // Get current employee ID from token
     const token = this.authService.getToken();
@@ -196,11 +198,12 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
         const currentTotal = totalJobCountMap.get(assigneeId) || 0;
         totalJobCountMap.set(assigneeId, currentTotal + 1);
         
-        // Count by status - handle both enum values and string values
-        if (status === 'pending' || status === '1') {
+        // Count by status - "งานที่ต้องทำ" includes Pending + Assigned
+        // enum: 1=Pending, 2=Assigned, 3=InProgress
+        if (status === 'pending' || status === 'assigned' || status === '1' || status === '2') {
           const currentPending = pendingJobCountMap.get(assigneeId) || 0;
           pendingJobCountMap.set(assigneeId, currentPending + 1);
-        } else if (status === 'inprogress' || status === 'in_progress' || status === '2') {
+        } else if (status === 'inprogress' || status === 'in_progress' || status === '3') {
           const currentInProgress = inProgressJobCountMap.get(assigneeId) || 0;
           inProgressJobCountMap.set(assigneeId, currentInProgress + 1);
         }
@@ -377,34 +380,21 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
       return;
     }
 
-    const createJobRequest = {
-      title: 'Walk-in Customer',
-      customer: 'ลูกค้าทั่วไป',
-      description: 'บริการลูกค้าหน้าร้าน',
-      assigneeId: staff.employeeId,
-      priority: JobPriority.Normal,
-      channel: 'Walk-in',
-    };
-
     this.isSubmittingAssign.set(true);
-    this.taskService.createJob(createJobRequest).pipe(
-      catchError(error => {
-        console.error('Error creating job:', error);
-        this.toastService.error('เกิดข้อผิดพลาดในการสร้างงาน');
-        return of(null);
-      }),
-      finalize(() => {
-        this.isSubmittingAssign.set(false);
-        this.closeAssignDialog();
-      })
-    ).subscribe(response => {
-      if (response) {
-        this.toastService.success('สร้างงานในสถานะ "งานที่ต้องทำ" เรียบร้อย');
-        // Reload employees to get updated data
-        setTimeout(() => {
-          this.loadEmployees();
-        }, 500);
-      }
-    });
+    // Same as callout-card "รับลูกค้า" creation, but DO NOT auto-start InProgress.
+    // Keep the job in "งานที่ต้องทำ" (Pending/Assigned).
+    this.receiveCustomerService
+      .confirmWalkIn({
+        assigneeId: staff.employeeId,
+        autoStart: false,
+        successMessage: 'สร้างงานในสถานะ "งานที่ต้องทำ" เรียบร้อย',
+      });
+
+    // Close dialog + refresh list (SignalR will update too)
+    setTimeout(() => {
+      this.isSubmittingAssign.set(false);
+      this.closeAssignDialog();
+      this.loadEmployees();
+    }, 300);
   }
 }

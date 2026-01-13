@@ -400,7 +400,7 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     this.allJobs.forEach(job => {
       const statusStr = this.normalizeStatus(job.status);
       const assigneeIdStr = typeof job.assigneeId === 'string' ? job.assigneeId.toLowerCase() : job.assigneeId;
-      if (statusStr === 'inprogress' && !queueEmployeeIds.has(assigneeIdStr)) {
+      if ((statusStr === 'inprogress' || statusStr === 'assigned') && !queueEmployeeIds.has(assigneeIdStr)) {
         const employeeName = job.assigneeName || 'ไม่ระบุชื่อ';
         const initial = job.assigneeName ? job.assigneeName.charAt(0).toUpperCase() : '?';
         const startTime = this.getJobStartTime(job);
@@ -459,7 +459,7 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     return this.allJobs.find(job => {
       const assigneeIdStr = typeof job.assigneeId === 'string' ? job.assigneeId.toLowerCase() : job.assigneeId;
       const statusStr = this.normalizeStatus(job.status);
-      return assigneeIdStr === employeeIdLower && statusStr === 'inprogress';
+      return assigneeIdStr === employeeIdLower && (statusStr === 'inprogress' || statusStr === 'assigned');
     });
   }
 
@@ -538,10 +538,10 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
       return jobDoneDate.getTime() === today.getTime();
     }).length;
 
-    // กำลังดูแลลูกค้า = count jobs ที่ status = InProgress
+    // กำลังดูแลลูกค้า = count jobs ที่ status = InProgress หรือ Assigned
     const inProgress = jobs.filter(job => {
       const statusStr = this.normalizeStatus(job.status);
-      return statusStr === 'inprogress';
+      return statusStr === 'inprogress' || statusStr === 'assigned';
     }).length;
 
     // พนักงานพร้อมรับงาน = count queues ที่ status = Active

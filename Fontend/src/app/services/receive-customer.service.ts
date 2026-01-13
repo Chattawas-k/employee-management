@@ -43,6 +43,27 @@ export class ReceiveCustomerService {
       return;
     }
 
+    this.confirmWalkIn({
+      assigneeId: employeeId,
+      autoStart: true,
+      successMessage: 'รับลูกค้าเรียบร้อย'
+    });
+  }
+
+  /**
+   * Create the same Walk-in job as the "รับลูกค้า" flow.
+   * - autoStart=true  => create job then set InProgress (same as callout button)
+   * - autoStart=false => only create job (keeps it in "งานที่ต้องทำ")
+   */
+  confirmWalkIn(options: { assigneeId: string; autoStart: boolean; successMessage: string }): void {
+    if (this.isSubmitting()) return;
+
+    const { assigneeId, autoStart, successMessage } = options;
+    if (!assigneeId) {
+      this.toastService.error('ไม่พบข้อมูลพนักงาน');
+      return;
+    }
+
     this.isSubmitting.set(true);
 
     this.taskService
@@ -50,12 +71,13 @@ export class ReceiveCustomerService {
         title: 'Walk-in Customer',
         customer: 'ลูกค้าทั่วไป',
         description: 'บริการลูกค้าหน้าร้าน',
-        assigneeId: employeeId,
+        assigneeId,
         priority: JobPriority.Normal,
         channel: 'Walk-in',
       })
       .pipe(
         switchMap((createResponse) => {
+          if (!autoStart) return of(createResponse);
           if (!createResponse?.id) return of(null);
           return this.taskService.updateJobStatus(createResponse.id, {
             id: createResponse.id,
@@ -71,7 +93,7 @@ export class ReceiveCustomerService {
       )
       .subscribe((result) => {
         if (!result) return;
-        this.toastService.success('รับลูกค้าเรียบร้อย');
+        this.toastService.success(successMessage);
         this.isOpen.set(false);
         this.myStatusStore.requestRefresh();
       });

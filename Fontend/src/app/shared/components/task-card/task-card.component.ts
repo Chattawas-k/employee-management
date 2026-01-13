@@ -62,6 +62,10 @@ export class TaskCardComponent {
   }
 
   salesStatusInfo = computed(() => {
+    if (this.task.status === 'rejected') {
+      return { text: 'ยกเลิก', class: 'border-red-300 bg-red-100 text-red-800' };
+    }
+
     if (this.task.status !== 'completed' || !this.task.salesReportData?.status) {
       return null;
     }

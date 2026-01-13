@@ -137,7 +137,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       // Handle both enum and string status from API
       const statusStr = typeof job.status === 'string' ? job.status.toLowerCase() : this.getStatusString(job.status as JobStatus);
       
-      if (statusStr === 'pending') {
+      if (statusStr === 'pending' || statusStr === 'assigned') {
         todo.push(task);
       } else if (statusStr === 'inprogress' || statusStr === 'in-progress') {
         inProgress.push(task);
@@ -189,9 +189,9 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     const status = this.mapJobStatusToTaskStatus(job.status);
     
     // Get timestamps from status logs
-    const createdLog = job.statusLogs.find((log: MyTaskStatusLogDto) => log.status === 'Pending');
-    const startedLog = job.statusLogs.find((log: MyTaskStatusLogDto) => log.status === 'InProgress');
-    const completedLog = job.statusLogs.find((log: MyTaskStatusLogDto) => log.status === 'Done' || log.status === 'Rejected');
+    const createdLog = this.findStatusLog(job.statusLogs, ['pending', 'assigned', 'created']);
+    const startedLog = this.findStatusLog(job.statusLogs, ['inprogress', 'started']);
+    const completedLog = this.findStatusLog(job.statusLogs, ['closedwon', 'closedlost', 'done', 'completed', 'cancelled', 'rejected']);
     
     // Pass ISO string to task card component, let it format the date
     const createdAt = createdLog ? createdLog.timestamp : job.createdDate;
@@ -256,9 +256,9 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     const status = this.mapJobStatusToTaskStatus(job.status);
     
     // Get timestamps from status logs
-    const createdLog = job.statusLogs.find((log: MyTaskStatusLogDto) => log.status === 'Pending');
-    const startedLog = job.statusLogs.find((log: MyTaskStatusLogDto) => log.status === 'InProgress');
-    const completedLog = job.statusLogs.find((log: MyTaskStatusLogDto) => log.status === 'Done' || log.status === 'Rejected');
+    const createdLog = this.findStatusLog(job.statusLogs, ['pending', 'assigned', 'created']);
+    const startedLog = this.findStatusLog(job.statusLogs, ['inprogress', 'started']);
+    const completedLog = this.findStatusLog(job.statusLogs, ['closedwon', 'closedlost', 'done', 'completed', 'cancelled', 'rejected']);
     
     // Pass ISO string to task card component, let it format the date
     const createdAt = createdLog ? createdLog.timestamp : job.createdDate;
@@ -343,6 +343,15 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       default:
         return 'pending';
     }
+  }
+
+  private findStatusLog(logs: MyTaskStatusLogDto[] | undefined, keywords: string[]): MyTaskStatusLogDto | undefined {
+    if (!logs || logs.length === 0) return undefined;
+    const normalizedKeywords = keywords.map(keyword => keyword.toLowerCase());
+    return logs.find(log => {
+      const logStatus = (log.status ?? '').toString().toLowerCase();
+      return normalizedKeywords.some(keyword => logStatus.includes(keyword));
+    });
   }
 
   private getPriorityText(priority: JobPriority | string): string {

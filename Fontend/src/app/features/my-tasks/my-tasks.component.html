@@ -22,7 +22,7 @@
       <app-task-column title="กำลังดำเนินการ" [count]="inProgressTasks().length" [tasks]="inProgressTasks()"
         [isLoading]="isLoading()" (taskAction)="handleTaskAction($event)" (taskDetailClick)="showTaskDetails($event)">
       </app-task-column>
-      <app-task-column title="ประวัติ (เสร็จสิ้น)" [count]="completedTasks().length" [tasks]="completedTasks()"
+      <app-task-column title="เสร็จสิ้น" [count]="completedTasks().length" [tasks]="completedTasks()"
         [isCollapsible]="true" [isLoading]="isLoading()" (taskAction)="handleTaskAction($event)"
         (taskDetailClick)="showTaskDetails($event)">
       </app-task-column>
