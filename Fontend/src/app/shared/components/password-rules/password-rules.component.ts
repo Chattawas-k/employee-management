@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, computed } from '@angular/core';
+import { Component, Input, computed, signal } from '@angular/core';
 
 interface RuleState {
   key: string;
@@ -15,12 +15,28 @@ interface RuleState {
   styleUrls: ['./password-rules.component.scss']
 })
 export class PasswordRulesComponent {
-  @Input({ required: true }) password = '';
-  @Input({ required: true }) confirm = '';
+  private passwordSig = signal<string>('');
+  private confirmSig = signal<string>('');
+
+  @Input({ required: true })
+  set password(value: string) {
+    this.passwordSig.set(String(value ?? ''));
+  }
+  get password(): string {
+    return this.passwordSig();
+  }
+
+  @Input({ required: true })
+  set confirm(value: string) {
+    this.confirmSig.set(String(value ?? ''));
+  }
+  get confirm(): string {
+    return this.confirmSig();
+  }
 
   rules = computed<RuleState[]>(() => {
-    const pwd = this.password || '';
-    const confirm = this.confirm || '';
+    const pwd = this.passwordSig();
+    const confirm = this.confirmSig();
 
     const lengthOk = pwd.length >= 6;
     const hasLower = /[a-z]/.test(pwd);

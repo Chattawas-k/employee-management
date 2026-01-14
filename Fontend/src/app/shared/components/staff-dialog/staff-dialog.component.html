@@ -26,7 +26,7 @@
               } @else if (isEditMode && staff?.profileImageUrl && !removeProfileImage()) {
                 <img [src]="staff!.profileImageUrl!" alt="profile" class="w-full h-full object-cover" />
               } @else {
-                <span class="text-gray-500 text-xs">No image</span>
+                <span class="text-gray-500 text-xs"></span>
               }
             </div>
 
@@ -85,7 +85,7 @@
         </div>
 
         <!-- Login info -->
-        <div class="rounded-lg border border-gray-200 p-4 space-y-4">
+        <div class="rounded-lg bg-slate-50 p-4 space-y-4">
           <div class="flex items-center justify-between">
             <p class="text-sm font-semibold text-gray-900">ข้อมูลบัญชีเข้าใช้งาน</p>
             @if (isEditMode && staff) {

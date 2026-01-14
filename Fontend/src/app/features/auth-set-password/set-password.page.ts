@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -22,13 +22,28 @@ export class SetPasswordPage implements OnInit {
 
   token = signal<string>('');
 
+  // UI helpers
+  showNewPassword = signal(false);
+  showConfirmPassword = signal(false);
+
+  // Expiration countdown (from validate endpoint when available)
+  expiresAt = signal<Date | null>(null);
+  private countdownTimerId?: number;
+  private tickTimerId?: number;
+  private nowMs = signal<number>(Date.now());
+
   isSubmitting = signal(false);
   serverErrorMessage = signal<string | null>(null);
 
   form!: FormGroup;
 
-  passwordValue = computed(() => this.form.get('newPassword')?.value || '');
-  confirmValue = computed(() => this.form.get('confirmPassword')?.value || '');
+  // NOTE: reactive form values don't automatically trigger signals/computed.
+  // We bridge via valueChanges into signals so UI updates in real-time.
+  private password = signal<string>('');
+  private confirm = signal<string>('');
+
+  passwordValue = computed(() => this.password());
+  confirmValue = computed(() => this.confirm());
 
   // Client-side rule gate (server still enforces policy + not-same-as-old)
   clientRulesPassed = computed(() => {
@@ -55,7 +70,29 @@ export class SetPasswordPage implements OnInit {
       newPassword: ['', [Validators.required]],
       confirmPassword: ['', [Validators.required]]
     });
+
+    // Sync reactive form -> signals for live UI
+    this.form.valueChanges.subscribe(v => {
+      this.password.set(String(v?.newPassword ?? ''));
+      this.confirm.set(String(v?.confirmPassword ?? ''));
+    });
   }
+
+  expiresInSeconds = computed<number | null>(() => {
+    const expiresAt = this.expiresAt();
+    if (!expiresAt) return null;
+    // Depend on nowMs so this recomputes every tick
+    const diffMs = expiresAt.getTime() - this.nowMs();
+    return Math.max(0, Math.floor(diffMs / 1000));
+  });
+
+  expiresInText = computed<string | null>(() => {
+    const seconds = this.expiresInSeconds();
+    if (seconds === null) return null;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  });
 
   ngOnInit(): void {
     const tokenFromParam = this.route.snapshot.paramMap.get('token');
@@ -69,6 +106,21 @@ export class SetPasswordPage implements OnInit {
 
     this.token.set(token);
     this.validateToken(token);
+
+    // Initialize bridge signals with initial form values
+    this.password.set(String(this.form.get('newPassword')?.value ?? ''));
+    this.confirm.set(String(this.form.get('confirmPassword')?.value ?? ''));
+  }
+
+  ngOnDestroy(): void {
+    if (this.countdownTimerId) {
+      window.clearInterval(this.countdownTimerId);
+      this.countdownTimerId = undefined;
+    }
+    if (this.tickTimerId) {
+      window.clearInterval(this.tickTimerId);
+      this.tickTimerId = undefined;
+    }
   }
 
   private validateToken(token: string): void {
@@ -76,6 +128,13 @@ export class SetPasswordPage implements OnInit {
     this.authService.validatePasswordLink(token).subscribe({
       next: (res) => {
         if (res.valid) {
+          if (res.expiresAt) {
+            const dt = new Date(res.expiresAt);
+            if (!isNaN(dt.getTime())) {
+              this.expiresAt.set(dt);
+              this.startCountdown();
+            }
+          }
           this.state.set('form');
           return;
         }
@@ -86,6 +145,35 @@ export class SetPasswordPage implements OnInit {
         this.state.set('form');
       }
     });
+  }
+
+  private startCountdown(): void {
+    if (this.countdownTimerId) {
+      window.clearInterval(this.countdownTimerId);
+    }
+    if (this.tickTimerId) {
+      window.clearInterval(this.tickTimerId);
+    }
+
+    // Tick UI every 1s so countdown updates in real-time.
+    this.tickTimerId = window.setInterval(() => {
+      this.nowMs.set(Date.now());
+    }, 1000);
+
+    // Also enforce expiry; if expired, lock the page.
+    this.countdownTimerId = window.setInterval(() => {
+      const expiresAt = this.expiresAt();
+      if (!expiresAt) return;
+      if (Date.now() >= expiresAt.getTime()) {
+        window.clearInterval(this.countdownTimerId);
+        this.countdownTimerId = undefined;
+        if (this.tickTimerId) {
+          window.clearInterval(this.tickTimerId);
+          this.tickTimerId = undefined;
+        }
+        this.showInvalid('expired');
+      }
+    }, 1000);
   }
 
   private showInvalid(reason: PasswordLinkInvalidReason): void {

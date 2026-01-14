@@ -21,7 +21,7 @@
   --bg-deep: #f8fafc; /* Slate 50 */
   --primary-accent: #0284c7; /* Sky 600 */
   --text-main: #1e293b; /* Slate 800 */
-  --text-muted: #64748b; /* Slate 500 */
+  --text-muted: #475569; /* Slate 600 (better contrast) */
   --orb-1-color: rgba(14, 165, 233, 0.25);
   --orb-2-color: rgba(168, 85, 247, 0.2);
   --orb-3-color: rgba(20, 184, 166, 0.2);
@@ -100,7 +100,7 @@
   background-image:
     linear-gradient(rgba(148, 163, 184, 0.12) 1px, transparent 1px),
     linear-gradient(90deg, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
-  opacity: 0.8;
+  opacity: 0.45;
 }
 
 .monitor-root .overlay-texture {
@@ -111,7 +111,7 @@
 }
 
 .monitor-root.light-mode .overlay-texture {
-  background: radial-gradient(circle at center, rgba(255,255,255,0.6) 0%, rgba(248,250,252,1) 70%);
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 1) 75%);
 }
 
 /* Hero ring */
