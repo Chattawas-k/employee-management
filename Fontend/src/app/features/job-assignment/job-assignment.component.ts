@@ -227,7 +227,9 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
         // Map availability status to UI status
         const { status, statusClass } = this.mapAvailabilityStatusToUIStatus(availabilityStatus);
         
-        const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}&background=6366f1&color=fff&size=128`;
+        const avatarUrl = emp.avatar && emp.avatar.trim().length > 0
+          ? emp.avatar
+          : `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}&background=6366f1&color=fff&size=128`;
         
         return {
           name: emp.name,

@@ -76,5 +76,15 @@ export class EmployeeService {
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
+
+  uploadMyAvatar(file: File): Observable<{ employee: EmployeeDto }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.put<{ employee: EmployeeDto }>(`${this.apiUrl}/me/avatar`, formData);
+  }
+
+  deleteMyAvatar(): Observable<{ employee: EmployeeDto }> {
+    return this.http.delete<{ employee: EmployeeDto }>(`${this.apiUrl}/me/avatar`);
+  }
 }
 

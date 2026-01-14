@@ -167,9 +167,14 @@
       }
       <div #statusMenuButton (click)="toggleStatusMenu()"
         class="p-3 bg-white rounded-lg flex items-center cursor-pointer hover:bg-gray-50 transition-colors mb-2 shadow-sm border border-gray-200">
-        <div
-          class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-medium text-lg">
-          {{ getUserInitial() }}
+        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
+          @if (currentEmployee()?.avatar) {
+            <img [src]="currentEmployee()!.avatar!" [alt]="getUserName()" class="w-full h-full object-cover">
+          } @else {
+            <span class="text-blue-700 flex items-center justify-center font-medium text-lg w-full h-full">
+              {{ getUserInitial() }}
+            </span>
+          }
         </div>
         <div class="ml-3 flex-1">
           <p class="text-sm font-semibold text-gray-900">{{ getUserName() }}</p>
@@ -347,9 +352,14 @@
         }
         <div #statusMenuButton (click)="toggleStatusMenu()"
           class="p-3 bg-white rounded-lg flex items-center cursor-pointer hover:bg-gray-50 transition-colors mb-2 shadow-sm border border-gray-200">
-          <div
-            class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-medium text-lg">
-            {{ getUserInitial() }}
+          <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
+            @if (currentEmployee()?.avatar) {
+              <img [src]="currentEmployee()!.avatar!" [alt]="getUserName()" class="w-full h-full object-cover">
+            } @else {
+              <span class="text-blue-700 flex items-center justify-center font-medium text-lg w-full h-full">
+                {{ getUserInitial() }}
+              </span>
+            }
           </div>
           <div class="ml-3 flex-1">
             <p class="text-sm font-semibold text-gray-900">{{ getUserName() }}</p>

@@ -94,9 +94,10 @@ export class QueueSettingsComponent implements OnInit {
   }
 
   getAvatarUrl(employeeId: string, employeeName: string): string {
-    // Use first letter of name as fallback
-    const initial = employeeName.charAt(0).toUpperCase();
-    // For now, use a placeholder. In the future, we can add avatar to GetByDateResponse
+    // If backend provides avatar (data URL stored in DB), use it
+    const queue = [...this.currentQueues(), ...this.pastQueues()].find(q => q.employeeId === employeeId);
+    const avatar = (queue?.avatar ?? '').trim();
+    if (avatar) return avatar;
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(employeeName)}&background=random&size=128`;
   }
 
@@ -205,6 +206,7 @@ export class QueueSettingsComponent implements OnInit {
           employeeName: employee?.name || 'ไม่ระบุชื่อ',
           positionName: employee?.positionName,
           departmentName: employee?.departmentName,
+          avatar: employee?.avatar,
           position: maxPosition + index + 1, // Add to end
           status: 'Active',
           availabilityStatus: 'Available' as const,

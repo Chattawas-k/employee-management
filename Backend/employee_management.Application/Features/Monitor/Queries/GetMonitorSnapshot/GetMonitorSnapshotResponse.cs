@@ -19,7 +19,8 @@ namespace employee_management.Application.Features.Monitor.Queries.GetMonitorSna
     public sealed record MonitorStaffItem(
         Guid EmployeeId,
         string EmployeeName,
-        int QueuePosition
+        int QueuePosition,
+        string? Avatar
     );
 
     public sealed record MonitorServingItem(
@@ -28,7 +29,8 @@ namespace employee_management.Application.Features.Monitor.Queries.GetMonitorSna
         string? JobNumber,
         string? JobRunningCode,
         QueueStatus QueueStatus,
-        AvailabilityStatus AvailabilityStatus
+        AvailabilityStatus AvailabilityStatus,
+        string? Avatar
     );
 }
 

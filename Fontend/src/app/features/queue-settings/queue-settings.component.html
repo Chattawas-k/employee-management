@@ -75,8 +75,12 @@
                       </div>
                       
                       <!-- Avatar -->
-                      <div class="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <span class="text-blue-700 font-semibold text-lg">{{ getInitial(nameInfo.thai) }}</span>
+                      <div class="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        @if (queue.avatar) {
+                          <img [src]="queue.avatar" [alt]="nameInfo.thai" class="w-full h-full object-cover">
+                        } @else {
+                          <span class="text-blue-700 font-semibold text-lg">{{ getInitial(nameInfo.thai) }}</span>
+                        }
                       </div>
                       
                       <!-- Employee Info -->
@@ -140,8 +144,12 @@
                       </div>
                       
                       <!-- Avatar -->
-                      <div class="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <span class="text-blue-700 font-semibold text-lg">{{ getInitial(nameInfo.thai) }}</span>
+                      <div class="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        @if (queue.avatar) {
+                          <img [src]="queue.avatar" [alt]="nameInfo.thai" class="w-full h-full object-cover">
+                        } @else {
+                          <span class="text-blue-700 font-semibold text-lg">{{ getInitial(nameInfo.thai) }}</span>
+                        }
                       </div>
                       
                       <!-- Employee Info -->

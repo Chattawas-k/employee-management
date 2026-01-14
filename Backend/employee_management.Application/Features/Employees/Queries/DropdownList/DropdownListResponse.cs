@@ -4,7 +4,8 @@ namespace employee_management.Application.Features.Employees.Queries.DropdownLis
         Guid Id,
         string Name,
         string? PositionName,
-        string? DepartmentName
+        string? DepartmentName,
+        string? Avatar
     );
 }
 

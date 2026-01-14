@@ -40,17 +40,17 @@
           @if (staff.isNext) {
           <div
             class="bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl p-4 text-white relative shadow-lg overflow-hidden transition-all hover:shadow-xl hover:-translate-y-1">
-            <div class="absolute -top-10 -right-10 w-48 h-48 bg-white/5 rounded-full opacity-50"></div>
-            <div class="absolute -bottom-12 -left-8 w-36 h-36 bg-white/5 rounded-full opacity-50"></div>
+            <div class="absolute -top-10 -right-[70px] w-[200px] h-48 bg-green-400 rounded-full opacity-20"></div>
+            <div class="absolute -bottom-[60px] -left-20 w-[200px] h-48 bg-green-400 rounded-full opacity-20"></div>
             <div class="relative z-10">
-              <div class="flex justify-between items-center mb-3">
+              <div class="flex justify-between items-center">
                 <span class="bg-white/90 text-indigo-700 text-sm font-medium px-4 py-1.5 rounded-full shadow-md">
                   คิวถัดไป
                 </span>
                 <div class="relative">
                   @if (staff.isAvatarLetter) {
                   <div
-                    class="w-16 h-16 rounded-full bg-white/60 text-blue-700 flex items-center justify-center font-medium text-2xl border-4 border-white/50 shadow-md">
+                    class="w-20 h-20 rounded-full bg-white/60 text-blue-700 flex items-center justify-center font-medium text-2xl border-4 border-white/50 shadow-md">
                     {{ staff.avatar }}
                   </div>
                   } @else {
@@ -63,7 +63,7 @@
                 </div>
               </div>
               <p class="text-base font-light text-indigo-200">คิวถัดไป</p>
-              <h3 class="text-4xl font-bold tracking-tight">{{ staff.name }}</h3>
+              <h3 class="text-5xl font-bold tracking-tight">{{ staff.name }}</h3>
               <div class="flex items-center gap-2 mt-2 text-indigo-200">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />

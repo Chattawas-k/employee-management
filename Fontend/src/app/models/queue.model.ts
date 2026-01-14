@@ -4,6 +4,7 @@ export interface QueueDto {
   employeeName: string;
   positionName?: string;
   departmentName?: string;
+  avatar?: string;
   position: number;
   round?: number;
   status: 'active' | 'inactive' | 'busy' | 'Active' | 'Inactive' | 'Busy';

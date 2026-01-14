@@ -308,17 +308,18 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
       const relativePosition = index + 1; // Relative position in Ready Queue
       const employeeName = queue.employeeName || 'ไม่ระบุชื่อ';
       const initial = queue.employeeName ? queue.employeeName.charAt(0).toUpperCase() : '?';
+      const avatarFromApi = (queue.avatar ?? '').trim();
       const servedToday = typeof queue.round === 'number' && queue.round >= 1 ? queue.round : 1;
       const isNext = relativePosition === 1; // First in Ready Queue is "next"
 
       readyQueueList.push({
         queue: relativePosition, // Use relative position, not master position
         name: employeeName,
-        avatar: initial,
+        avatar: avatarFromApi || initial,
         status: isNext ? 'รอบ' : 'รอรับลูกค้า',
         servedToday,
         isNext,
-        isAvatarLetter: true
+        isAvatarLetter: !avatarFromApi
       });
     });
 
@@ -328,6 +329,7 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     sortedQueues.forEach((queue) => {
       const employeeName = queue.employeeName || 'ไม่ระบุชื่อ';
       const initial = queue.employeeName ? queue.employeeName.charAt(0).toUpperCase() : '?';
+      const avatarFromApi = (queue.avatar ?? '').trim();
       const servedToday = typeof queue.round === 'number' && queue.round >= 1 ? queue.round : 1;
 
       const normalizedStatus = typeof queue.status === 'string' ? queue.status.toLowerCase() : String(queue.status || '').toLowerCase();
@@ -351,10 +353,10 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
 
         const staffItem: UnavailableStaff = {
           name: employeeName,
-          avatar: initial,
+          avatar: avatarFromApi || initial,
           status: statusText,
           statusClass: statusClass,
-          isAvatarLetter: true,
+          isAvatarLetter: !avatarFromApi,
           statusChangedTime: statusChangedTime
         };
 
@@ -384,13 +386,13 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
 
         busyStaffList.push({
           name: employeeName,
-          avatar: initial,
+          avatar: avatarFromApi || initial,
           status: 'ให้บริการอยู่',
           startTime,
           duration: '00:00',
           startTimeFormatted,
           jobId: jobId ? `#${jobId}` : '',
-          isAvatarLetter: true
+          isAvatarLetter: !avatarFromApi
         });
       }
     });

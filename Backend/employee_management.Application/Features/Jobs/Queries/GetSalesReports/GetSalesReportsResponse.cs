@@ -19,6 +19,7 @@ namespace employee_management.Application.Features.Jobs.Queries.GetSalesReports
         public DateTimeOffset? SaleDate { get; set; }
         public Guid AssigneeId { get; set; }
         public string? AssigneeName { get; set; }
+        public string? AssigneeAvatar { get; set; }
         public string? InvoiceId { get; set; }
     }
 }

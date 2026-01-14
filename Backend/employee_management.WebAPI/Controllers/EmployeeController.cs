@@ -8,6 +8,7 @@ using employee_management.Application.Features.Employees.Queries.Get;
 using employee_management.Application.Features.Employees.Queries.Search;
 using employee_management.Application.Features.Employees.Queries.DropdownList;
 using employee_management.Application.Features.Employees.Queries.GetMyWorkStats;
+using employee_management.Application.Features.Employees.Commands.UpdateMyAvatar;
 using employee_management.WebAPI.Controllers.Base;
 using employee_management.Domain.Enums;
 
@@ -104,6 +105,61 @@ namespace employee_management.WebAPI.Controllers
 
             var request = new GetMyWorkStatsRequest(employeeId, startDate, endDate);
             var response = await _mediator.Send(request, cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpPut("me/avatar")]
+        public async Task<ActionResult<UpdateMyAvatarResponse>> UploadMyAvatar(
+            [FromForm] IFormFile file,
+            CancellationToken cancellationToken)
+        {
+            var employeeIdClaim = User.FindFirst("EmployeeId")?.Value;
+            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId) || employeeId == Guid.Empty)
+            {
+                return BadRequest("EmployeeId not found in token, invalid format, or not linked to this user.");
+            }
+
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest("File is required.");
+            }
+
+            const long maxBytes = 2 * 1024 * 1024; // 2MB
+            if (file.Length > maxBytes)
+            {
+                return BadRequest("File is too large. Max 2MB.");
+            }
+
+            var contentType = (file.ContentType ?? string.Empty).ToLowerInvariant();
+            if (contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp")
+            {
+                return BadRequest("Unsupported image type. Allowed: image/jpeg, image/png, image/webp");
+            }
+
+            byte[] bytes;
+            using (var ms = new MemoryStream())
+            {
+                await file.CopyToAsync(ms, cancellationToken);
+                bytes = ms.ToArray();
+            }
+
+            var base64 = Convert.ToBase64String(bytes);
+            var dataUrl = $"data:{contentType};base64,{base64}";
+
+            var response = await _mediator.Send(new UpdateMyAvatarRequest(employeeId, dataUrl), cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpDelete("me/avatar")]
+        public async Task<ActionResult<UpdateMyAvatarResponse>> DeleteMyAvatar(CancellationToken cancellationToken)
+        {
+            var employeeIdClaim = User.FindFirst("EmployeeId")?.Value;
+            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId) || employeeId == Guid.Empty)
+            {
+                return BadRequest("EmployeeId not found in token, invalid format, or not linked to this user.");
+            }
+
+            var response = await _mediator.Send(new UpdateMyAvatarRequest(employeeId, null), cancellationToken);
             return Ok(response);
         }
     }

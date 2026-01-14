@@ -101,6 +101,11 @@ export class MonitorComponent implements OnInit, OnDestroy {
     return `https://ui-avatars.com/api/?name=${safe}&background=${background}&color=${color}&size=${size}`;
   }
 
+  avatarSrc(name: string, avatar?: string | null, size = 256): string {
+    if (avatar && avatar.trim().length > 0) return avatar;
+    return this.avatarUrl(name, size);
+  }
+
   jobBadge(jobNumber?: string | null): string {
     if (!jobNumber) return '-';
     return jobNumber.startsWith('#') ? jobNumber : `#${jobNumber}`;

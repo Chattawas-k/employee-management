@@ -482,7 +482,9 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
         saleDate: saleDate,
         salesperson: {
           name: apiReport.assigneeName || 'ไม่ระบุ',
-          avatarUrl: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=200&auto=format&fit=crop'
+          avatarUrl: (apiReport.assigneeAvatar && String(apiReport.assigneeAvatar).trim().length > 0)
+            ? String(apiReport.assigneeAvatar)
+            : this.getFallbackAvatarUrl(apiReport.assigneeName || 'ไม่ระบุ')
         },
         saleValue: undefined, // Not available in current API response
         invoiceId: apiReport.invoiceId || undefined,
@@ -495,6 +497,10 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     return validReports;
+  }
+
+  private getFallbackAvatarUrl(name: string, size = 128): string {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=6366f1&color=fff&size=${size}`;
   }
 
   searchTerm = signal('');

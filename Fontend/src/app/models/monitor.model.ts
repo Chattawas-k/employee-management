@@ -7,6 +7,7 @@ export interface MonitorStaffItem {
   employeeId: string;
   employeeName: string;
   queuePosition: number; // relative position (1..n)
+  avatar?: string;
 }
 
 export interface MonitorServingItem {
@@ -16,6 +17,7 @@ export interface MonitorServingItem {
   jobRunningCode?: string | null;
   queueStatus: string;
   availabilityStatus: string;
+  avatar?: string;
 }
 
 export interface MonitorSnapshotResponse {

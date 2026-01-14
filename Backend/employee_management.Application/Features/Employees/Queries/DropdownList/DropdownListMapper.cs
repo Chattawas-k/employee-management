@@ -11,7 +11,9 @@ namespace employee_management.Application.Features.Employees.Queries.DropdownLis
                 .ForCtorParam(nameof(DropdownListResponse.PositionName),
                     opt => opt.MapFrom(src => src.Position != null ? src.Position.Name : null))
                 .ForCtorParam(nameof(DropdownListResponse.DepartmentName),
-                    opt => opt.MapFrom(src => src.Position != null && src.Position.Department != null ? src.Position.Department.Name : null));
+                    opt => opt.MapFrom(src => src.Position != null && src.Position.Department != null ? src.Position.Department.Name : null))
+                .ForCtorParam(nameof(DropdownListResponse.Avatar),
+                    opt => opt.MapFrom(src => src.Avatar));
         }
     }
 }

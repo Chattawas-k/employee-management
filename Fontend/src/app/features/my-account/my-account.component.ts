@@ -65,6 +65,10 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   showLogoutDialog = signal(false);
   isSubmittingLogout = signal(false);
   showDateRangeDialog = signal(false);
+  showAvatarDialog = signal(false);
+  isSubmittingAvatar = signal(false);
+  avatarPreviewUrl = signal<string>('');
+  avatarFile = signal<File | null>(null);
 
   // Date range display state (controls the blue label)
   displayDateRange = signal<{ start: Date; end: Date } | null>(null);
@@ -150,6 +154,91 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   closeLogoutDialog(): void {
     if (this.isSubmittingLogout()) return;
     this.showLogoutDialog.set(false);
+  }
+
+  openAvatarDialog(): void {
+    this.avatarFile.set(null);
+    this.avatarPreviewUrl.set('');
+    this.showAvatarDialog.set(true);
+  }
+
+  closeAvatarDialog(force: boolean = false): void {
+    if (!force && this.isSubmittingAvatar()) return;
+    this.showAvatarDialog.set(false);
+  }
+
+  onAvatarFileSelected(file: File | null): void {
+    if (!file) {
+      this.avatarFile.set(null);
+      this.avatarPreviewUrl.set('');
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      this.toastService.error('กรุณาเลือกไฟล์รูปภาพเท่านั้น');
+      return;
+    }
+
+    const maxBytes = 2 * 1024 * 1024; // 2MB (backend limit)
+    if (file.size > maxBytes) {
+      this.toastService.error('ไฟล์รูปใหญ่เกินไป (สูงสุด 2MB)');
+      return;
+    }
+
+    this.avatarFile.set(file);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.avatarPreviewUrl.set(typeof reader.result === 'string' ? reader.result : '');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  confirmAvatarChange(): void {
+    const emp = this.employee();
+    if (!emp) return;
+
+    const file = this.avatarFile();
+    if (!file) {
+      this.toastService.error('กรุณาเลือกรูปที่ต้องการอัปโหลด');
+      return;
+    }
+
+    this.isSubmittingAvatar.set(true);
+    this.employeeService.uploadMyAvatar(file).pipe(
+      catchError(error => {
+        console.error('Error updating avatar:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการอัปเดตรูปโปรไฟล์');
+        return of(null);
+      }),
+      finalize(() => this.isSubmittingAvatar.set(false))
+    ).subscribe(updated => {
+      if (!updated) return;
+      // Ensure UI updates immediately
+      this.employee.set(updated.employee);
+      this.toastService.success('อัปเดตรูปโปรไฟล์สำเร็จ');
+      this.closeAvatarDialog(true);
+    });
+  }
+
+  deleteAvatar(): void {
+    const emp = this.employee();
+    if (!emp) return;
+
+    this.isSubmittingAvatar.set(true);
+    this.employeeService.deleteMyAvatar().pipe(
+      catchError(error => {
+        console.error('Error deleting avatar:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการลบรูปโปรไฟล์');
+        return of(null);
+      }),
+      finalize(() => this.isSubmittingAvatar.set(false))
+    ).subscribe(updated => {
+      if (!updated) return;
+      this.employee.set(updated.employee);
+      this.toastService.success('ลบรูปโปรไฟล์สำเร็จ');
+      this.closeAvatarDialog(true);
+    });
   }
 
   confirmLogout(): void {
@@ -616,5 +705,6 @@ export class MyAccountComponent implements OnInit, OnDestroy {
     }
     return 'https://ui-avatars.com/api/?name=User&background=6366f1&color=fff&size=128';
   }
+
 }
 

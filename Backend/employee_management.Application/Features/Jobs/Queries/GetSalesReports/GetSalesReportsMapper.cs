@@ -34,6 +34,7 @@ namespace employee_management.Application.Features.Jobs.Queries.GetSalesReports
                     (DateTimeOffset?)null))
                 .ForMember(dest => dest.AssigneeId, opt => opt.MapFrom(src => src.AssigneeId))
                 .ForMember(dest => dest.AssigneeName, opt => opt.MapFrom(src => src.Employee != null ? src.Employee.Name : null))
+                .ForMember(dest => dest.AssigneeAvatar, opt => opt.MapFrom(src => src.Employee != null ? src.Employee.Avatar : null))
                 .ForMember(dest => dest.InvoiceId, opt => opt.Ignore()); // InvoiceId will be set manually if needed
         }
 

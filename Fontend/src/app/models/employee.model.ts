@@ -15,6 +15,7 @@ export interface EmployeeDropdownDto {
   name: string;
   positionName?: string;
   departmentName?: string;
+  avatar?: string;
 }
 
 export enum ChangeReason {

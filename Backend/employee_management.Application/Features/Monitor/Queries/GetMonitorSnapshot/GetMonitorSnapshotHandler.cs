@@ -41,7 +41,8 @@ namespace employee_management.Application.Features.Monitor.Queries.GetMonitorSna
                 nextQueue = new MonitorStaffItem(
                     EmployeeId: first.EmployeeId,
                     EmployeeName: first.Employee?.Name ?? string.Empty,
-                    QueuePosition: 1
+                    QueuePosition: 1,
+                    Avatar: first.Employee?.Avatar
                 );
 
                 // Remaining active queues are waiting list (relative positions 1..n like UI)
@@ -51,7 +52,8 @@ namespace employee_management.Application.Features.Monitor.Queries.GetMonitorSna
                     waitingList.Add(new MonitorStaffItem(
                         EmployeeId: q.EmployeeId,
                         EmployeeName: q.Employee?.Name ?? string.Empty,
-                        QueuePosition: i // relative position for UI (starts at 1)
+                        QueuePosition: i, // relative position for UI (starts at 1)
+                        Avatar: q.Employee?.Avatar
                     ));
                 }
             }
@@ -88,7 +90,8 @@ namespace employee_management.Application.Features.Monitor.Queries.GetMonitorSna
                     JobNumber: job?.JobNumber,
                     JobRunningCode: job?.JobRunningCode,
                     QueueStatus: q.Status,
-                    AvailabilityStatus: q.AvailabilityStatus
+                    AvailabilityStatus: q.AvailabilityStatus,
+                    Avatar: q.Employee?.Avatar
                 );
             }).ToList();
 
