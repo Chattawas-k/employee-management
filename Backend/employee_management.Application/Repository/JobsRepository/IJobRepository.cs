@@ -6,6 +6,7 @@ namespace employee_management.Application.Repository.JobsRepository
     {
         Task<List<Job>> GetMyTasksAsync(Guid employeeId, CancellationToken cancellationToken);
         Task<List<Job>> GetSalesReportsAsync(Guid employeeId, string? status, int? pageNumber, int? pageSize, CancellationToken cancellationToken);
+        Task<List<Job>> GetMyJobsForSalesReportExportAsync(Guid employeeId, CancellationToken cancellationToken);
         Task<int> CountJobsByDateAsync(DateTime date, CancellationToken cancellationToken);
         Task<List<Job>> GetAllJobsAsync(CancellationToken cancellationToken);
         

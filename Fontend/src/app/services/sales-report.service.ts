@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -57,6 +58,14 @@ export class SalesReportService {
     return this.http.get<GetSalesReportsResponse>(url, {
       observe: 'body',
       responseType: 'json'
+    });
+  }
+
+  exportMySalesReportsXlsx(): Observable<HttpResponse<Blob>> {
+    const url = `${this.apiUrl}/sales-reports/export`;
+    return this.http.get(url, {
+      observe: 'response',
+      responseType: 'blob'
     });
   }
 }

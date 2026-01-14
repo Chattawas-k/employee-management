@@ -85,6 +85,16 @@ namespace employee_management.Persistence.Repository.JobsRepository
             return ApplyPaging(filtered, pageNumber, pageSize);
         }
 
+        public async Task<List<Job>> GetMyJobsForSalesReportExportAsync(Guid employeeId, CancellationToken cancellationToken)
+        {
+            return await Context.Jobs
+                .Include(j => j.Employee)
+                .Include(j => j.ProductCategory)
+                .Where(j => !j.IsDeleted && j.AssigneeId == employeeId)
+                .OrderByDescending(j => j.CreatedDate)
+                .ToListAsync(cancellationToken);
+        }
+
         private static List<Job> ApplyPaging(List<Job> jobs, int? pageNumber, int? pageSize)
         {
             if (!pageNumber.HasValue || !pageSize.HasValue || pageNumber.Value <= 0 || pageSize.Value <= 0)

@@ -37,6 +37,7 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   
   private resizeObserver?: ResizeObserver;
   isLoading = signal(false);
+  isExporting = signal(false);
   allReports = signal<SalesReport[]>([]);
   totalCount = signal(0); // Total count from API for pagination
   private maxSeenCount = 0; // Track maximum count we've seen to improve estimation
@@ -175,6 +176,58 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
+    }
+  }
+
+  exportMySalesReport(): void {
+    if (this.isExporting()) return;
+
+    this.isExporting.set(true);
+    this.salesReportService.exportMySalesReportsXlsx().pipe(
+      finalize(() => this.isExporting.set(false)),
+      catchError((error) => {
+        console.error('Export failed:', error);
+        this.toastService.error('Export ล้มเหลว');
+        return of(null);
+      })
+    ).subscribe((resp) => {
+      if (!resp) return;
+
+      const blob = resp.body;
+      if (!blob) {
+        this.toastService.error('Export ล้มเหลว (ไม่พบไฟล์)');
+        return;
+      }
+
+      const contentDisposition = resp.headers.get('content-disposition') ?? resp.headers.get('Content-Disposition');
+      const fileName = this.tryParseFileName(contentDisposition) ?? 'sales-report_my.xlsx';
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      this.toastService.success('Export สำเร็จ');
+    });
+  }
+
+  private tryParseFileName(contentDisposition: string | null): string | null {
+    if (!contentDisposition) return null;
+
+    // RFC 6266 / common forms
+    // filename="x.xlsx"
+    const match = /filename\\*=UTF-8''([^;]+)|filename=\"?([^\";]+)\"?/i.exec(contentDisposition);
+    const raw = match?.[1] ?? match?.[2];
+    if (!raw) return null;
+
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
     }
   }
 
