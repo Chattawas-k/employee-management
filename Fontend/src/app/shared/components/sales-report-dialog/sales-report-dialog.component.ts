@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, signal, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, signal, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, ValidatorFn, AbstractControl } from '@angular/forms';
 import { Task } from '../task-column/task-column.component';
@@ -9,6 +9,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 import { SalesReasonService } from '../../../services/sales-reason.service';
 import { SalesReasonDto } from '../../../models/sales-reason.model';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-sales-report-dialog',
@@ -34,6 +35,7 @@ export class SalesReportDialogComponent implements OnInit {
   isLoadingCategories = signal(false);
 
   salesReportForm!: ReturnType<FormBuilder['group']>;
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(
     private fb: FormBuilder,
@@ -41,32 +43,35 @@ export class SalesReportDialogComponent implements OnInit {
     private salesReasonService: SalesReasonService,
     private cdr: ChangeDetectorRef
   ) {
-    const requireAtLeastOne = (): ValidatorFn => {
-      return (control: AbstractControl): { [key: string]: any } | null => {
-        const formGroup = control as FormGroup;
-        if (!formGroup) {
-          return null;
-        }
-        const hasSelection = Object.keys(formGroup.controls).some(key => formGroup.controls[key].value);
-        return hasSelection ? null : { requireAtLeastOne: true };
-      };
-    };
-
     this.salesReportForm = this.fb.group({
       customerName: ['', Validators.required],
       contactInfo: [''],
       status: ['Success' as ReportStatus, Validators.required],
-      reasons: this.fb.group({}, { validators: requireAtLeastOne() }),
-      interestedProducts: this.fb.group({}, { validators: requireAtLeastOne() }),
+      // Status-specific validation is handled in setStatus():
+      // - Success  => interestedProducts required, reasons disabled
+      // - Pending/Failed => reasons required, interestedProducts optional
+      reasons: this.fb.group({}, { validators: this.requireAtLeastOne() }),
+      interestedProducts: this.fb.group({}, { validators: this.requireAtLeastOne() }),
       additionalInfo: [''],
       saleValue: [0],
       invoiceId: ['']
     });
+
+    this.setStatus('Success');
   }
 
   selectedStatus = signal<ReportStatus>('Success');
 
   ngOnInit(): void {
+    // With OnPush + reactive forms, we need to manually mark for check when validity changes,
+    // otherwise bindings like [disabled]="salesReportForm.invalid" may not refresh.
+    this.salesReportForm.statusChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.cdr.markForCheck());
+    this.salesReportForm.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.cdr.markForCheck());
+
     this.loadProductCategories();
     this.loadSalesReasons();
     const reportData = this.report;
@@ -112,21 +117,27 @@ export class SalesReportDialogComponent implements OnInit {
         return of({ productCategories: [] });
       })
     ).subscribe(response => {
-      this.interestedProductsList.set(response.productCategories);
-      this.isLoadingCategories.set(false);
-      
-      // Dynamically create form controls for each category
+      // IMPORTANT: Create form controls BEFORE updating the UI list.
+      // Otherwise the template may render checkboxes whose formControlName doesn't exist yet,
+      // causing the checkbox state not to bind to the reactive form (form stays invalid).
       const productsForm = this.salesReportForm.get('interestedProducts') as FormGroup;
-      response.productCategories.forEach(category => {
+      (response.productCategories || []).forEach(category => {
         if (!productsForm.get(category.id)) {
           productsForm.addControl(category.id, this.fb.control(false));
         }
       });
+      productsForm.updateValueAndValidity({ emitEvent: false });
+
+      this.interestedProductsList.set(response.productCategories || []);
+      this.isLoadingCategories.set(false);
       
       // If we have report data, set the form values now
       if (this.report) {
         this.setInterestedProductsFromReport(this.report);
       }
+
+      // Re-apply status rules after dynamic controls exist
+      this.setStatus(this.selectedStatus());
       
       this.cdr.markForCheck();
     });
@@ -153,23 +164,28 @@ export class SalesReportDialogComponent implements OnInit {
         this.cdr.markForCheck();
       })
     ).subscribe(({ pending, failed }) => {
-      this.pendingReasons.set((pending.reasons || []).filter(r => r.isActive));
-      this.failedReasons.set((failed.reasons || []).filter(r => r.isActive));
-      this.rebuildReasonControls();
+      const pendingActive = (pending.reasons || []).filter(r => r.isActive);
+      const failedActive = (failed.reasons || []).filter(r => r.isActive);
+
+      // IMPORTANT: Create controls BEFORE updating reason lists used by the template.
+      const reasonsForm = this.salesReportForm.get('reasons') as FormGroup;
+      [...pendingActive, ...failedActive].forEach(reason => {
+        if (!reasonsForm.get(reason.id)) {
+          reasonsForm.addControl(reason.id, this.fb.control(false));
+        }
+      });
+      reasonsForm.updateValueAndValidity({ emitEvent: false });
+
+      this.pendingReasons.set(pendingActive);
+      this.failedReasons.set(failedActive);
       this.trySetReasonsFromReport();
+
+      // Re-apply status rules after dynamic controls exist
+      this.setStatus(this.selectedStatus());
     });
   }
 
-  private rebuildReasonControls(): void {
-    const reasonsForm = this.salesReportForm.get('reasons') as FormGroup;
-    const all = [...this.pendingReasons(), ...this.failedReasons()];
-
-    all.forEach(reason => {
-      if (!reasonsForm.get(reason.id)) {
-        reasonsForm.addControl(reason.id, this.fb.control(false));
-      }
-    });
-  }
+  // NOTE: reason controls are now created directly in loadSalesReasons()
 
   private trySetReasonsFromReport(): void {
     if (!this.report) return;
@@ -191,27 +207,44 @@ export class SalesReportDialogComponent implements OnInit {
   }
 
   private setInterestedProductsFromReport(reportData: SalesReport): void {
-    const productControls = (this.salesReportForm.get('interestedProducts') as FormGroup).controls;
+    const productsGroup = this.salesReportForm.get('interestedProducts') as FormGroup;
+    const productControls = productsGroup.controls;
     
     // Clear existing controls
     Object.keys(productControls).forEach(key => {
-      productControls[key].setValue(false);
+      productControls[key].setValue(false, { emitEvent: false });
     });
     
     // Set values for products that match by name (backend stores as comma-separated names)
     reportData.interestedProducts.forEach((productName: string) => {
       const product = this.interestedProductsList().find(p => p.name === productName.trim());
       if (product && productControls[product.id]) {
-        productControls[product.id].setValue(true);
+        productControls[product.id].setValue(true, { emitEvent: false });
       }
     });
+
+    productsGroup.updateValueAndValidity({ emitEvent: false });
+    this.salesReportForm.updateValueAndValidity({ emitEvent: false });
+    this.cdr.markForCheck();
   }
 
   setStatus(status: ReportStatus) {
     this.selectedStatus.set(status);
-    this.salesReportForm.controls['status'].setValue(status);
+    this.salesReportForm.controls['status'].setValue(status, { emitEvent: false });
     
     const reasonsControl = this.salesReportForm.get('reasons');
+    const interestedProductsControl = this.salesReportForm.get('interestedProducts');
+
+    // Dynamic requirements:
+    // - Success: require at least 1 interested product, reasons not required
+    // - Pending/Failed: require at least 1 reason, interested products optional
+    if (status === 'Success') {
+      interestedProductsControl?.setValidators(this.requireAtLeastOne());
+    } else {
+      interestedProductsControl?.clearValidators();
+    }
+    interestedProductsControl?.updateValueAndValidity({ emitEvent: false });
+
     if (status === 'Success') {
       reasonsControl?.disable();
       reasonsControl?.reset(); 
@@ -227,10 +260,15 @@ export class SalesReportDialogComponent implements OnInit {
         this.pendingReasons().forEach(r => reasonsForm.get(r.id)?.setValue(false));
       }
     }
+
+    reasonsControl?.updateValueAndValidity({ emitEvent: false });
+    this.salesReportForm.updateValueAndValidity({ emitEvent: false });
+    this.cdr.markForCheck();
   }
 
   onConfirmSave() {
     this.salesReportForm.markAllAsTouched();
+    this.cdr.markForCheck();
     if (this.salesReportForm.valid) {
       const formValue = this.salesReportForm.getRawValue();
       

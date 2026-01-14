@@ -109,9 +109,9 @@
                     }
                   </div>
 
-                  @if (salesReportReasons().length > 0) {
+                  @if (task.salesReportData?.status !== 'Success' && salesReportReasons().length > 0) {
                     <div>
-                      <h4 class="text-sm font-medium text-gray-500 mb-2">เหตุผล</h4>
+                      <h4 class="text-sm font-medium text-gray-500 mb-2">{{ reasonsTitle() }}</h4>
                       <div class="flex flex-wrap gap-2">
                         @for (reason of salesReportReasons(); track reason) {
                           <span class="px-2 py-1 text-sm text-gray-700 bg-gray-200 rounded-full">{{ reason }}</span>

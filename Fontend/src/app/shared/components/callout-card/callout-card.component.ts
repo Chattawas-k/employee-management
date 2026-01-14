@@ -78,7 +78,7 @@ export class CalloutCardComponent {
   get containerClass(): string {
     switch (this.resolvedVariant) {
       case 'success':
-        return 'bg-green-200 text-green-900 border-green-500';
+        return 'bg-emerald-100 text-green-900 border-green-500';
       case 'warning':
         return 'bg-yellow-400 text-yellow-900 border-yellow-500';
       case 'danger':
