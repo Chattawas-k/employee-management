@@ -68,6 +68,12 @@
         [isLoading]="isLoading()"
         [sortConfig]="null"
         [rowClickable]="true"
+        [actions]="[
+          { key: 'force-assign', label: 'มอบหมายงาน', confirm: false },
+          { key: 'transfer', label: 'โอนงาน', confirm: false },
+          { key: 'escalate', label: 'Escalate', confirm: false },
+          { key: 'cancel', label: 'ยกเลิกงาน', tone: 'danger', confirm: false }
+        ]"
         (rowClick)="onTicketClick($event)"
         (actionClick)="handleTableAction($event)">
       </app-data-table>

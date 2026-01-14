@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { catchError, finalize } from 'rxjs/operators';
 import { of } from 'rxjs';
-import { DataTableComponent, TableColumn } from '../../shared/components/data-table/data-table.component';
+import { DataTableComponent, TableAction, TableColumn } from '../../shared/components/data-table/data-table.component';
 import { ToastService } from '../../services/toast.service';
 import { SalesReasonService } from '../../services/sales-reason.service';
 import { SalesReasonDto, SalesReasonType } from '../../models/sales-reason.model';
@@ -32,6 +32,37 @@ export class SalesReasonManagementComponent implements OnInit {
     { key: 'label', label: 'เหตุผล', sortable: true },
     { key: 'isActive', label: 'สถานะ', sortable: true },
     { key: 'actions', label: '', sortable: false, align: 'right' }
+  ];
+
+  tableActions: TableAction[] = [
+    { key: 'edit', label: 'แก้ไข' },
+    {
+      key: 'toggle',
+      label: (row) => (row?.isActive ? 'ปิดการใช้งาน' : 'เปิดการใช้งาน'),
+      confirm: (row) => row?.isActive === true,
+      confirmOptions: (row) => ({
+        tone: 'warning',
+        iconName: 'ban',
+        title: 'ปิดการใช้งานเหตุผล?',
+        message: `คุณต้องการปิดการใช้งาน "${row?.label ?? ''}" ใช่หรือไม่?`,
+        confirmText: 'ยืนยันและปิดการใช้งาน',
+        cancelText: 'ยกเลิก',
+      }),
+    },
+    {
+      key: 'delete',
+      label: 'ลบ',
+      tone: 'danger',
+      confirm: true,
+      confirmOptions: (row) => ({
+        tone: 'danger',
+        iconName: 'trash-2',
+        title: 'ลบเหตุผล?',
+        message: `คุณต้องการลบ "${row?.label ?? ''}" ใช่หรือไม่?`,
+        confirmText: 'ยืนยันและลบ',
+        cancelText: 'ยกเลิก',
+      }),
+    },
   ];
 
   headerTitle = computed(() =>
@@ -122,8 +153,6 @@ export class SalesReasonManagementComponent implements OnInit {
   }
 
   onDeleteClick(reason: SalesReasonDto): void {
-    if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบเหตุผล \"${reason.label}\"?`)) return;
-
     this.salesReasonService.delete(reason.id).pipe(
       catchError(error => {
         console.error('Error deleting reason:', error);

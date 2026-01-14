@@ -58,6 +58,7 @@
         [columns]="columns"
         [data]="getTableData()"
         [isLoading]="isLoading()"
+        [actions]="tableActions"
         (actionClick)="handleTableAction($event)">
       </app-data-table>
     </div>

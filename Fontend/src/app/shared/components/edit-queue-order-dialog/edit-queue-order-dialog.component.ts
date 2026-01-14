@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QueueDto } from '../../../models/queue.model';
 import { AddEmployeeToQueueDialogComponent } from '../add-employee-to-queue-dialog/add-employee-to-queue-dialog.component';
+import { ConfirmDialogService } from '../../../services/confirm-dialog.service';
 
 @Component({
   selector: 'app-edit-queue-order-dialog',
@@ -22,6 +23,8 @@ export class EditQueueOrderDialogComponent implements OnInit, OnChanges {
   draggedIndex = signal<number | null>(null);
   showAddDialog = signal(false);
   deletedQueueIds = signal<string[]>([]);
+
+  constructor(private confirmDialog: ConfirmDialogService) {}
 
   ngOnInit(): void {
     this.initializeQueues();
@@ -126,8 +129,16 @@ export class EditQueueOrderDialogComponent implements OnInit, OnChanges {
     this.close.emit();
   }
 
-  onDelete(queueId: string): void {
-    if (confirm('คุณต้องการลบพนักงานออกจากคิวหรือไม่?')) {
+  async onDelete(queueId: string): Promise<void> {
+    const ok = await this.confirmDialog.open({
+      tone: 'danger',
+      iconName: 'trash-2',
+      title: 'ลบพนักงานออกจากคิว?',
+      message: 'คุณต้องการลบพนักงานออกจากคิวหรือไม่?',
+      confirmText: 'ยืนยันและลบ',
+      cancelText: 'ยกเลิก',
+    });
+    if (ok) {
       // Stage deletion locally; actual delete happens on Save (single API call)
       if (!queueId.startsWith('temp-')) {
         this.deletedQueueIds.set([...this.deletedQueueIds(), queueId]);

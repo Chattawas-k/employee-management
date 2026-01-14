@@ -11,6 +11,7 @@ import { StaffDialogComponent } from '../../shared/components/staff-dialog/staff
 import { getDeterministicAvatarColors, getInitials } from '../../shared/utils/avatar.util';
 import { AdminPasswordLinkDialogComponent } from '../../shared/components/admin-password-link-dialog/admin-password-link-dialog.component';
 import { GeneratePasswordLinkResponse, PasswordLinkType } from '../../models/password-link.model';
+import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 
 @Component({
   selector: 'app-employee-management',
@@ -51,7 +52,8 @@ export class EmployeeManagementComponent implements OnInit {
   constructor(
     private staffService: StaffService,
     private positionService: PositionService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private confirmDialog: ConfirmDialogService
   ) {}
 
   @HostListener('document:click')
@@ -142,9 +144,20 @@ export class EmployeeManagementComponent implements OnInit {
     this.loadStaff(true);
   }
 
-  toggleAccountStatus(item: StaffListItem): void {
+  async toggleAccountStatus(item: StaffListItem): Promise<void> {
     this.closeStaffActionMenu();
     const shouldEnable = item.accountStatus === 'disabled';
+    if (!shouldEnable) {
+      const ok = await this.confirmDialog.open({
+        tone: 'warning',
+        iconName: 'ban',
+        title: 'ปิดการใช้งานบัญชี?',
+        message: `คุณต้องการปิดการใช้งานบัญชีของ "${item.fullName}" ใช่หรือไม่?`,
+        confirmText: 'ยืนยันและปิดการใช้งาน',
+        cancelText: 'ยกเลิก',
+      });
+      if (!ok) return;
+    }
     this.staffService.setStaffStatus(item.staffId, { isActive: shouldEnable }).subscribe({
       next: () => {
         this.toastService.success(shouldEnable ? 'เปิดใช้งานบัญชีแล้ว' : 'ปิดใช้งานบัญชีแล้ว');
@@ -323,8 +336,16 @@ export class EmployeeManagementComponent implements OnInit {
     this.isPositionDialogOpen.set(true);
   }
 
-  onDeletePosition(position: PositionDto): void {
-    if (confirm(`คุณต้องการลบตำแหน่ง "${position.name}" ใช่หรือไม่?`)) {
+  async onDeletePosition(position: PositionDto): Promise<void> {
+    const ok = await this.confirmDialog.open({
+      tone: 'danger',
+      iconName: 'trash-2',
+      title: 'ลบตำแหน่ง?',
+      message: `คุณต้องการลบตำแหน่ง "${position.name}" ใช่หรือไม่?`,
+      confirmText: 'ยืนยันและลบ',
+      cancelText: 'ยกเลิก',
+    });
+    if (ok) {
       this.positionService.delete(position.id).subscribe({
         next: () => {
           this.toastService.success('ลบตำแหน่งสำเร็จ');

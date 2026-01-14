@@ -5,6 +5,7 @@ import { catchError, forkJoin, of } from 'rxjs';
 import { PositionDto, PositionService } from '../../../services/position.service';
 import { ToastService } from '../../../services/toast.service';
 import { StaffService } from '../../../services/staff.service';
+import { ConfirmDialogService } from '../../../services/confirm-dialog.service';
 import { CreateStaffRequest, StaffListItem, UpdateStaffProfileBody } from '../../../models/staff.model';
 
 @Component({
@@ -60,7 +61,8 @@ export class StaffDialogComponent implements OnInit {
     private fb: FormBuilder,
     private positionService: PositionService,
     private staffService: StaffService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private confirmDialog: ConfirmDialogService
   ) {
     this.form = this.fb.group({
       fullName: ['', [Validators.required]],
@@ -271,12 +273,28 @@ export class StaffDialogComponent implements OnInit {
     });
   }
 
-  toggleAccountStatus(): void {
+  async toggleAccountStatus(): Promise<void> {
     const staff = this._staff();
     if (!staff) return;
 
     const shouldEnable = staff.accountStatus === 'disabled';
     this.isUpdatingStatus.set(true);
+
+    // Confirm when disabling
+    if (!shouldEnable) {
+      const ok = await this.confirmDialog.open({
+        tone: 'warning',
+        iconName: 'ban',
+        title: 'ปิดการใช้งานบัญชี?',
+        message: `คุณต้องการปิดการใช้งานบัญชีของ "${staff.fullName}" ใช่หรือไม่?`,
+        confirmText: 'ยืนยันและปิดการใช้งาน',
+        cancelText: 'ยกเลิก',
+      });
+      if (!ok) {
+        this.isUpdatingStatus.set(false);
+        return;
+      }
+    }
 
     this.staffService.setStaffStatus(staff.staffId, { isActive: shouldEnable }).subscribe({
       next: (res) => {

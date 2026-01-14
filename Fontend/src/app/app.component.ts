@@ -7,6 +7,7 @@ import { IconComponent } from './shared/components/icon/icon.component';
 import { ToastContainerComponent } from './shared/components/toast/toast-container.component';
 import { StatusChangeDialogComponent } from './shared/components/status-change-dialog/status-change-dialog.component';
 import { ReceiveCustomerConfirmDialogComponent } from './shared/components/receive-customer-confirm-dialog/receive-customer-confirm-dialog.component';
+import { ConfirmDialogHostComponent } from './shared/components/confirm-dialog-host/confirm-dialog-host.component';
 import { AuthService } from './services/auth.service';
 import { QueueService } from './services/queue.service';
 import { ToastService } from './services/toast.service';
@@ -31,7 +32,8 @@ import { ReceiveCustomerService } from './services/receive-customer.service';
     IconComponent,
     ToastContainerComponent,
     StatusChangeDialogComponent,
-    ReceiveCustomerConfirmDialogComponent
+    ReceiveCustomerConfirmDialogComponent,
+    ConfirmDialogHostComponent
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']

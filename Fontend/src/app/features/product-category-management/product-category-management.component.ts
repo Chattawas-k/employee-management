@@ -4,7 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { ProductCategoryService } from '../../services/product-category.service';
 import { ToastService } from '../../services/toast.service';
 import { ProductCategory } from '../../models/product-category.model';
-import { DataTableComponent, TableColumn } from '../../shared/components/data-table/data-table.component';
+import { DataTableComponent, TableAction, TableColumn } from '../../shared/components/data-table/data-table.component';
 import { catchError, finalize } from 'rxjs/operators';
 import { of } from 'rxjs';
 
@@ -34,6 +34,37 @@ export class ProductCategoryManagementComponent implements OnInit {
     { key: 'isActive', label: 'สถานะ', sortable: true },
     { key: 'createdDate', label: 'สร้างเมื่อ', sortable: true },
     { key: 'actions', label: '', sortable: false, align: 'right' }
+  ];
+
+  tableActions: TableAction[] = [
+    { key: 'edit', label: 'แก้ไข' },
+    {
+      key: 'toggle',
+      label: (row) => (row?.isActive ? 'ปิดการใช้งาน' : 'เปิดการใช้งาน'),
+      confirm: (row) => row?.isActive === true,
+      confirmOptions: (row) => ({
+        tone: 'warning',
+        iconName: 'ban',
+        title: 'ปิดการใช้งานหมวดหมู่สินค้า?',
+        message: `คุณต้องการปิดการใช้งาน "${row?.name ?? ''}" ใช่หรือไม่?`,
+        confirmText: 'ยืนยันและปิดการใช้งาน',
+        cancelText: 'ยกเลิก',
+      }),
+    },
+    {
+      key: 'delete',
+      label: 'ลบ',
+      tone: 'danger',
+      confirm: true,
+      confirmOptions: (row) => ({
+        tone: 'danger',
+        iconName: 'trash-2',
+        title: 'ลบหมวดหมู่สินค้า?',
+        message: `คุณต้องการลบ "${row?.name ?? ''}" ใช่หรือไม่?`,
+        confirmText: 'ยืนยันและลบ',
+        cancelText: 'ยกเลิก',
+      }),
+    },
   ];
 
   constructor(
@@ -129,18 +160,16 @@ export class ProductCategoryManagementComponent implements OnInit {
   }
 
   onDeleteClick(category: ProductCategory): void {
-    if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบหมวดหมู่ "${category.name}"?`)) {
-      this.productCategoryService.delete(category.id).pipe(
-        catchError(error => {
-          console.error('Error deleting category:', error);
-          this.toastService.error('เกิดข้อผิดพลาดในการลบหมวดหมู่สินค้า');
-          return of(null);
-        })
-      ).subscribe(() => {
-        this.toastService.success('ลบหมวดหมู่สินค้าสำเร็จ');
-        this.loadCategories();
-      });
-    }
+    this.productCategoryService.delete(category.id).pipe(
+      catchError(error => {
+        console.error('Error deleting category:', error);
+        this.toastService.error('เกิดข้อผิดพลาดในการลบหมวดหมู่สินค้า');
+        return of(null);
+      })
+    ).subscribe(() => {
+      this.toastService.success('ลบหมวดหมู่สินค้าสำเร็จ');
+      this.loadCategories();
+    });
   }
 
   onToggleActive(category: ProductCategory): void {

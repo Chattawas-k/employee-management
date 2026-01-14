@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, HostListener, Input, Output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, HostListener, Input, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ConfirmDialogOptions, ConfirmDialogService } from '../../../services/confirm-dialog.service';
 
 export interface TableColumn {
   key: string;
@@ -8,6 +9,16 @@ export interface TableColumn {
   width?: string;
   align?: 'left' | 'center' | 'right';
   render?: (value: any, row: any) => string;
+}
+
+export interface TableAction {
+  key: string;
+  label: string | ((row: any) => string);
+  tone?: 'default' | 'danger';
+  /** Force confirm dialog; defaults to built-in rules for delete + disabling toggle */
+  confirm?: boolean | ((row: any) => boolean);
+  /** Customize confirm dialog content */
+  confirmOptions?: (row: any) => ConfirmDialogOptions;
 }
 
 export interface SortConfig {
@@ -24,11 +35,18 @@ export interface SortConfig {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DataTableComponent {
+  private confirmDialog = inject(ConfirmDialogService);
+
   @Input() columns: TableColumn[] = [];
   @Input() data: any[] = [];
   @Input() isLoading: boolean = false;
   @Input() sortConfig: SortConfig | null = null;
   @Input() rowClickable: boolean = true;
+  @Input() actions: TableAction[] = [
+    { key: 'edit', label: 'แก้ไข' },
+    { key: 'toggle', label: (row) => (row?.isActive ? 'ปิดการใช้งาน' : 'เปิดการใช้งาน') },
+    { key: 'delete', label: 'ลบ', tone: 'danger' }
+  ];
   @Output() sortChange = new EventEmitter<SortConfig>();
   @Output() rowClick = new EventEmitter<any>();
   @Output() actionClick = new EventEmitter<{ action: string; row: any }>();
@@ -96,6 +114,49 @@ export class DataTableComponent {
 
   handleAction(action: string, row: any): void {
     this.actionClick.emit({ action, row });
+  }
+
+  getActionLabel(action: TableAction, row: any): string {
+    return typeof action.label === 'function' ? action.label(row) : action.label;
+  }
+
+  async confirmAndHandleAction(actionKey: string, row: any): Promise<void> {
+    const action = this.actions.find(a => a.key === actionKey);
+
+    const defaultNeedsConfirm =
+      actionKey === 'delete' ||
+      (actionKey === 'toggle' && row?.isActive === true);
+
+    const needsConfirm = typeof action?.confirm === 'function'
+      ? action.confirm(row)
+      : (typeof action?.confirm === 'boolean' ? action.confirm : defaultNeedsConfirm);
+
+    if (needsConfirm) {
+      const options: ConfirmDialogOptions =
+        action?.confirmOptions?.(row) ??
+        (actionKey === 'delete'
+          ? {
+              tone: 'danger',
+              iconName: 'trash-2',
+              title: 'ยืนยันการลบ?',
+              message: 'คุณต้องการลบรายการนี้ใช่หรือไม่?',
+              confirmText: 'ยืนยันและลบ',
+              cancelText: 'ยกเลิก',
+            }
+          : {
+              tone: 'warning',
+              iconName: 'ban',
+              title: 'ปิดการใช้งาน?',
+              message: 'คุณต้องการปิดการใช้งานรายการนี้ใช่หรือไม่?',
+              confirmText: 'ยืนยันและปิดการใช้งาน',
+              cancelText: 'ยกเลิก',
+            });
+
+      const ok = await this.confirmDialog.open(options);
+      if (!ok) return;
+    }
+
+    this.handleAction(actionKey, row);
   }
 
   toggleActionMenu(row: any, event: MouseEvent): void {
