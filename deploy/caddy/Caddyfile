@@ -3,12 +3,11 @@
 	# email you@example.com
 }
 
-# Redirect apex -> www
-jg.xalpha.co.th {
-	redir https://www.jg.xalpha.co.th{uri} permanent
+www.jp.xalpha.co.th {
+	redir https://jp.xalpha.co.th{uri} permanent
 }
 
-www.jg.xalpha.co.th {
+jp.xalpha.co.th {
 	encode zstd gzip
 
 	@api path /api/v1/*

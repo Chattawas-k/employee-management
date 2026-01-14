@@ -1,4 +1,4 @@
-## Deploy (Docker + HTTPS) for `www.jg.xalpha.co.th`
+## Deploy (Docker + HTTPS) for `jg.xalpha.co.th`
 
 This repo contains:
 - **Frontend**: Angular (served as static files via Nginx)
@@ -7,10 +7,10 @@ This repo contains:
 - **Reverse proxy + HTTPS**: Caddy (Let’s Encrypt)
 
 ### Target URLs
-- **Web**: `https://www.jg.xalpha.co.th/`
-- **API**: `https://www.jg.xalpha.co.th/api/v1/...`
-- **Health**: `https://www.jg.xalpha.co.th/health`
-- **SignalR**: `https://www.jg.xalpha.co.th/hubs/notification`
+- **Web**: `https://jg.xalpha.co.th/`
+- **API**: `https://jg.xalpha.co.th/api/v1/...`
+- **Health**: `https://jg.xalpha.co.th/health`
+- **SignalR**: `https://jg.xalpha.co.th/hubs/notification`
 
 ---
 
@@ -24,8 +24,7 @@ This repo contains:
 
 ## 2) DNS setup
 Create DNS records:
-- `A` record: `www.jg.xalpha.co.th` → **your server public IPv4**
-- (Recommended) `A` record: `jg.xalpha.co.th` → **your server public IPv4** (we redirect apex → www)
+- `A` record: `jg.xalpha.co.th` → **your server public IPv4**
 
 Wait until DNS propagates before starting Caddy (otherwise Let’s Encrypt issuance may fail).
 
@@ -81,11 +80,11 @@ docker logs -f employee_management_caddy
 ## 6) Verify the deployment
 ### Web
 Open in browser:
-- `https://www.jg.xalpha.co.th`
+- `https://jg.xalpha.co.th`
 
 ### API / Health
 ```bash
-curl -k https://www.jg.xalpha.co.th/health
+curl -k https://jg.xalpha.co.th/health
 ```
 
 If the API is reachable, you should get a 200 response (or JSON depending on middleware).
