@@ -120,7 +120,7 @@
 
       <!-- Statistics Cards -->
       @if (!isLoadingStats() && workStats(); as stats) {
-        <div class="grid grid-cols-1 xl:grid-cols-4 gap-2">
+        <div class="grid grid-cols-1 xl:grid-cols-5 gap-2">
           <app-summary-card
             title="ทั้งหมด"
             [value]="stats.taskStats.total"
@@ -162,6 +162,17 @@
             valueClass="text-gray-900"
             iconBgClass="bg-red-100"
             iconClass="text-red-600"
+            containerClass="rounded-xl shadow-sm border border-gray-100"
+          />
+
+          <app-summary-card
+            title="ปฏิเสธงาน"
+            [value]="stats.taskStats.cancelled"
+            unit="งาน"
+            icon="x-circle"
+            valueClass="text-gray-900"
+            iconBgClass="bg-rose-100"
+            iconClass="text-rose-600"
             containerClass="rounded-xl shadow-sm border border-gray-100"
           />
         </div>
