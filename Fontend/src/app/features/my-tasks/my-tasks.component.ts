@@ -205,7 +205,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     if (status === 'in-progress') {
       buttonText = 'ปิดงาน';
       buttonIcon = 'check';
-      buttonClass = 'bg-emerald-600 hover:bg-emerald-700 text-white';
+      buttonClass = 'bg-green-600 hover:bg-green-700 text-white';
     } else if (status === 'completed') {
       buttonText = 'เสร็จสิ้น';
       buttonIcon = 'check';
@@ -272,7 +272,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     if (status === 'in-progress') {
       buttonText = 'ปิดงาน';
       buttonIcon = 'check';
-      buttonClass = 'bg-emerald-600 hover:bg-emerald-700 text-white';
+      buttonClass = 'bg-green-600 hover:bg-green-700 text-white';
     } else if (status === 'completed') {
       buttonText = 'เสร็จสิ้น';
       buttonIcon = 'check';

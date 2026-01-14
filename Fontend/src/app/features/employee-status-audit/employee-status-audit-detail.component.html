@@ -143,7 +143,7 @@
             (click)="scrollToTime(seg.start)"
             [attr.title]="getStatusLabel(seg.status) + ' • ' + minutesLabel(seg.durationMinutes)"
             [ngClass]="{
-              'bg-emerald-500/80': seg.status === 1,
+              'bg-green-500/80': seg.status === 1,
               'bg-amber-500/80': seg.status === 2,
               'bg-sky-500/80': seg.status === 3,
               'bg-slate-500/70': seg.status === 4,

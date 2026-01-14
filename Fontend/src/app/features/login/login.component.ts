@@ -16,6 +16,7 @@ export class LoginComponent {
   loginForm: FormGroup;
   isLoading = signal(false);
   showPassword = signal(false);
+  private readonly rememberedEmailKey = 'remembered_email';
 
   constructor(
     private fb: FormBuilder,
@@ -25,12 +26,21 @@ export class LoginComponent {
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      rememberMe: [false]
     });
 
     // Redirect if already authenticated
     if (this.authService.isAuthenticated()) {
       this.router.navigate(['/my-tasks']);
+    }
+
+    const rememberedEmail = localStorage.getItem(this.rememberedEmailKey);
+    if (rememberedEmail) {
+      this.loginForm.patchValue({
+        email: rememberedEmail,
+        rememberMe: true
+      });
     }
   }
 
@@ -47,6 +57,7 @@ export class LoginComponent {
       next: (response) => {
         this.isLoading.set(false);
         if (response.token) {
+          this.updateRememberedEmail(credentials.email, credentials.rememberMe);
           this.toastService.success('เข้าสู่ระบบสำเร็จ', `ยินดีต้อนรับ ${response.userName || ''}`);
           this.router.navigate(['/my-tasks']);
         } else {
@@ -71,6 +82,14 @@ export class LoginComponent {
 
   get password() {
     return this.loginForm.get('password');
+  }
+
+  private updateRememberedEmail(email: string, remember: boolean): void {
+    if (remember) {
+      localStorage.setItem(this.rememberedEmailKey, email);
+    } else {
+      localStorage.removeItem(this.rememberedEmailKey);
+    }
   }
 }
 

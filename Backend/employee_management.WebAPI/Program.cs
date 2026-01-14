@@ -236,7 +236,7 @@ builder.Services.AddSwaggerGen(c =>
         {
             Title = "Employee Management API",
             Version = description.ApiVersion.ToString(),
-            Description = "Employee Management System API",
+            Description = "Queue Management System API",
             Contact = new Microsoft.OpenApi.Models.OpenApiContact
             {
                 Name = "Employee Management Team"

@@ -1,7 +1,7 @@
-# Cursor IDE Rules for Employee Management System
+# Cursor IDE Rules for Queue Management System
 
 ## Project Overview
-This is an employee management system with:
+This is an Queue Management System with:
 - **Backend**: .NET 8 / C# (Clean Architecture with MediatR, AutoMapper, EF Core)
 - **Frontend**: Angular with TypeScript
 - **Architecture**: Clean Architecture (Domain, Application, Persistence, WebAPI layers)

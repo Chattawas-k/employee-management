@@ -23,7 +23,7 @@
           <input
             type="text"
             formControlName="name"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             [class.border-red-500]="form.get('name')?.invalid && form.get('name')?.touched">
           @if (form.get('name')?.invalid && form.get('name')?.touched) {
             <p class="mt-1 text-sm text-red-500">กรุณากรอกชื่อตำแหน่ง</p>
@@ -37,7 +37,7 @@
           </label>
           <select
             formControlName="departmentId"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             [class.border-red-500]="form.get('departmentId')?.invalid && form.get('departmentId')?.touched">
             <option value="">เลือกแผนก</option>
             @for (department of departments(); track department.id) {
@@ -57,7 +57,7 @@
           <textarea
             formControlName="description"
             rows="3"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
         </div>
 
         <!-- Status -->
@@ -67,7 +67,7 @@
           </label>
           <select
             formControlName="isActive"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
             <option [value]="true">ใช้งาน</option>
             <option [value]="false">ไม่ใช้งาน</option>
           </select>

@@ -72,7 +72,7 @@ export class SalesReportDialogComponent implements OnInit {
 
     this.salesReportForm = this.fb.group({
       customerName: ['', Validators.required],
-      contactInfo: ['', Validators.required],
+      contactInfo: [''],
       status: ['Success' as ReportStatus, Validators.required],
       reasons: this.fb.group({
         wantsToDecide: [false], waitingForPromo: [false], comparing: [false], consultingFamily: [false], needsMoreInfo: [false], waitingForStock: [false], financialApproval: [false], undecidedOnSpec: [false], seasonalTiming: [false], wantsToSeeSample: [false],
