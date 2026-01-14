@@ -3,11 +3,11 @@
 	# email you@example.com
 }
 
-www.jp.xalpha.co.th {
-	redir https://jp.xalpha.co.th{uri} permanent
+www.jg.xalpha.co.th {
+	redir https://jg.xalpha.co.th{uri} permanent
 }
 
-jp.xalpha.co.th {
+jg.xalpha.co.th {
 	encode zstd gzip
 
 	@api path /api/v1/*
