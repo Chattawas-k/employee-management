@@ -59,21 +59,18 @@
                   class="px-6 py-4 text-sm text-gray-900"
                   [class.whitespace-nowrap]="column.key !== 'actions' && column.key !== 'description'">
                   @if (column.key === 'actions') {
-                    <div class="flex items-center gap-2" (click)="$event.stopPropagation()">
+                    <div class="flex justify-end" (click)="$event.stopPropagation()">
                       <button
-                        (click)="handleAction('edit', row)"
-                        class="px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded transition-colors">
-                        แก้ไข
-                      </button>
-                      <button
-                        (click)="handleAction('toggle', row)"
-                        class="px-2 py-1 text-xs font-medium text-green-600 hover:bg-green-50 rounded transition-colors">
-                        {{ row.isActive ? 'ปิด' : 'เปิด' }}
-                      </button>
-                      <button
-                        (click)="handleAction('delete', row)"
-                        class="px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded transition-colors">
-                        ลบ
+                        type="button"
+                        (click)="toggleActionMenu(row, $event); $event.stopPropagation()"
+                        class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                        <span>จัดการ</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 transition-transform"
+                          [class]="(actionMenu()?.row?.id === row.id) ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd"
+                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                            clip-rule="evenodd" />
+                        </svg>
                       </button>
                     </div>
                   } @else {
@@ -88,3 +85,34 @@
     </div>
   }
 </div>
+
+@if (actionMenu(); as menu) {
+  <div class="fixed inset-0 z-50" (click)="closeActionMenu()">
+    <div
+      class="absolute w-56 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 overflow-hidden"
+      [style.left.px]="menu.left"
+      [style.top.px]="menu.top"
+      (click)="$event.stopPropagation()">
+      <div class="py-2">
+        <button
+          type="button"
+          (click)="handleAction('edit', menu.row); closeActionMenu()"
+          class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150">
+          แก้ไข
+        </button>
+        <button
+          type="button"
+          (click)="handleAction('toggle', menu.row); closeActionMenu()"
+          class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150">
+          {{ menu.row.isActive ? 'ปิดการใช้งาน' : 'เปิดการใช้งาน' }}
+        </button>
+        <button
+          type="button"
+          (click)="handleAction('delete', menu.row); closeActionMenu()"
+          class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150">
+          ลบ
+        </button>
+      </div>
+    </div>
+  </div>
+}

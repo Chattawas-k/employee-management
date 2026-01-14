@@ -12,6 +12,7 @@ using System.Net.Http;
 using System.Text.Json;
 using employee_management.Application.Features.Auth.LoginFeatures.Login;
 using employee_management.Application.Features.Auth.RefreshTokenFeatures.RefreshToken;
+using employee_management.Domain.Enums;
 
 namespace employee_management.Persistence.Services
 {
@@ -39,6 +40,8 @@ namespace employee_management.Persistence.Services
             var user = await _userManager.FindByEmailAsync(request.Email);
             if (user == null || !await _userManager.CheckPasswordAsync(user, request.Password))
                 throw new InvalidOperationException("Invalid login credentials.");
+
+            await EnsureUserEmployeeIsActiveAsync(user);
 
             var roles = await GetUserRolesAsync(user);
 
@@ -81,6 +84,9 @@ namespace employee_management.Persistence.Services
                 throw new InvalidOperationException("Invalid refresh token.");
 
             var user = refreshTokenEntity.User;
+
+            await EnsureUserEmployeeIsActiveAsync(user);
+
             var roles = await GetUserRolesAsync(user);
 
             if (roles == null || roles.Any(role => role == null))
@@ -263,6 +269,9 @@ namespace employee_management.Persistence.Services
                 throw new InvalidOperationException("Email claim not found in Azure AD token.");
 
             var user = await FindOrCreateExternalUserAsync(email);
+
+            await EnsureUserEmployeeIsActiveAsync(user);
+
             var roles = await GetUserRolesAsync(user);
 
             var token = GenerateJwtToken(user, roles);
@@ -285,6 +294,32 @@ namespace employee_management.Persistence.Services
                 UserName = user.UserName,
                 Roles = roles
             };
+        }
+
+        private async Task EnsureUserEmployeeIsActiveAsync(User user)
+        {
+            // For staff users linked to an Employee record, Employee.Status controls Active/Disabled account state.
+            if (!user.EmployeeId.HasValue || user.EmployeeId.Value == Guid.Empty)
+            {
+                return;
+            }
+
+            var employee = await _dbContext.Employees
+                .AsNoTracking()
+                .Where(e => !e.IsDeleted && e.Id == user.EmployeeId.Value)
+                .Select(e => new { e.Status })
+                .FirstOrDefaultAsync();
+
+            if (employee == null)
+            {
+                // No linked employee (or deleted) => do not block login here.
+                return;
+            }
+
+            if (employee.Status != EmployeeStatus.Active)
+            {
+                throw new InvalidOperationException("Account is disabled.");
+            }
         }
     }
 }

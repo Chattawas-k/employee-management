@@ -31,7 +31,7 @@ export class SalesReasonManagementComponent implements OnInit {
     { key: 'sortOrder', label: 'ลำดับ', sortable: true },
     { key: 'label', label: 'เหตุผล', sortable: true },
     { key: 'isActive', label: 'สถานะ', sortable: true },
-    { key: 'actions', label: 'การดำเนินการ', sortable: false }
+    { key: 'actions', label: '', sortable: false, align: 'right' }
   ];
 
   headerTitle = computed(() =>

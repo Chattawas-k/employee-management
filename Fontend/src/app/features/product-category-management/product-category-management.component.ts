@@ -33,7 +33,7 @@ export class ProductCategoryManagementComponent implements OnInit {
     { key: 'description', label: 'คำอธิบาย', sortable: false },
     { key: 'isActive', label: 'สถานะ', sortable: true },
     { key: 'createdDate', label: 'สร้างเมื่อ', sortable: true },
-    { key: 'actions', label: 'การดำเนินการ', sortable: false }
+    { key: 'actions', label: '', sortable: false, align: 'right' }
   ];
 
   constructor(

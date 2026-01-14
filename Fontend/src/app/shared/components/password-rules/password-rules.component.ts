@@ -1,0 +1,40 @@
+import { CommonModule } from '@angular/common';
+import { Component, Input, computed } from '@angular/core';
+
+interface RuleState {
+  key: string;
+  label: string;
+  passed: boolean;
+}
+
+@Component({
+  selector: 'app-password-rules',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './password-rules.component.html',
+  styleUrls: ['./password-rules.component.scss']
+})
+export class PasswordRulesComponent {
+  @Input({ required: true }) password = '';
+  @Input({ required: true }) confirm = '';
+
+  rules = computed<RuleState[]>(() => {
+    const pwd = this.password || '';
+    const confirm = this.confirm || '';
+
+    const lengthOk = pwd.length >= 6;
+    const hasLower = /[a-z]/.test(pwd);
+    const hasUpper = /[A-Z]/.test(pwd);
+    const confirmMatch = pwd.length > 0 && pwd === confirm;
+
+    return [
+      { key: 'length', label: 'อย่างน้อย 6 ตัวอักษร', passed: lengthOk },
+      { key: 'lower', label: 'มีตัวอักษรพิมพ์เล็ก (a-z) อย่างน้อย 1 ตัว', passed: hasLower },
+      { key: 'upper', label: 'มีตัวอักษรพิมพ์ใหญ่ (A-Z) อย่างน้อย 1 ตัว', passed: hasUpper },
+      { key: 'confirm', label: 'ยืนยันรหัสผ่านต้องตรงกัน', passed: confirmMatch }
+    ];
+  });
+
+  allPassed = computed(() => this.rules().every(r => r.passed));
+}
+

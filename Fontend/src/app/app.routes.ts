@@ -16,9 +16,12 @@ import { MyAccountLayoutComponent } from './features/my-account/my-account-layou
 import { authGuard } from './guards/auth.guard';
 import { managerGuard } from './guards/manager.guard';
 import { adminGuard } from './guards/admin.guard';
+import { SetPasswordPage } from './features/auth-set-password/set-password.page';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
+  { path: 'auth/set-password', component: SetPasswordPage },
+  { path: 'auth/set-password/:token', component: SetPasswordPage },
   {
     path: 'monitor',
     loadComponent: () => import('./features/monitor/monitor.component').then(m => m.MonitorComponent)
@@ -30,10 +33,10 @@ export const routes: Routes = [
   { path: 'assign', component: JobAssignmentComponent, canActivate: [authGuard] },
   { path: 'summary', component: QueueSummaryComponent, canActivate: [authGuard] },
   { path: 'report', component: SalesReportComponent, canActivate: [authGuard] },
-  { path: 'settings/employees', component: EmployeeManagementComponent, canActivate: [authGuard] },
+  { path: 'settings/employees', component: EmployeeManagementComponent, canActivate: [adminGuard] },
   { path: 'settings/queue', component: QueueSettingsComponent, canActivate: [authGuard] },
   { path: 'settings/product-categories', component: ProductCategoryManagementComponent, canActivate: [authGuard] },
-  { path: 'settings/users', component: UsersPermissionsComponent, canActivate: [authGuard] },
+  { path: 'settings/users', redirectTo: '/settings/employees', pathMatch: 'full' },
   { path: 'settings/sales-reasons', component: SalesReasonManagementComponent, canActivate: [adminGuard] },
   {
     path: 'my-account',

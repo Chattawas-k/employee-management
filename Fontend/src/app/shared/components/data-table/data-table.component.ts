@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, HostListener, Input, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface TableColumn {
@@ -32,6 +32,16 @@ export class DataTableComponent {
   @Output() sortChange = new EventEmitter<SortConfig>();
   @Output() rowClick = new EventEmitter<any>();
   @Output() actionClick = new EventEmitter<{ action: string; row: any }>();
+
+  // Action menu is rendered as fixed overlay to avoid table/overflow clipping
+  actionMenu = signal<{ row: any; left: number; top: number } | null>(null);
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    if (this.actionMenu()) {
+      this.actionMenu.set(null);
+    }
+  }
 
   onSort(column: TableColumn): void {
     if (!column.sortable) return;
@@ -86,5 +96,37 @@ export class DataTableComponent {
 
   handleAction(action: string, row: any): void {
     this.actionClick.emit({ action, row });
+  }
+
+  toggleActionMenu(row: any, event: MouseEvent): void {
+    const current = this.actionMenu();
+    if (current?.row?.id && row?.id && current.row.id === row.id) {
+      this.actionMenu.set(null);
+      return;
+    }
+
+    const target = event.currentTarget as HTMLElement | null;
+    if (!target) {
+      this.actionMenu.set({ row, left: 8, top: 8 });
+      return;
+    }
+
+    const rect = target.getBoundingClientRect();
+    const MENU_WIDTH = 224; // w-56
+    const MENU_HEIGHT = 180; // approx for 3 items
+    const GAP = 8;
+
+    let left = rect.right - MENU_WIDTH;
+    left = Math.max(GAP, Math.min(left, window.innerWidth - MENU_WIDTH - GAP));
+
+    const openDownTop = rect.bottom + GAP;
+    const openUpTop = rect.top - GAP - MENU_HEIGHT;
+    const top = (openDownTop + MENU_HEIGHT <= window.innerHeight) ? openDownTop : Math.max(GAP, openUpTop);
+
+    this.actionMenu.set({ row, left, top });
+  }
+
+  closeActionMenu(): void {
+    this.actionMenu.set(null);
   }
 }

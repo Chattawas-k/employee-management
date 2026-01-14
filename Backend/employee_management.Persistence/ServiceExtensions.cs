@@ -30,7 +30,8 @@ namespace employee_management.Persistence
             services.AddIdentity<User, Role>(options =>
                 {
                     // Password settings
-                    options.Password.RequireDigit = true;
+                    // Match product requirement: 6+ chars, at least 1 lower + 1 upper (no digit required)
+                    options.Password.RequireDigit = false;
                     options.Password.RequireLowercase = true;
                     options.Password.RequireUppercase = true;
                     options.Password.RequireNonAlphanumeric = false;

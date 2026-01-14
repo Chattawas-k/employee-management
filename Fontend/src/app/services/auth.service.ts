@@ -5,6 +5,7 @@ import { tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { LoginRequest, LoginResponse, RefreshTokenRequest, RefreshTokenResponse } from '../models/auth.model';
 import { environment } from '../../environments/environment';
+import { SetPasswordByTokenRequest, SetPasswordByTokenResponse, ValidatePasswordLinkResponse } from '../models/password-link.model';
 
 @Injectable({
   providedIn: 'root'
@@ -45,6 +46,16 @@ export class AuthService {
         }
       })
     );
+  }
+
+  validatePasswordLink(token: string): Observable<ValidatePasswordLinkResponse> {
+    return this.http.get<ValidatePasswordLinkResponse>(`${this.apiUrl}/password-link/validate`, {
+      params: { token }
+    });
+  }
+
+  setPasswordByToken(request: SetPasswordByTokenRequest): Observable<SetPasswordByTokenResponse> {
+    return this.http.post<SetPasswordByTokenResponse>(`${this.apiUrl}/set-password`, request);
   }
 
   logout(): void {

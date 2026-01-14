@@ -11,44 +11,52 @@
     </div>
     <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
       <a routerLink="/customer-queue" routerLinkActive="bg-indigo-600 text-white"
-        class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+        class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
         <app-icon name="user-plus" className="w-5 h-5"></app-icon>
         คิวพนักงาน
       </a>
+      
+      <a routerLink="/my-tasks" routerLinkActive="bg-indigo-600 text-white"
+        class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
+        <app-icon name="clipboard-list" className="w-5 h-5"></app-icon>
+        งานของฉัน
+      </a>
+      
+      <a routerLink="/report" routerLinkActive="bg-indigo-600 text-white"
+        class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
+        <app-icon name="file-text" className="w-5 h-5"></app-icon>
+        รายงานการขาย
+      </a>
+
+      <div class="px-4 py-2.5 font-semibold text-sm text-blue-600 pt-4 mt-4 border-t border-slate-100">
+        <span>เมนูอื่นๆ</span>
+      </div>
+
       @if (hasManagerAccess()) {
         <a routerLink="/monitor" routerLinkActive="bg-indigo-600 text-white"
-          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
           <app-icon name="monitor" className="w-5 h-5"></app-icon>
           Monitor
         </a>
       }
-      <a routerLink="/my-tasks" routerLinkActive="bg-indigo-600 text-white"
-        class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-        <app-icon name="clipboard-list" className="w-5 h-5"></app-icon>
-        งานของฉัน
-      </a>
       @if (hasAdminAccess()) {
         <a routerLink="/assign" routerLinkActive="bg-indigo-600 text-white"
-          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
           <app-icon name="briefcase" className="w-5 h-5"></app-icon>
           มอบหมายงาน
         </a>
       }
-      <a routerLink="/report" routerLinkActive="bg-indigo-600 text-white"
-        class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-        <app-icon name="file-text" className="w-5 h-5"></app-icon>
-        รายงาน
-      </a>
+
       @if (hasManagerAccess()) {
         <a routerLink="/manager/dashboard" routerLinkActive="bg-indigo-600 text-white"
-          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
           <app-icon name="layout-dashboard" className="w-5 h-5"></app-icon>
-          Dashboard ผู้บริหาร
+          Dashboard
         </a>
       }
       @if (hasAdminAccess()) {
         <a routerLink="/manager/employee-status-history" routerLinkActive="bg-indigo-600 text-white"
-          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
           <app-icon name="history" className="w-5 h-5"></app-icon>
           ประวัติสถานะพนักงาน
         </a>
@@ -56,17 +64,17 @@
 
       @if (hasAdminAccess()) {
         <a routerLink="/manager/employee-status-audit" routerLinkActive="bg-indigo-600 text-white"
-          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
           <app-icon name="list-checks" className="w-5 h-5"></app-icon>
           Audit สถานะพนักงาน
         </a>
       }
 
       @if (hasAdminAccess()) {
-        <div class="pt-4 mt-4 border-t border-slate-100">
+        <div>
           <button (click)="isSettingsOpen.set(!isSettingsOpen())"
             class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors ">
-            <app-icon name="settings" className="w-5 h-5 text-indigo-600"></app-icon>
+            <app-icon name="settings" className="w-5 h-5"></app-icon>
             <span class="flex-1 text-left">ตั้งค่า</span>
             <app-icon [name]="isSettingsOpen() ? 'chevron-up' : 'chevron-down'" className="w-4 h-4"></app-icon>
           </button>
@@ -74,48 +82,23 @@
           <div class="mt-2 space-y-1">
             <a routerLink="/settings/employees" routerLinkActive="bg-indigo-600 text-white"
               (click)="isMobileMenuOpen.set(false)"
-              class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <span>การจัดการพนักงาน</span>
+              class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
+              <span>พนักงานและสิทธิ์</span>
             </a>
             <a routerLink="/settings/queue" routerLinkActive="bg-indigo-600 text-white"
               (click)="isMobileMenuOpen.set(false)"
-              class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-              <span>ตั้งค่าคิวพนักงาน</span>
+              class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
+              <span>คิวพนักงาน</span>
             </a>
             <a routerLink="/settings/product-categories" routerLinkActive="bg-indigo-600 text-white"
               (click)="isMobileMenuOpen.set(false)"
-              class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-              <app-icon name="tag" className="w-5 h-5"></app-icon>
-              <span>ตั้งค่าหมวดหมู่สินค้า</span>
+              class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
+              <span>หมวดหมู่สินค้า</span>
             </a>
             <a routerLink="/settings/sales-reasons" routerLinkActive="bg-indigo-600 text-white"
               (click)="isMobileMenuOpen.set(false)"
-              class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h8l4 4v14a2 2 0 01-2 2z" />
-              </svg>
-              <span>ตั้งค่าเหตุผลการขาย</span>
-            </a>
-            <a routerLink="/settings/users" routerLinkActive="bg-indigo-600 text-white"
-              (click)="isMobileMenuOpen.set(false)"
-              class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              <span>ผู้ใช้งานและสิทธิ์</span>
+              class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
+              <span>เหตุผลการขาย</span>
             </a>
           </div>
           }
@@ -208,52 +191,52 @@
       <nav class="space-y-1 flex-1">
         <a routerLink="/customer-queue" routerLinkActive="bg-indigo-600 text-white"
           (click)="isMobileMenuOpen.set(false)"
-          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700">
           <app-icon name="user-plus" className="w-5 h-5"></app-icon>
           คิวพนักงาน
         </a>
         @if (hasManagerAccess()) {
           <a routerLink="/monitor" routerLinkActive="bg-indigo-600 text-white"
             (click)="isMobileMenuOpen.set(false)"
-            class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+            class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700">
             <app-icon name="monitor" className="w-5 h-5"></app-icon>
             Monitor
           </a>
         }
         <a routerLink="/my-tasks" routerLinkActive="bg-indigo-600 text-white" (click)="isMobileMenuOpen.set(false)"
-          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700">
           <app-icon name="clipboard-list" className="w-5 h-5"></app-icon>
           งานของฉัน
         </a>
         @if (hasAdminAccess()) {
           <a routerLink="/assign" routerLinkActive="bg-indigo-600 text-white" (click)="isMobileMenuOpen.set(false)"
-            class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+            class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700">
             <app-icon name="briefcase" className="w-5 h-5"></app-icon>
             มอบหมายงาน
           </a>
         }
         <a routerLink="/report" routerLinkActive="bg-indigo-600 text-white" (click)="isMobileMenuOpen.set(false)"
-          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700">
           <app-icon name="file-text" className="w-5 h-5"></app-icon>
           รายงาน
         </a>
         @if (hasManagerAccess()) {
           <a routerLink="/manager/dashboard" routerLinkActive="bg-indigo-600 text-white" (click)="isMobileMenuOpen.set(false)"
-            class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+            class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700">
             <app-icon name="layout-dashboard" className="w-5 h-5"></app-icon>
-            Dashboard ผู้บริหาร
+            Dashboard
           </a>
         }
         @if (hasAdminAccess()) {
           <a routerLink="/manager/employee-status-history" routerLinkActive="bg-indigo-600 text-white" (click)="isMobileMenuOpen.set(false)"
-            class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+            class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700">
             <app-icon name="history" className="w-5 h-5"></app-icon>
             ประวัติสถานะพนักงาน
           </a>
         }
         @if (hasAdminAccess()) {
           <a routerLink="/manager/employee-status-audit" routerLinkActive="bg-indigo-600 text-white" (click)="isMobileMenuOpen.set(false)"
-            class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
+            class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700">
             <app-icon name="list-checks" className="w-5 h-5"></app-icon>
             Audit สถานะพนักงาน
           </a>
@@ -261,7 +244,7 @@
         @if (hasAdminAccess()) {
           <div class="pt-4 mt-4 border-t border-slate-200">
             <button (click)="isSettingsOpen.set(!isSettingsOpen())"
-              class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors bg-slate-50">
+              class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors bg-slate-50">
               <app-icon name="settings" className="w-5 h-5 text-indigo-600"></app-icon>
               <span class="flex-1 text-left">ตั้งค่า</span>
               <app-icon [name]="isSettingsOpen() ? 'chevron-up' : 'chevron-down'" className="w-4 h-4"></app-icon>
@@ -270,17 +253,17 @@
             <div class="mt-2 space-y-1">
               <a routerLink="/settings/employees" routerLinkActive="bg-indigo-600 text-white"
                 (click)="isMobileMenuOpen.set(false)"
-                class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round"
                     d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                <span>การจัดการพนักงาน</span>
+                <span>จัดการพนักงานและสิทธิ์</span>
               </a>
               <a routerLink="/settings/queue" routerLinkActive="bg-indigo-600 text-white"
                 (click)="isMobileMenuOpen.set(false)"
-                class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -289,19 +272,9 @@
               </a>
               <a routerLink="/settings/product-categories" routerLinkActive="bg-indigo-600 text-white"
                 (click)="isMobileMenuOpen.set(false)"
-                class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
                 <app-icon name="tag" className="w-5 h-5"></app-icon>
                 <span>ตั้งค่าหมวดหมู่สินค้า</span>
-              </a>
-              <a routerLink="/settings/users" routerLinkActive="bg-indigo-600 text-white"
-                (click)="isMobileMenuOpen.set(false)"
-                class="flex items-center gap-3 pl-8 pr-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                <span>ผู้ใช้งานและสิทธิ์</span>
               </a>
             </div>
             }
@@ -420,23 +393,6 @@
               </span>
             </a>
 
-            <!-- Monitor (shown for managers) -->
-            @if (hasManagerAccess()) {
-              <a 
-                routerLink="/monitor" 
-                routerLinkActive="active"
-                #monitorLink="routerLinkActive"
-                class="flex flex-col items-center justify-center flex-1 h-full transition-all duration-300">
-                <app-icon name="monitor" className="w-6 h-6 mb-1"></app-icon>
-                <span 
-                  class="text-[10px] font-medium transition-colors duration-300"
-                  [class.text-blue-600]="monitorLink.isActive"
-                  [class.text-gray]="!monitorLink.isActive">
-                  Monitor
-                </span>
-              </a>
-            }
-            
             <!-- งานของฉัน -->
             <a 
               routerLink="/my-tasks" 

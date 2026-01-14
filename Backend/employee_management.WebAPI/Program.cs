@@ -135,6 +135,8 @@ builder.Services.AddAuthentication(options =>
 });
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<employee_management.WebAPI.Services.IPasswordLinkTokenStore, employee_management.WebAPI.Services.PasswordLinkTokenStore>();
 
 // Add Response Compression
 builder.Services.AddResponseCompression(options =>

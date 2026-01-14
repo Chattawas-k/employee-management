@@ -55,11 +55,15 @@ namespace employee_management.Application.Tests.Features.Employees.Commands.Add
                 Avatar = request.Avatar
             };
 
-            var response = new AddResponse
-            {
-                Id = employee.Id,
-                Name = employee.Name
-            };
+            var response = new AddResponse(
+                employee.Id,
+                employee.Name,
+                employee.Phone,
+                employee.Status,
+                employee.PositionId,
+                employee.Avatar,
+                employee.CreatedDate
+            );
 
             _mapperMock.Setup(m => m.Map<Employee>(request)).Returns(employee);
             _mapperMock.Setup(m => m.Map<AddResponse>(employee)).Returns(response);

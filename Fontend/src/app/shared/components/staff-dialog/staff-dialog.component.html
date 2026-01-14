@@ -1,0 +1,214 @@
+@if (isOpen) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" (click)="onClose()">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4" (click)="$event.stopPropagation()">
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-900">
+          {{ isEditMode ? 'แก้ไขข้อมูลพนักงาน' : 'เพิ่มพนักงานใหม่' }}
+        </h2>
+        <button (click)="onClose()" class="text-gray-400 hover: transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSave()" class="p-6 space-y-5">
+        <!-- Profile image -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            รูปโปรไฟล์
+          </label>
+
+          <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center border border-gray-200">
+              @if (selectedImageDataUrl()) {
+                <img [src]="selectedImageDataUrl()!" alt="profile preview" class="w-full h-full object-cover" />
+              } @else if (isEditMode && staff?.profileImageUrl && !removeProfileImage()) {
+                <img [src]="staff!.profileImageUrl!" alt="profile" class="w-full h-full object-cover" />
+              } @else {
+                <span class="text-gray-500 text-xs">No image</span>
+              }
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <label class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
+                เลือกรูปภาพ
+                <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" (change)="onFileSelected($event)" />
+              </label>
+
+              @if (isEditMode && (staff?.profileImageUrl || selectedImageDataUrl())) {
+                <button type="button" (click)="onRemoveImage()"
+                  class="px-3 py-2 border border-red-200 text-red-700 rounded-lg text-sm hover:bg-red-50">
+                  ลบรูป
+                </button>
+              }
+            </div>
+          </div>
+
+          @if (imageError()) {
+            <p class="mt-2 text-sm text-red-600">{{ imageError() }}</p>
+          }
+        </div>
+
+        <!-- Full name -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            ชื่อ-สกุล <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            formControlName="fullName"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            [class.border-red-500]="form.get('fullName')?.invalid && form.get('fullName')?.touched">
+          @if (form.get('fullName')?.invalid && form.get('fullName')?.touched) {
+            <p class="mt-1 text-sm text-red-500">กรุณากรอกชื่อ-สกุล</p>
+          }
+        </div>
+
+        <!-- Position -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            ตำแหน่ง <span class="text-red-500">*</span>
+          </label>
+          <select
+            formControlName="positionId"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            [class.border-red-500]="form.get('positionId')?.invalid && form.get('positionId')?.touched">
+            <option value="">เลือกตำแหน่ง</option>
+            @for (position of positions(); track position.id) {
+              <option [value]="position.id">{{ position.name }} ({{ position.departmentName }})</option>
+            }
+          </select>
+          @if (form.get('positionId')?.invalid && form.get('positionId')?.touched) {
+            <p class="mt-1 text-sm text-red-500">กรุณาเลือกตำแหน่ง</p>
+          }
+        </div>
+
+        <!-- Login info -->
+        <div class="rounded-lg border border-gray-200 p-4 space-y-4">
+          <div class="flex items-center justify-between">
+            <p class="text-sm font-semibold text-gray-900">ข้อมูลบัญชีเข้าใช้งาน</p>
+            @if (isEditMode && staff) {
+              <span class="text-xs px-2 py-1 rounded-full"
+                [class]="staff.accountStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'">
+                {{ staff.accountStatus === 'active' ? 'Active' : 'Disabled' }}
+              </span>
+            }
+          </div>
+
+          <!-- Role -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              สิทธิ์การใช้งาน (Role) <span class="text-red-500">*</span>
+            </label>
+            <select
+              formControlName="role"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              [class.border-red-500]="form.get('role')?.invalid && form.get('role')?.touched">
+              <option value="Basic">Basic (พนักงาน)</option>
+              <option value="Manager">Manager</option>
+              <option value="Admin">Admin</option>
+              <option value="SuperAdmin">SuperAdmin</option>
+            </select>
+            @if (form.get('role')?.invalid && form.get('role')?.touched) {
+              <p class="mt-1 text-sm text-red-500">กรุณาเลือก Role</p>
+            }
+            <p class="mt-1 text-xs text-gray-500">
+              หมายเหตุ: การตั้งเป็น SuperAdmin อาจถูกจำกัดให้ทำได้เฉพาะผู้ที่เป็น SuperAdmin เท่านั้น
+            </p>
+          </div>
+
+          <!-- Email -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              อีเมล <span class="text-red-500" *ngIf="!isEditMode">*</span>
+            </label>
+            <input
+              type="email"
+              formControlName="email"
+              autocomplete="email"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50 disabled:text-gray-500"
+              [class.border-red-500]="!isEditMode && form.get('email')?.invalid && form.get('email')?.touched">
+            @if (!isEditMode && form.get('email')?.invalid && form.get('email')?.touched) {
+              <p class="mt-1 text-sm text-red-500">กรุณากรอกอีเมลให้ถูกต้อง</p>
+            }
+          </div>
+
+          <!-- Password (create only) -->
+          @if (!isEditMode) {
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                รหัสผ่าน <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="password"
+                formControlName="password"
+                autocomplete="new-password"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                [class.border-red-500]="form.get('password')?.invalid && form.get('password')?.touched">
+              @if (form.get('password')?.invalid && form.get('password')?.touched) {
+                <p class="mt-1 text-sm text-red-500">รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร</p>
+              }
+            </div>
+          }
+
+          <!-- Edit mode actions -->
+          @if (isEditMode && staff) {
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button type="button" (click)="toggleAccountStatus()"
+                [disabled]="isUpdatingStatus()"
+                class="px-4 py-2 rounded-lg text-sm font-medium border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                [class]="staff.accountStatus === 'active'
+                  ? 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                  : 'border-green-200 text-green-700 hover:bg-green-50'">
+                {{ staff.accountStatus === 'active' ? 'ปิดใช้งานบัญชี' : 'เปิดใช้งานบัญชี' }}
+              </button>
+
+              <div class="flex gap-2">
+                <input
+                  type="password"
+                  [value]="resetPasswordValue()"
+                  (input)="resetPasswordValue.set($any($event.target).value)"
+                  autocomplete="new-password"
+                  placeholder="รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)"
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+                <button type="button" (click)="resetPassword()"
+                  [disabled]="isResettingPassword()"
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                  รีเซ็ต
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex gap-3 pt-2">
+          <button
+            type="button"
+            (click)="onClose()"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+            ยกเลิก
+          </button>
+          <button
+            type="submit"
+            [disabled]="isSaving()"
+            class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            @if (isSaving()) {
+              <span class="flex items-center justify-center gap-2">
+                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                กำลังบันทึก...
+              </span>
+            } @else {
+              บันทึก
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
