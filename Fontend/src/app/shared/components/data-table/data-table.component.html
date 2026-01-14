@@ -1,4 +1,4 @@
-<div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+<div class="bg-white rounded-lg shadow-sm overflow-hidden">
   @if (isLoading) {
     <div class="p-10 text-center">
       <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -13,9 +13,9 @@
     </div>
   } @else {
     <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
+      <table class="min-w-full">
+        <thead>
+          <tr class="border-b border-gray-200">
             @for (column of columns; track column.key) {
               <th
                 [class.cursor-pointer]="column.sortable"
@@ -25,7 +25,7 @@
                 [class.text-right]="column.align === 'right'"
                 [style.width]="column.width"
                 (click)="onSort(column)"
-                class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider transition-colors">
+                class="px-6 py-4 text-sm font-semibold text-gray-500 transition-colors">
                 <div class="flex items-center gap-2">
                   <span>{{ column.label }}</span>
                   @if (column.sortable) {
@@ -44,19 +44,19 @@
             }
           </tr>
         </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
+        <tbody>
               @for (row of data; track $index) {
             <tr
               [class.cursor-pointer]="rowClickable"
               [class.hover:bg-gray-50]="rowClickable"
               (click)="onRowClick(row)"
-              class="transition-colors">
+              class="transition-colors duration-150 border-b border-gray-100 last:border-b-0">
               @for (column of columns; track column.key) {
                 <td
                   [class.text-left]="!column.align || column.align === 'left'"
                   [class.text-center]="column.align === 'center'"
                   [class.text-right]="column.align === 'right'"
-                  class="px-6 py-4 text-sm text-gray-900"
+                  class="px-6 py-5 text-sm text-gray-700"
                   [class.whitespace-nowrap]="column.key !== 'actions' && column.key !== 'description'">
                   @if (column.key === 'actions') {
                     <div class="flex justify-end" (click)="$event.stopPropagation()">

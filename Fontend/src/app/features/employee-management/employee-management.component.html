@@ -1,4 +1,4 @@
-<div class="flex flex-col min-h-screen bg-gray-50">
+<div class="flex flex-col min-h-screen bg-slate-50">
   <header class="bg-white px-4 sm:px-8 pt-4 sm:pt-8 pb-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
       <div>
@@ -43,7 +43,7 @@
   </header>
 
   <!-- Tabs -->
-  <div class="bg-white border-b border-gray-200 px-4 sm:px-8">
+  <div class="bg-white px-4 sm:px-8">
     <nav class="flex space-x-8" aria-label="Tabs">
       <button
         (click)="setActiveTab('staff')"
@@ -86,20 +86,20 @@
           <!-- Table -->
           <div class="overflow-x-auto overflow-y-visible">
             <table class="w-full">
-              <thead class="bg-white border-b border-gray-200">
-                <tr>
+              <thead>
+                <tr class="border-b border-gray-200">
                   <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500">พนักงาน</th>
                   <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500">ตำแหน่ง</th>
                   <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500">อีเมล</th>
                   <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500">สิทธิ์ใช้งาน</th>
                   <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500">สถานะ</th>
-                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+                  <th scope="col" class="relative px-6 py-4 text-right"><span class="sr-only">Actions</span></th>
                 </tr>
               </thead>
-              <tbody class="bg-white divide-y divide-gray-100">
+              <tbody>
                 @for (item of filteredStaff(); track item.staffId) {
-                  <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-6 py-4 whitespace-nowrap">
+                  <tr class="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0">
+                    <td class="px-6 py-5 whitespace-nowrap">
                       <div class="flex items-center gap-3">
                         @if (shouldShowImage(item)) {
                           <img
@@ -118,21 +118,21 @@
                         </div>
                       </div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <p class="text-sm text-gray-900">{{ item.position || '-' }}</p>
+                    <td class="px-6 py-5 whitespace-nowrap text-sm text-gray-500">
+                      {{ item.position || '-' }}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <p class="text-sm text-gray-900">{{ item.email || '-' }}</p>
+                    <td class="px-6 py-5 whitespace-nowrap text-sm text-gray-500">
+                      {{ item.email || '-' }}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <p class="text-sm text-gray-900">{{ getPrimaryRoleLabel(item.roles) }}</p>
+                    <td class="px-6 py-5 whitespace-nowrap text-sm text-gray-500">
+                      {{ getPrimaryRoleLabel(item.roles) }}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
+                    <td class="px-6 py-5 whitespace-nowrap">
                       <span class="px-2 py-1 text-xs font-medium rounded-full" [class]="getAccountStatusClass(item.accountStatus)">
                         {{ getAccountStatusLabel(item.accountStatus) }}
                       </span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <td class="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
                       <div class="flex justify-end">
                         <div class="relative inline-block text-left" (click)="$event.stopPropagation()">
                           <button
@@ -177,33 +177,33 @@
             <!-- Positions Table -->
             <div class="overflow-x-auto">
               <table class="w-full">
-                <thead class="bg-white border-b border-gray-200">
-                  <tr>
+                <thead>
+                  <tr class="border-b border-gray-200">
                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500">ชื่อตำแหน่ง</th>
                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500">แผนก</th>
                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500">คำอธิบาย</th>
                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500">สถานะ</th>
-                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500 uppercase tracking-wider">จัดการ</th>
+                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500 uppercase tracking-wider"></th>
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-100">
+                <tbody>
                   @for (position of positions(); track position.id) {
-                    <tr class="hover:bg-gray-50 transition-colors">
-                      <td class="px-6 py-4 whitespace-nowrap">
+                    <tr class="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0">
+                      <td class="px-6 py-5 whitespace-nowrap">
                         <p class="text-sm font-medium text-gray-900">{{ position.name }}</p>
                       </td>
-                      <td class="px-6 py-4 whitespace-nowrap">
-                        <p class="text-sm text-gray-900">{{ position.departmentName || '-' }}</p>
+                      <td class="px-6 py-5 whitespace-nowrap text-sm text-gray-500">
+                        {{ position.departmentName || '-' }}
                       </td>
-                      <td class="px-6 py-4">
-                        <p class="text-sm text-gray-900">{{ position.description || '-' }}</p>
+                      <td class="px-6 py-5 text-sm text-gray-500">
+                        {{ position.description || '-' }}
                       </td>
-                      <td class="px-6 py-4 whitespace-nowrap">
+                      <td class="px-6 py-5 whitespace-nowrap">
                         <span class="px-2 py-1 text-xs font-medium rounded-full" [class]="position.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'">
                           {{ position.isActive ? 'ใช้งาน' : 'ไม่ใช้งาน' }}
                         </span>
                       </td>
-                      <td class="px-6 py-4 whitespace-nowrap text-right">
+                      <td class="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
                         <div class="flex justify-end" (click)="$event.stopPropagation()">
                           <button
                             type="button"
