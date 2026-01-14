@@ -34,7 +34,7 @@
           </button>
           <button type="button" (click)="setStatus('Pending')" class="p-3 border rounded-lg text-center transition-all duration-200 flex flex-col items-center justify-center h-full" [class]="selectedStatus() === 'Pending' ? 'border-yellow-500 bg-yellow-50 ring-2 ring-yellow-400' : 'border-gray-300 bg-white hover:border-gray-400'">
             <svg class="w-8 h-8 text-yellow-500 mb-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 15H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 9H9.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 9H15.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <p class="font-medium text-yellow-700">ระหว่างตัดสินใจ</p>
+            <p class="font-medium text-yellow-700">รอตัดสินใจ</p>
           </button>
           <button type="button" (click)="setStatus('Failed')" class="p-3 border rounded-lg text-center transition-all duration-200 flex flex-col items-center justify-center h-full" [class]="selectedStatus() === 'Failed' ? 'border-red-500 bg-red-50 ring-2 ring-red-400' : 'border-gray-300 bg-white hover:border-gray-400'">
             <svg class="w-8 h-8 text-red-500 mb-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 16C16 16 14.5 14 12 14C9.5 14 8 16 8 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 9H9.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 9H15.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -57,24 +57,37 @@
       @if (selectedStatus() !== 'Success') {
         <div formGroupName="reasons">
           <h3 class="text-base font-medium text-gray-700 mb-3">เหตุผล <b class="text-red-500">*</b></h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
-            @if (selectedStatus() === 'Pending') {
-              @for (reason of pendingReasons; track reason.controlName) {
-                <label [for]="reason.controlName" class="flex items-center cursor-pointer">
-                  <input [id]="reason.controlName" type="checkbox" [formControlName]="reason.controlName" class="h-5 w-5 text-indigo-600 border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 transition-all duration-150">
-                  <span class="ml-3 block text-base text-gray-700">{{ reason.label }}</span>
-                </label>
+          @if (isLoadingReasons()) {
+            <div class="p-4 text-center">
+              <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+              <p class="mt-2 text-sm text-gray-500">กำลังโหลดเหตุผล...</p>
+            </div>
+          } @else {
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
+              @if (selectedStatus() === 'Pending') {
+                @for (reason of pendingReasons(); track reason.id) {
+                  <label [for]="reason.id" class="flex items-center cursor-pointer">
+                    <input [id]="reason.id" type="checkbox" [formControlName]="reason.id" class="h-5 w-5 text-indigo-600 border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 transition-all duration-150">
+                    <span class="ml-3 block text-base text-gray-700">{{ reason.label }}</span>
+                  </label>
+                }
               }
-            }
-            @if (selectedStatus() === 'Failed') {
-              @for (reason of failedReasons; track reason.controlName) {
-                <label [for]="reason.controlName" class="flex items-center cursor-pointer">
-                  <input [id]="reason.controlName" type="checkbox" [formControlName]="reason.controlName" class="h-5 w-5 text-indigo-600 border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 transition-all duration-150">
-                  <span class="ml-3 block text-base text-gray-700">{{ reason.label }}</span>
-                </label>
+              @if (selectedStatus() === 'Failed') {
+                @for (reason of failedReasons(); track reason.id) {
+                  <label [for]="reason.id" class="flex items-center cursor-pointer">
+                    <input [id]="reason.id" type="checkbox" [formControlName]="reason.id" class="h-5 w-5 text-indigo-600 border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 transition-all duration-150">
+                    <span class="ml-3 block text-base text-gray-700">{{ reason.label }}</span>
+                  </label>
+                }
               }
+            </div>
+            @if (selectedStatus() === 'Pending' && pendingReasons().length === 0) {
+              <p class="text-sm text-gray-500 text-center py-4">ไม่มีเหตุผลรอตัดสินใจในระบบ กรุณาติดต่อผู้ดูแลระบบ</p>
             }
-          </div>
+            @if (selectedStatus() === 'Failed' && failedReasons().length === 0) {
+              <p class="text-sm text-gray-500 text-center py-4">ไม่มีเหตุผลปิดการขายไม่สำเร็จในระบบ กรุณาติดต่อผู้ดูแลระบบ</p>
+            }
+          }
            @if (salesReportForm.get('reasons')?.enabled && salesReportForm.get('reasons')?.hasError('requireAtLeastOne') && (salesReportForm.get('reasons')?.touched || salesReportForm.get('reasons')?.dirty)) {
             <p class="text-red-600 text-sm mt-2 ml-1">กรุณาเลือกอย่างน้อย 1 เหตุผล</p>
           }

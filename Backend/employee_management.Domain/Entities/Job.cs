@@ -1,5 +1,6 @@
 using employee_management.Domain.Common;
 using employee_management.Domain.Enums;
+using System;
 using System.Text.Json;
 
 namespace employee_management.Domain.Entities
@@ -100,6 +101,7 @@ namespace employee_management.Domain.Entities
         public string CustomerName { get; set; } = string.Empty;
         public string CustomerContact { get; set; } = string.Empty;
         public string SalesStatus { get; set; } = string.Empty; // "success" | "failed" | "pending"
+        public List<Guid> ReasonIds { get; set; } = new List<Guid>();
         public List<string> Reasons { get; set; } = new List<string>();
         public string ProductCategory { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;

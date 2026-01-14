@@ -591,38 +591,38 @@ export class MyTasksComponent implements OnInit, OnDestroy {
     }
 
     // Map report data to API format
-    const reasons: string[] = [];
-    if (reportData.reasons) {
+    const reasonIds: string[] = Array.isArray(reportData.reasonIds) ? reportData.reasonIds : [];
+    let reasons: string[] = [];
+    if (Array.isArray(reportData.reasons)) {
+      reasons = reportData.reasons;
+    } else if (reportData.reasons && typeof reportData.reasons === 'object') {
+      // Legacy format (controlName -> boolean)
       const reasonControls = reportData.reasons;
+      const legacyMap: { [key: string]: string } = {
+        wantsToDecide: 'ขอไปตัดสินใจก่อน',
+        waitingForPromo: 'รอโปรโมชั่น',
+        comparing: 'เปรียบเทียบกับที่อื่น',
+        consultingFamily: 'ปรึกษาครอบครัว/เพื่อน',
+        needsMoreInfo: 'ต้องการข้อมูลเพิ่มเติม',
+        waitingForStock: 'รอสินค้าเข้า',
+        financialApproval: 'รออนุมัติทางการเงิน',
+        undecidedOnSpec: 'ยังไม่แน่ใจเรื่องสี/ขนาด',
+        seasonalTiming: 'รอฤกษ์/ช่วงเวลาที่เหมาะสม',
+        wantsToSeeSample: 'ต้องการดูสินค้าตัวอย่าง',
+        priceTooHigh: 'ราคาสูงไป',
+        productMismatch: 'สินค้าไม่ตรงความต้องการ',
+        badService: 'ไม่พอใจบริการ',
+        foundCheaper: 'เจอที่อื่นถูกกว่า',
+        longDelivery: 'ระยะเวลาจัดส่งนานไป',
+        outOfStock: 'สินค้าหมด/เลิกผลิต',
+        negativeReview: 'เห็นรีวิวไม่ดี',
+        competitorOffer: 'ข้อเสนอของคู่แข่งดีกว่า',
+        changedMind: 'เปลี่ยนใจ/ไม่ต้องการแล้ว',
+        budgetCut: 'งบประมาณไม่พอ'
+      };
       Object.keys(reasonControls).forEach(key => {
-        if (reasonControls[key]) {
-          // Find the label for this control name
-          const allReasons = [
-            { controlName: 'wantsToDecide', label: 'ขอไปตัดสินใจก่อน' },
-            { controlName: 'waitingForPromo', label: 'รอโปรโมชั่น' },
-            { controlName: 'comparing', label: 'เปรียบเทียบกับที่อื่น' },
-            { controlName: 'consultingFamily', label: 'ปรึกษาครอบครัว/เพื่อน' },
-            { controlName: 'needsMoreInfo', label: 'ต้องการข้อมูลเพิ่มเติม' },
-            { controlName: 'waitingForStock', label: 'รอสินค้าเข้า' },
-            { controlName: 'financialApproval', label: 'รออนุมัติทางการเงิน' },
-            { controlName: 'undecidedOnSpec', label: 'ยังไม่แน่ใจเรื่องสี/ขนาด' },
-            { controlName: 'seasonalTiming', label: 'รอฤกษ์/ช่วงเวลาที่เหมาะสม' },
-            { controlName: 'wantsToSeeSample', label: 'ต้องการดูสินค้าตัวอย่าง' },
-            { controlName: 'priceTooHigh', label: 'ราคาสูงไป' },
-            { controlName: 'productMismatch', label: 'สินค้าไม่ตรงความต้องการ' },
-            { controlName: 'badService', label: 'ไม่พอใจบริการ' },
-            { controlName: 'foundCheaper', label: 'เจอที่อื่นถูกกว่า' },
-            { controlName: 'longDelivery', label: 'ระยะเวลาจัดส่งนานไป' },
-            { controlName: 'outOfStock', label: 'สินค้าหมด/เลิกผลิต' },
-            { controlName: 'negativeReview', label: 'เห็นรีวิวไม่ดี' },
-            { controlName: 'competitorOffer', label: 'ข้อเสนอของคู่แข่งดีกว่า' },
-            { controlName: 'changedMind', label: 'เปลี่ยนใจ/ไม่ต้องการแล้ว' },
-            { controlName: 'budgetCut', label: 'งบประมาณไม่พอ' }
-          ];
-          const reason = allReasons.find(r => r.controlName === key);
-          if (reason) {
-            reasons.push(reason.label);
-          }
+        if (reasonControls[key] && legacyMap[key]) {
+          reasons.push(legacyMap[key]);
         }
       });
     }
@@ -661,6 +661,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       customerName: reportData.customerName || taskToMove.customerName || '',
       customerContact: reportData.contactInfo || '',
       salesStatus: reportData.status?.toLowerCase() || 'success',
+      reasonIds,
       reasons,
       productCategory: productCategories.join(', '),
       description: reportData.additionalInfo || ''

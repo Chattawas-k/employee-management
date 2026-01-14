@@ -10,6 +10,7 @@ import { EmployeeManagementComponent } from './features/employee-management/empl
 import { QueueSettingsComponent } from './features/queue-settings/queue-settings.component';
 import { ProductCategoryManagementComponent } from './features/product-category-management/product-category-management.component';
 import { UsersPermissionsComponent } from './features/users-permissions/users-permissions.component';
+import { SalesReasonManagementComponent } from './features/sales-reason-management/sales-reason-management.component';
 import { MyAccountComponent } from './features/my-account/my-account.component';
 import { MyAccountLayoutComponent } from './features/my-account/my-account-layout.component';
 import { authGuard } from './guards/auth.guard';
@@ -33,6 +34,7 @@ export const routes: Routes = [
   { path: 'settings/queue', component: QueueSettingsComponent, canActivate: [authGuard] },
   { path: 'settings/product-categories', component: ProductCategoryManagementComponent, canActivate: [authGuard] },
   { path: 'settings/users', component: UsersPermissionsComponent, canActivate: [authGuard] },
+  { path: 'settings/sales-reasons', component: SalesReasonManagementComponent, canActivate: [adminGuard] },
   {
     path: 'my-account',
     component: MyAccountLayoutComponent,

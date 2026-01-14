@@ -23,6 +23,7 @@ export interface MyTaskJobReportDto {
   customerName: string;
   customerContact: string;
   salesStatus: string;
+  reasonIds?: string[];
   reasons: string[];
   productCategory: string;
   description: string;
@@ -86,6 +87,7 @@ export interface UpdateJobStatusReportDto {
   customerName: string;
   customerContact: string;
   salesStatus: string;
+  reasonIds?: string[];
   reasons: string[];
   productCategory: string;
   description: string;

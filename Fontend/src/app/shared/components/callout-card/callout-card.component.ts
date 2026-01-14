@@ -78,16 +78,16 @@ export class CalloutCardComponent {
   get containerClass(): string {
     switch (this.resolvedVariant) {
       case 'success':
-        return 'bg-green-50 border-green-500';
+        return 'bg-green-200 text-green-900 border-green-500';
       case 'warning':
-        return 'bg-yellow-50 border-yellow-500';
+        return 'bg-yellow-200 text-yellow-900 border-yellow-500';
       case 'danger':
-        return 'bg-red-50 border-red-500';
+        return 'bg-red-200 text-red-900 border-red-500';
       case 'neutral':
-        return 'bg-gray-50 border-gray-500';
+        return 'bg-gray-200 text-gray-900 border-gray-500';
       case 'info':
       default:
-        return 'bg-blue-50 border-blue-500';
+        return 'bg-blue-200 text-blue-900 border-blue-500';
     }
   }
 

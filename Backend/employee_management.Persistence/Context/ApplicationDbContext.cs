@@ -33,6 +33,7 @@ namespace employee_management.Persistence.Context
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<QueueRule> QueueRules { get; set; }
         public DbSet<ProductCategory> ProductCategories { get; set; }
+        public DbSet<SalesReason> SalesReasons { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -197,6 +198,25 @@ namespace employee_management.Persistence.Context
                 entity.HasIndex(e => e.Name);
                 entity.HasIndex(e => e.IsActive);
                 entity.HasIndex(e => e.IsDeleted);
+            });
+
+            // Configure SalesReason entity
+            modelBuilder.Entity<SalesReason>(entity =>
+            {
+                entity.ToTable("SalesReasons");
+
+                entity.Property(e => e.Label)
+                    .HasMaxLength(200)
+                    .IsRequired();
+
+                // Uniqueness within a type (allow re-creating after soft delete)
+                entity.HasIndex(e => new { e.Type, e.Label, e.IsDeleted })
+                    .IsUnique();
+
+                entity.HasIndex(e => e.Type);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.IsDeleted);
+                entity.HasIndex(e => new { e.Type, e.SortOrder });
             });
         }
     }

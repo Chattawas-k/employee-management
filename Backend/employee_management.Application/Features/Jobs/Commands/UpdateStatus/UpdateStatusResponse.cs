@@ -7,6 +7,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
         public string CustomerName { get; set; } = string.Empty;
         public string CustomerContact { get; set; } = string.Empty;
         public string SalesStatus { get; set; } = string.Empty;
+        public List<Guid> ReasonIds { get; set; } = new List<Guid>();
         public List<string> Reasons { get; set; } = new List<string>();
         public string ProductCategory { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;

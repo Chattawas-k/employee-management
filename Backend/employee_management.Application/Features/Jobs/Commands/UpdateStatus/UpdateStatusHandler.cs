@@ -6,6 +6,7 @@ using employee_management.Application.Repository;
 using employee_management.Application.Repository.JobStatusHistoriesRepository;
 using employee_management.Application.Repository.JobsRepository;
 using employee_management.Application.Repository.QueuesRepository;
+using employee_management.Application.Repository.SalesReasonsRepository;
 using employee_management.Application.Repository.WaitingJobsRepository;
 using employee_management.Domain.Entities;
 using employee_management.Domain.Enums;
@@ -26,6 +27,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
         private readonly ICurrentUserService _currentUserService;
         private readonly IClientSourceProvider _clientSourceProvider;
         private readonly IBusinessDateTimeProvider _dateTimeProvider;
+        private readonly ISalesReasonRepository _salesReasonRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<UpdateStatusHandler> _logger;
 
@@ -41,6 +43,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
             ICurrentUserService currentUserService,
             IClientSourceProvider clientSourceProvider,
             IBusinessDateTimeProvider dateTimeProvider,
+            ISalesReasonRepository salesReasonRepository,
             IMapper mapper, 
             ILogger<UpdateStatusHandler> logger)
         {
@@ -55,6 +58,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
             _currentUserService = currentUserService;
             _clientSourceProvider = clientSourceProvider;
             _dateTimeProvider = dateTimeProvider;
+            _salesReasonRepository = salesReasonRepository;
             _mapper = mapper;
             _logger = logger;
         }
@@ -129,6 +133,43 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                 if (request.Report != null)
                 {
                     var report = _mapper.Map<JobReport>(request.Report);
+
+                    // If reasonIds are provided, validate and materialize labels for display/history
+                    if (request.Report.ReasonIds != null && request.Report.ReasonIds.Count > 0)
+                    {
+                        var salesStatus = (request.Report.SalesStatus ?? string.Empty).Trim().ToLowerInvariant();
+
+                        var expectedType = salesStatus switch
+                        {
+                            "pending" => SalesReasonType.PendingDecision,
+                            "failed" => SalesReasonType.FailedClose,
+                            _ => (SalesReasonType?)null
+                        };
+
+                        if (expectedType.HasValue)
+                        {
+                            var ids = request.Report.ReasonIds.Distinct().ToList();
+                            var reasons = await _salesReasonRepository.GetByIdsAsync(ids, cancellationToken);
+
+                            if (reasons.Count != ids.Count)
+                            {
+                                throw new InvalidOperationException("Some reasonIds were not found.");
+                            }
+
+                            if (reasons.Any(r => r.Type != expectedType.Value))
+                            {
+                                throw new InvalidOperationException("Some reasonIds do not match the required reason type for this sales status.");
+                            }
+
+                            report.ReasonIds = ids;
+                            report.Reasons = reasons
+                                .OrderBy(r => r.SortOrder)
+                                .ThenBy(r => r.Label)
+                                .Select(r => r.Label)
+                                .ToList();
+                        }
+                    }
+
                     job.Report = report;
                 }
 

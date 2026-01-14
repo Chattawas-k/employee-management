@@ -721,9 +721,7 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
       ? formData.interestedProducts 
       : [];
     
-    const reasons = [...this.pendingReasons, ...this.failedReasons]
-      .filter(r => formData.reasons && formData.reasons[r.controlName])
-      .map(r => r.label);
+    const reasons = Array.isArray(formData.reasons) ? formData.reasons : [];
 
     const updatedReport: SalesReport = {
       ...reportToUpdate,
