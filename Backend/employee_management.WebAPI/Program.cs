@@ -326,11 +326,13 @@ using (var scope = app.Services.CreateScope())
         await DefaultPositions.SeedAsync(dbContext);
         await DefaultEmployees.SeedAsync(dbContext);
         await DefaultProductCategories.SeedAsync(dbContext);
+        await DefaultSalesReasons.SeedAsync(dbContext);
         
         await DefaultRoles.SeedAsync(userManager, roleManager);
         await DefaultSuperAdmin.SeedAsync(userManager, roleManager);
         await DefaultAdmin.SeedAsync(userManager, roleManager);
-        await DefaultBasicUser.SeedAsync(userManager, roleManager);
+        await DefaultBasicUser.SeedAsync(userManager, roleManager); // keep existing basicuser@gmail.com as requested
+        await DefaultSalesStaffUsers.SeedAsync(userManager, roleManager);
         
         await QueueHistorySeed.SeedAsync(dbContext);
         

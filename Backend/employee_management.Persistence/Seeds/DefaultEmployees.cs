@@ -12,217 +12,98 @@ namespace employee_management.Persistence.Seeds
             if (await context.Employees.AnyAsync())
                 return;
 
-            // Get positions first
-            var positions = await context.Positions
-                .Include(p => p.Department)
-                .ToListAsync();
-            
-            var positionDict = positions.ToDictionary(
-                p => $"{p.Department?.Name}_{p.Name}", 
-                p => p.Id
-            );
+            // Seed only requested employees under Position "Sale"
+            var salePositionId = await context.Positions
+                .Where(p => p.Name == "Sale")
+                .Select(p => p.Id)
+                .FirstOrDefaultAsync();
 
-            var employees = new List<Employee>();
+            if (salePositionId == Guid.Empty)
+                return;
 
-            // Employees for ซ่อมบำรุง department
-            if (positionDict.ContainsKey("ซ่อมบำรุง_ช่างเทคนิค"))
+            var employees = new List<Employee>
             {
-                employees.Add(new Employee
+                new Employee
                 {
-                    Id = Guid.NewGuid(),
-                    Name = "สมชาย ใจดี",
-                    Phone = "081-234-5678",
+                    Id = new Guid("11111111-1111-1111-1111-111111111111"), // Keep fixed ID (used by DefaultAdmin)
+                    Name = "นางเอื้อมพร ปัดถา",
+                    Phone = null,
                     Status = EmployeeStatus.Active,
-                    PositionId = positionDict["ซ่อมบำรุง_ช่างเทคนิค"],
+                    PositionId = salePositionId,
                     Avatar = null,
                     CreatedDate = DateTimeOffset.UtcNow,
                     IsDeleted = false
-                });
-            }
-
-            if (positionDict.ContainsKey("ซ่อมบำรุง_หัวหน้าช่าง"))
-            {
-                employees.Add(new Employee
+                },
+                new Employee
                 {
-                    Id = Guid.NewGuid(),
-                    Name = "วิชัย สมบูรณ์",
-                    Phone = "082-345-6789",
+                    Id = new Guid("22222222-2222-2222-2222-222222222222"), // Keep fixed ID (used by DefaultSuperAdmin)
+                    Name = "นางสาวภาสนา กันเติม",
+                    Phone = null,
                     Status = EmployeeStatus.Active,
-                    PositionId = positionDict["ซ่อมบำรุง_หัวหน้าช่าง"],
+                    PositionId = salePositionId,
                     Avatar = null,
                     CreatedDate = DateTimeOffset.UtcNow,
                     IsDeleted = false
-                });
-            }
-
-            if (positionDict.ContainsKey("ซ่อมบำรุง_ช่างซ่อม"))
-            {
-                employees.Add(new Employee
+                },
+                new Employee
                 {
-                    Id = Guid.NewGuid(),
-                    Name = "ประเสริฐ เก่งมาก",
-                    Phone = "083-456-7890",
+                    Id = new Guid("33333333-3333-3333-3333-333333333333"),
+                    Name = "นางจนิสตา แสวงจิตร",
+                    Phone = null,
                     Status = EmployeeStatus.Active,
-                    PositionId = positionDict["ซ่อมบำรุง_ช่างซ่อม"],
+                    PositionId = salePositionId,
                     Avatar = null,
                     CreatedDate = DateTimeOffset.UtcNow,
                     IsDeleted = false
-                });
-            }
-
-            // Employees for ผลิต department
-            if (positionDict.ContainsKey("ผลิต_พนักงานผลิต"))
-            {
-                employees.Add(new Employee
+                },
+                new Employee
                 {
-                    Id = Guid.NewGuid(),
-                    Name = "สมศรี ทำงานดี",
-                    Phone = "084-567-8901",
+                    Id = new Guid("44444444-4444-4444-4444-444444444444"),
+                    Name = "นางเสงี่ยม แก้ววิชัย",
+                    Phone = null,
                     Status = EmployeeStatus.Active,
-                    PositionId = positionDict["ผลิต_พนักงานผลิต"],
+                    PositionId = salePositionId,
                     Avatar = null,
                     CreatedDate = DateTimeOffset.UtcNow,
                     IsDeleted = false
-                });
-
-                employees.Add(new Employee
+                },
+                new Employee
                 {
-                    Id = Guid.NewGuid(),
-                    Name = "มาลี ขยันมาก",
-                    Phone = "085-678-9012",
+                    Id = new Guid("55555555-5555-5555-5555-555555555555"),
+                    Name = "นางสาวลักษมี จารุภาค",
+                    Phone = null,
                     Status = EmployeeStatus.Active,
-                    PositionId = positionDict["ผลิต_พนักงานผลิต"],
+                    PositionId = salePositionId,
                     Avatar = null,
                     CreatedDate = DateTimeOffset.UtcNow,
                     IsDeleted = false
-                });
-            }
-
-            if (positionDict.ContainsKey("ผลิต_หัวหน้าผลิต"))
-            {
-                employees.Add(new Employee
+                },
+                new Employee
                 {
-                    Id = Guid.NewGuid(),
-                    Name = "ประยุทธ์ เก่งกาจ",
-                    Phone = "086-789-0123",
+                    Id = new Guid("66666666-6666-6666-6666-666666666666"),
+                    Name = "นางสาวเพ็ญพิสุข เขตตะ",
+                    Phone = null,
                     Status = EmployeeStatus.Active,
-                    PositionId = positionDict["ผลิต_หัวหน้าผลิต"],
+                    PositionId = salePositionId,
                     Avatar = null,
                     CreatedDate = DateTimeOffset.UtcNow,
                     IsDeleted = false
-                });
-            }
-
-            // Employees for ควบคุมคุณภาพ department
-            if (positionDict.ContainsKey("ควบคุมคุณภาพ_พนักงาน QC"))
-            {
-                employees.Add(new Employee
+                },
+                new Employee
                 {
-                    Id = Guid.NewGuid(),
-                    Name = "สุรีย์ ตรวจสอบดี",
-                    Phone = "087-890-1234",
+                    Id = new Guid("77777777-7777-7777-7777-777777777777"),
+                    Name = "นางสาวชฎาพร ก่อแก้ว",
+                    Phone = null,
                     Status = EmployeeStatus.Active,
-                    PositionId = positionDict["ควบคุมคุณภาพ_พนักงาน QC"],
+                    PositionId = salePositionId,
                     Avatar = null,
                     CreatedDate = DateTimeOffset.UtcNow,
                     IsDeleted = false
-                });
-            }
+                }
+            };
 
-            if (positionDict.ContainsKey("ควบคุมคุณภาพ_หัวหน้า QC"))
-            {
-                employees.Add(new Employee
-                {
-                    Id = Guid.NewGuid(),
-                    Name = "วิไล ควบคุมดี",
-                    Phone = "088-901-2345",
-                    Status = EmployeeStatus.Active,
-                    PositionId = positionDict["ควบคุมคุณภาพ_หัวหน้า QC"],
-                    Avatar = null,
-                    CreatedDate = DateTimeOffset.UtcNow,
-                    IsDeleted = false
-                });
-            }
-
-            // Employees for จัดซื้อ department
-            if (positionDict.ContainsKey("จัดซื้อ_พนักงานจัดซื้อ"))
-            {
-                employees.Add(new Employee
-                {
-                    Id = Guid.NewGuid(),
-                    Name = "สมปอง จัดซื้อดี",
-                    Phone = "089-012-3456",
-                    Status = EmployeeStatus.Active,
-                    PositionId = positionDict["จัดซื้อ_พนักงานจัดซื้อ"],
-                    Avatar = null,
-                    CreatedDate = DateTimeOffset.UtcNow,
-                    IsDeleted = false
-                });
-            }
-
-            if (positionDict.ContainsKey("จัดซื้อ_หัวหน้าจัดซื้อ"))
-            {
-                employees.Add(new Employee
-                {
-                    Id = Guid.NewGuid(),
-                    Name = "ประพันธ์ จัดการดี",
-                    Phone = "090-123-4567",
-                    Status = EmployeeStatus.Active,
-                    PositionId = positionDict["จัดซื้อ_หัวหน้าจัดซื้อ"],
-                    Avatar = null,
-                    CreatedDate = DateTimeOffset.UtcNow,
-                    IsDeleted = false
-                });
-            }
-
-            // Employees for ขาย department
-            if (positionDict.ContainsKey("ขาย_พนักงานขาย"))
-            {
-                employees.Add(new Employee
-                {
-                    Id = new Guid("11111111-1111-1111-1111-111111111111"), // Fixed ID for admin user link
-                    Name = "สมหมาย ขายเก่ง",
-                    Phone = "091-234-5678",
-                    Status = EmployeeStatus.Active,
-                    PositionId = positionDict["ขาย_พนักงานขาย"],
-                    Avatar = null,
-                    CreatedDate = DateTimeOffset.UtcNow,
-                    IsDeleted = false
-                });
-
-                employees.Add(new Employee
-                {
-                    Id = Guid.NewGuid(),
-                    Name = "สุดา ขายดี",
-                    Phone = "092-345-6789",
-                    Status = EmployeeStatus.Active,
-                    PositionId = positionDict["ขาย_พนักงานขาย"],
-                    Avatar = null,
-                    CreatedDate = DateTimeOffset.UtcNow,
-                    IsDeleted = false
-                });
-            }
-
-            if (positionDict.ContainsKey("ขาย_หัวหน้าขาย"))
-            {
-                employees.Add(new Employee
-                {
-                    Id = new Guid("22222222-2222-2222-2222-222222222222"), // Fixed ID for superadmin user link
-                    Name = "ประเสริฐ ขายเยี่ยม",
-                    Phone = "093-456-7890",
-                    Status = EmployeeStatus.Active,
-                    PositionId = positionDict["ขาย_หัวหน้าขาย"],
-                    Avatar = null,
-                    CreatedDate = DateTimeOffset.UtcNow,
-                    IsDeleted = false
-                });
-            }
-
-            if (employees.Any())
-            {
-                await context.Employees.AddRangeAsync(employees);
-                await context.SaveChangesAsync();
-            }
+            await context.Employees.AddRangeAsync(employees);
+            await context.SaveChangesAsync();
         }
     }
 }

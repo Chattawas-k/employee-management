@@ -16,8 +16,8 @@ namespace employee_management.Persistence.Seeds
                 new ProductCategory
                 {
                     Id = Guid.NewGuid(),
-                    Name = "อุปกรณ์อิเล็กทรอนิกส์",
-                    Description = "หมวดหมู่สำหรับอุปกรณ์อิเล็กทรอนิกส์ต่างๆ",
+                    Name = "ห้องนอน",
+                    Description = "หมวดหมู่สำหรับห้องนอน",
                     IsActive = true,
                     CreatedDate = DateTimeOffset.UtcNow,
                     IsDeleted = false
@@ -25,8 +25,8 @@ namespace employee_management.Persistence.Seeds
                 new ProductCategory
                 {
                     Id = Guid.NewGuid(),
-                    Name = "เสื้อผ้า",
-                    Description = "หมวดหมู่สำหรับเสื้อผ้าและเครื่องแต่งกาย",
+                    Name = "ห้องรับแขก",
+                    Description = "หมวดหมู่สำหรับห้องรับแขก",
                     IsActive = true,
                     CreatedDate = DateTimeOffset.UtcNow,
                     IsDeleted = false
@@ -34,8 +34,8 @@ namespace employee_management.Persistence.Seeds
                 new ProductCategory
                 {
                     Id = Guid.NewGuid(),
-                    Name = "อาหาร",
-                    Description = "หมวดหมู่สำหรับอาหารและเครื่องดื่ม",
+                    Name = "ห้องอาหาร",
+                    Description = "หมวดหมู่สำหรับห้องอาหาร",
                     IsActive = true,
                     CreatedDate = DateTimeOffset.UtcNow,
                     IsDeleted = false
@@ -43,8 +43,8 @@ namespace employee_management.Persistence.Seeds
                 new ProductCategory
                 {
                     Id = Guid.NewGuid(),
-                    Name = "เครื่องใช้ในบ้าน",
-                    Description = "หมวดหมู่สำหรับเครื่องใช้ในบ้าน",
+                    Name = "ห้องสำนักงาน",
+                    Description = "หมวดหมู่สำหรับห้องสำนักงาน",
                     IsActive = true,
                     CreatedDate = DateTimeOffset.UtcNow,
                     IsDeleted = false
@@ -52,8 +52,8 @@ namespace employee_management.Persistence.Seeds
                 new ProductCategory
                 {
                     Id = Guid.NewGuid(),
-                    Name = "ของเล่น",
-                    Description = "หมวดหมู่สำหรับของเล่น",
+                    Name = "ห้องครัว",
+                    Description = "หมวดหมู่สำหรับห้องครัว",
                     IsActive = true,
                     CreatedDate = DateTimeOffset.UtcNow,
                     IsDeleted = false
@@ -61,8 +61,17 @@ namespace employee_management.Persistence.Seeds
                 new ProductCategory
                 {
                     Id = Guid.NewGuid(),
-                    Name = "หนังสือ",
-                    Description = "หมวดหมู่สำหรับหนังสือและสื่อสิ่งพิมพ์",
+                    Name = "สนามเด็กเล่น",
+                    Description = "หมวดหมู่สำหรับสนามเด็กเล่น",
+                    IsActive = true,
+                    CreatedDate = DateTimeOffset.UtcNow,
+                    IsDeleted = false
+                },
+                new ProductCategory
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "อื่นๆ",
+                    Description = "หมวดหมู่สำหรับอื่นๆ",
                     IsActive = true,
                     CreatedDate = DateTimeOffset.UtcNow,
                     IsDeleted = false
