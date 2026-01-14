@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, computed, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, computed, signal, ChangeDetectionStrategy, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Task } from '../task-column/task-column.component';
 import { ReportStatus } from '../../../models/sales-report.model';
@@ -21,11 +21,21 @@ interface HistoryEntry {
   styleUrls: ['./task-detail-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class TaskDetailDialogComponent {
+export class TaskDetailDialogComponent implements OnChanges {
   @Input() task!: Task;
   @Output() close = new EventEmitter<void>();
 
   activeTab = signal<'details' | 'history'>('details');
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['task']) {
+      // For Pending/In-progress/Rejected: show history only
+      // For Completed: default to details
+      this.activeTab.set(this.canShowDetails() ? 'details' : 'history');
+    }
+  }
+
+  canShowDetails = computed(() => this.task?.status === 'completed');
 
   statusInfo = computed(() => {
     const status = this.task.status;
@@ -60,7 +70,8 @@ export class TaskDetailDialogComponent {
     }
   });
 
-  private readonly interestedProductsList = [
+  // Legacy controlName mapping (kept for backward compatibility)
+  private readonly legacyInterestedProductsList = [
     { controlName: 'livingRoom', label: 'โซฟาและห้องนั่งเล่น' },
     { controlName: 'bedroom', label: 'ชุดห้องนอน' },
     { controlName: 'dining', label: 'โต๊ะอาหาร' },
@@ -72,7 +83,8 @@ export class TaskDetailDialogComponent {
     { controlName: 'kids', label: 'เฟอร์นิเจอร์เด็ก' }
   ];
 
-  private readonly allReasons = [
+  // Legacy controlName mapping (kept for backward compatibility)
+  private readonly legacyAllReasons = [
     { controlName: 'wantsToDecide', label: 'ขอไปตัดสินใจก่อน' },
     { controlName: 'waitingForPromo', label: 'รอโปรโมชั่น' },
     { controlName: 'comparing', label: 'เปรียบเทียบกับที่อื่น' },
@@ -95,25 +107,83 @@ export class TaskDetailDialogComponent {
     { controlName: 'budgetCut', label: 'งบประมาณไม่พอ' }
   ];
 
+  customerDisplay = computed(() => {
+    const report = this.task.salesReportData ?? null;
+    const name = (report?.customerName ?? this.task.customerName ?? '').toString().trim();
+    const phone = (report?.contactInfo ?? report?.customerContact ?? '').toString().trim();
+    return {
+      name: name || '-',
+      phone: phone || '-'
+    };
+  });
+
   salesReportInterestedProducts = computed(() => {
-    const reportData = this.task.salesReportData;
-    if (!reportData || !reportData.interestedProducts) return [];
-    
-    return this.interestedProductsList
-      .filter(p => reportData.interestedProducts[p.controlName])
-      .map(p => p.label);
+    const report = this.task.salesReportData ?? null;
+    if (!report) return [];
+
+    // New format: productCategory as comma-separated string
+    const productCategory = (report.productCategory ?? '').toString().trim();
+    if (productCategory) {
+      return productCategory
+        .split(',')
+        .map((p: string) => p.trim())
+        .filter((p: string) => p.length > 0);
+    }
+
+    // Legacy format: interestedProducts object with controlName -> boolean
+    const legacy = report.interestedProducts;
+    if (legacy && typeof legacy === 'object' && !Array.isArray(legacy)) {
+      return this.legacyInterestedProductsList
+        .filter(p => (legacy as any)[p.controlName])
+        .map(p => p.label);
+    }
+
+    // Fallback: array
+    if (Array.isArray(legacy)) {
+      return legacy.map((p: any) => String(p)).filter((p: string) => p.trim().length > 0);
+    }
+
+    return [];
   });
 
   salesReportReasons = computed(() => {
-    const reportData = this.task.salesReportData;
-    if (!reportData || !reportData.reasons) return [];
+    const report = this.task.salesReportData ?? null;
+    if (!report) return [];
 
-    return this.allReasons
-      .filter(r => reportData.reasons[r.controlName])
-      .map(r => r.label);
+    // New format: reasons as string[]
+    if (Array.isArray(report.reasons)) {
+      return report.reasons.map((r: any) => String(r)).filter((r: string) => r.trim().length > 0);
+    }
+
+    // Legacy format: reasons object with controlName -> boolean
+    const legacy = report.reasons;
+    if (legacy && typeof legacy === 'object' && !Array.isArray(legacy)) {
+      return this.legacyAllReasons
+        .filter(r => (legacy as any)[r.controlName])
+        .map(r => r.label);
+    }
+
+    return [];
+  });
+
+  salesReportDescription = computed(() => {
+    const report = this.task.salesReportData ?? null;
+    const text = (report?.description ?? report?.additionalInfo ?? '').toString().trim();
+    return text;
+  });
+
+  reasonsTitle = computed(() => {
+    const reportStatus = this.task.salesReportData?.status as ReportStatus | undefined;
+    if (reportStatus === 'Pending') return 'เหตุผลระหว่างตัดสินใจ';
+    if (reportStatus === 'Failed') return 'เหตุผลปิดการขายไม่สำเร็จ';
+    return 'เหตุผล';
   });
 
   setActiveTab(tab: 'details' | 'history') {
+    if (tab === 'details' && !this.canShowDetails()) {
+      this.activeTab.set('history');
+      return;
+    }
     this.activeTab.set(tab);
   }
 

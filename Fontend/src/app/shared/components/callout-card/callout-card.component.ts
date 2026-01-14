@@ -80,7 +80,7 @@ export class CalloutCardComponent {
       case 'success':
         return 'bg-green-200 text-green-900 border-green-500';
       case 'warning':
-        return 'bg-yellow-200 text-yellow-900 border-yellow-500';
+        return 'bg-yellow-400 text-yellow-900 border-yellow-500';
       case 'danger':
         return 'bg-red-200 text-red-900 border-red-500';
       case 'neutral':

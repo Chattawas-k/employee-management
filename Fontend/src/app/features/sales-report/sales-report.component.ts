@@ -834,21 +834,19 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
     return cleaned.substring(0, 1);
   }
 
-  getCustomerAvatarColor(customerName: string): string {
-    if (!customerName || customerName.trim().length === 0) {
-      return 'bg-gray-500';
+  getCustomerAvatarColor(status: ReportStatus | string | undefined): string {
+    switch (status) {
+      case 'Success':
+        return 'bg-green-500';
+      case 'Pending':
+        return 'bg-yellow-500';
+      case 'Failed':
+        return 'bg-red-500';
+      case 'Rejected':
+        return 'bg-rose-500';
+      default:
+        return 'bg-slate-500';
     }
-    
-    // Simple hash function to generate consistent color from name
-    let hash = 0;
-    for (let i = 0; i < customerName.length; i++) {
-      hash = customerName.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    
-    // Map hash to one of the colors: green, purple, blue, pink
-    const colors = ['bg-green-500', 'bg-purple-500', 'bg-blue-500', 'bg-pink-500'];
-    const index = Math.abs(hash) % colors.length;
-    return colors[index];
   }
 
   getStatusIcon(status: ReportStatus): { color: string, text: string } {

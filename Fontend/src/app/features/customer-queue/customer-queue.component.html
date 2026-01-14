@@ -40,11 +40,11 @@
           @if (staff.isNext) {
           <div
             class="bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl p-4 text-white relative shadow-lg overflow-hidden transition-all hover:shadow-xl hover:-translate-y-1">
-            <div class="absolute -top-10 -right-[70px] w-[200px] h-48 bg-green-400 rounded-full opacity-20"></div>
-            <div class="absolute -bottom-[60px] -left-20 w-[200px] h-48 bg-green-400 rounded-full opacity-20"></div>
+            <div class="absolute -top-10 -right-[70px] w-[200px] h-48 bg-white/50 rounded-full opacity-10"></div>
+            <div class="absolute -bottom-[60px] -left-20 w-[200px] h-48 bg-white/50 rounded-full opacity-10"></div>
             <div class="relative z-10">
               <div class="flex justify-between items-center">
-                <span class="bg-white/90 text-indigo-700 text-sm font-medium px-4 py-1.5 rounded-full shadow-md">
+                <span class="bg-green-400 text-indigo-700 text-sm font-medium px-4 py-1.5 rounded-full shadow-md">
                   คิวถัดไป
                 </span>
                 <div class="relative">
@@ -107,7 +107,7 @@
             <span class="w-3 h-3 bg-orange-400 rounded-full animate-pulse"></span>
             <h2 class="text-xl font-medium">กำลังดูแลลูกค้า</h2>
             <span
-              class="ml-auto px-2.5 py-1 text-base font-medium text-red-700 bg-red-100 rounded-full">{{busyStaff().length}}</span>
+              class="ml-auto px-2.5 py-1 text-base font-medium text-red-700 bg-orange-100 rounded-full">{{busyStaff().length}}</span>
           </header>
           <div class="space-y-3">
             @if (busyStaff().length === 0) {
