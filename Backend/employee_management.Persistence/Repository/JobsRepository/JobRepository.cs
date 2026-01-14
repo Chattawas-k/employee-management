@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using employee_management.Application.Repository.JobsRepository;
 using employee_management.Domain.Entities;
+using employee_management.Domain.Enums;
 using employee_management.Persistence.Context;
 using employee_management.Persistence.Services;
 using employee_management.Application.Common.Services;
@@ -30,36 +31,69 @@ namespace employee_management.Persistence.Repository.JobsRepository
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<Job>> GetSalesReportsAsync(Guid employeeId, string? status, CancellationToken cancellationToken)
+        public async Task<List<Job>> GetSalesReportsAsync(Guid employeeId, string? status, int? pageNumber, int? pageSize, CancellationToken cancellationToken)
         {
-            // Use EF Core LINQ with proper filtering
             // Filter by AssigneeId (EmployeeId) to show only jobs assigned to the current employee
-            // Note: Report is a computed property, so we filter by ReportJson in the query
-            // and then filter by Report.SalesStatus in memory after deserialization
-            var query = Context.Jobs
-                .Include(j => j.Employee)
-                .Where(j => !j.IsDeleted && j.AssigneeId == employeeId && j.ReportJson != null);
+            // Note: Report is a computed property (deserialized from ReportJson), so for report-based statuses
+            // we need to filter in memory after loading rows with ReportJson.
+            var statusLower = status?.Trim().ToLowerInvariant();
+            var isRejected = statusLower is "rejected" or "cancelled";
 
-            // Execute query first to get jobs with reports
-            var jobs = await query
+            IQueryable<Job> query = Context.Jobs
+                .Include(j => j.Employee)
+                .Where(j => !j.IsDeleted && j.AssigneeId == employeeId);
+
+            if (isRejected)
+            {
+                // Rejected = job cancelled (no sales report required)
+                query = query.Where(j => j.Status == JobStatus.Cancelled);
+                var rejectedJobs = await query
+                    .OrderByDescending(j => j.CreatedDate)
+                    .ToListAsync(cancellationToken);
+
+                return ApplyPaging(rejectedJobs, pageNumber, pageSize);
+            }
+
+            if (string.IsNullOrWhiteSpace(statusLower))
+            {
+                // All = jobs with a report OR cancelled jobs
+                var allJobs = await query
+                    .Where(j => j.ReportJson != null || j.Status == JobStatus.Cancelled)
+                    .OrderByDescending(j => j.CreatedDate)
+                    .ToListAsync(cancellationToken);
+
+                // Keep only rows that actually deserialize to a report, plus cancelled jobs
+                allJobs = allJobs
+                    .Where(j => j.Status == JobStatus.Cancelled || j.Report != null)
+                    .ToList();
+
+                return ApplyPaging(allJobs, pageNumber, pageSize);
+            }
+
+            // Report-based statuses: pending/success/failed
+            var jobsWithReportJson = await query
+                .Where(j => j.ReportJson != null)
                 .OrderByDescending(j => j.CreatedDate)
                 .ToListAsync(cancellationToken);
 
-            // Filter by status in memory after deserialization
-            if (!string.IsNullOrWhiteSpace(status))
+            var filtered = jobsWithReportJson
+                .Where(j => j.Report != null &&
+                            !string.IsNullOrWhiteSpace(j.Report.SalesStatus) &&
+                            j.Report.SalesStatus.Trim().ToLowerInvariant() == statusLower)
+                .ToList();
+
+            return ApplyPaging(filtered, pageNumber, pageSize);
+        }
+
+        private static List<Job> ApplyPaging(List<Job> jobs, int? pageNumber, int? pageSize)
+        {
+            if (!pageNumber.HasValue || !pageSize.HasValue || pageNumber.Value <= 0 || pageSize.Value <= 0)
             {
-                var statusLower = status.ToLower();
-                jobs = jobs.Where(j => 
-                    j.Report != null && 
-                    j.Report.SalesStatus.ToLower() == statusLower).ToList();
-            }
-            else
-            {
-                // Only return jobs that have valid reports
-                jobs = jobs.Where(j => j.Report != null).ToList();
+                return jobs;
             }
 
-            return jobs;
+            var skip = (pageNumber.Value - 1) * pageSize.Value;
+            return jobs.Skip(skip).Take(pageSize.Value).ToList();
         }
 
         public async Task<int> CountJobsByDateAsync(DateTime date, CancellationToken cancellationToken)

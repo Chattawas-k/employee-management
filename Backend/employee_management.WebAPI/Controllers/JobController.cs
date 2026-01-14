@@ -121,6 +121,8 @@ namespace employee_management.WebAPI.Controllers
         [HttpGet("sales-reports")]
         public async Task<ActionResult<GetSalesReportsResponse>> GetSalesReports(
             [FromQuery] string? status = null,
+            [FromQuery] int? pageNumber = null,
+            [FromQuery] int? pageSize = null,
             CancellationToken cancellationToken = default)
         {
             // Get EmployeeId from JWT token claims
@@ -131,7 +133,7 @@ namespace employee_management.WebAPI.Controllers
                 return BadRequest("EmployeeId not found in token, invalid format, or not linked to this user.");
             }
 
-            var response = await _mediator.Send(new GetSalesReportsRequest(employeeId, status), cancellationToken);
+            var response = await _mediator.Send(new GetSalesReportsRequest(employeeId, status, pageNumber, pageSize), cancellationToken);
             return Ok(response);
         }
 

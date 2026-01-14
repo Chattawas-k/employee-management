@@ -1,6 +1,7 @@
 using AutoMapper;
 using employee_management.Domain.Entities;
 using employee_management.Domain.Enums;
+using System;
 using System.Linq;
 
 namespace employee_management.Application.Features.Jobs.Queries.GetSalesReports
@@ -15,10 +16,16 @@ namespace employee_management.Application.Features.Jobs.Queries.GetSalesReports
                 .ForMember(dest => dest.JobRunningCode, opt => opt.MapFrom(src => src.JobRunningCode))
                 .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Report != null ? src.Report.CustomerName : src.Customer))
                 .ForMember(dest => dest.CustomerContact, opt => opt.MapFrom(src => src.Report != null ? src.Report.CustomerContact : string.Empty))
-                .ForMember(dest => dest.SalesStatus, opt => opt.MapFrom(src => src.Report != null ? src.Report.SalesStatus : string.Empty))
+                .ForMember(dest => dest.SalesStatus, opt => opt.MapFrom(src =>
+                    src.Report != null
+                        ? src.Report.SalesStatus
+                        : (src.Status == JobStatus.Cancelled ? "rejected" : string.Empty)))
                 .ForMember(dest => dest.Reasons, opt => opt.MapFrom(src => src.Report != null ? src.Report.Reasons : new List<string>()))
                 .ForMember(dest => dest.ProductCategory, opt => opt.MapFrom(src => src.Report != null ? src.Report.ProductCategory : string.Empty))
-                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Report != null ? src.Report.Description : string.Empty))
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src =>
+                    src.Report != null
+                        ? src.Report.Description
+                        : (src.Status == JobStatus.Cancelled ? ExtractCancelReason(src.StatusLogs) : string.Empty)))
                 .ForMember(dest => dest.SubmittedAt, opt => opt.MapFrom(src => src.CreatedDate))
                 .ForMember(dest => dest.SaleDate, opt => opt.MapFrom(src => 
                     (src.Status == JobStatus.ClosedWon || src.Status == JobStatus.ClosedLost) && src.Report != null && src.StatusLogs != null && 
@@ -28,6 +35,30 @@ namespace employee_management.Application.Features.Jobs.Queries.GetSalesReports
                 .ForMember(dest => dest.AssigneeId, opt => opt.MapFrom(src => src.AssigneeId))
                 .ForMember(dest => dest.AssigneeName, opt => opt.MapFrom(src => src.Employee != null ? src.Employee.Name : null))
                 .ForMember(dest => dest.InvoiceId, opt => opt.Ignore()); // InvoiceId will be set manually if needed
+        }
+
+        private static string ExtractCancelReason(List<StatusLog> logs)
+        {
+            if (logs == null || logs.Count == 0) return string.Empty;
+
+            // Prefer explicit "Cancelled: reason" log (latest)
+            var cancelLog = logs
+                .OrderByDescending(l => l.Timestamp)
+                .FirstOrDefault(l => (l.Status ?? string.Empty).StartsWith("Cancelled", StringComparison.OrdinalIgnoreCase));
+
+            if (cancelLog == null || string.IsNullOrWhiteSpace(cancelLog.Status))
+            {
+                return string.Empty;
+            }
+
+            var status = cancelLog.Status;
+            var idx = status.IndexOf(':');
+            if (idx < 0 || idx >= status.Length - 1)
+            {
+                return status;
+            }
+
+            return status[(idx + 1)..].Trim();
         }
     }
 }

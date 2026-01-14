@@ -1,4 +1,4 @@
-export type ReportStatus = 'Success' | 'Pending' | 'Failed';
+export type ReportStatus = 'Success' | 'Pending' | 'Failed' | 'Rejected';
 
 export interface SalesReport {
   id: string;

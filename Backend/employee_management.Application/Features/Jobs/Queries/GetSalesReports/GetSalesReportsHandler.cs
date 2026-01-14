@@ -27,26 +27,18 @@ namespace employee_management.Application.Features.Jobs.Queries.GetSalesReports
             {
                 _logger.LogInformation("Starting to retrieve sales reports for EmployeeId: {EmployeeId}, Status: {Status}", 
                     request.EmployeeId, request.Status ?? "All");
-                var jobs = await _jobRepository.GetSalesReportsAsync(request.EmployeeId, request.Status, cancellationToken);
+                var jobs = await _jobRepository.GetSalesReportsAsync(
+                    request.EmployeeId,
+                    request.Status,
+                    request.PageNumber,
+                    request.PageSize,
+                    cancellationToken);
                 _logger.LogInformation("Retrieved {Count} jobs from repository", jobs.Count);
-                
-                // Log details about each job
-                foreach (var job in jobs)
-                {
-                    _logger.LogInformation("Job {JobId}: ReportJson is null: {IsNull}, Report is null: {ReportIsNull}", 
-                        job.Id, 
-                        string.IsNullOrWhiteSpace(job.ReportJson), 
-                        job.Report == null);
-                }
-                
-                // Filter out jobs without reports and map
-                var jobsWithReports = jobs.Where(j => j.Report != null).ToList();
-                _logger.LogInformation("Found {Count} jobs with reports", jobsWithReports.Count);
                 
                 List<SalesReportDto> reportDtos;
                 try
                 {
-                    reportDtos = _mapper.Map<List<SalesReportDto>>(jobsWithReports);
+                    reportDtos = _mapper.Map<List<SalesReportDto>>(jobs);
                     _logger.LogInformation("Mapped {Count} sales report DTOs", reportDtos.Count);
                 }
                 catch (Exception mapEx)

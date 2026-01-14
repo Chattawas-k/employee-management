@@ -412,6 +412,8 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
         status = 'Success';
       } else if (salesStatus === 'failed' || salesStatus === 'ไม่สำเร็จ') {
         status = 'Failed';
+      } else if (salesStatus === 'rejected' || salesStatus === 'cancelled' || salesStatus === 'ปฏิเสธ') {
+        status = 'Rejected';
       } else {
         // Default to Pending for empty, null, or any other value
         status = 'Pending';
@@ -499,7 +501,7 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   activeTab = signal<ReportStatus | 'All'>('All');
   showDetailDialog = signal(false);
   selectedReport = signal<SalesReport | null>(null);
-  countsData = signal<Record<ReportStatus | 'All', number>>({ All: 0, Success: 0, Pending: 0, Failed: 0 });
+  countsData = signal<Record<ReportStatus | 'All', number>>({ All: 0, Success: 0, Pending: 0, Failed: 0, Rejected: 0 });
 
   // Edit dialog state
   showEditReportDialog = signal(false);
@@ -766,6 +768,8 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
         return { tag: 'bg-yellow-100 text-yellow-800', text: 'รอตัดสินใจ' };
       case 'Failed':
         return { tag: 'bg-red-100 text-red-700', text: 'ไม่สำเร็จ' };
+      case 'Rejected':
+        return { tag: 'bg-rose-100 text-rose-700', text: 'ปฏิเสธงาน' };
     }
   }
 
@@ -851,6 +855,8 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
         return { color: 'bg-yellow-500', text: 'รอตัดสินใจ' };
       case 'Failed':
         return { color: 'bg-red-500', text: 'ไม่สำเร็จ' };
+      case 'Rejected':
+        return { color: 'bg-rose-500', text: 'ปฏิเสธงาน' };
     }
   }
 }
