@@ -9,10 +9,8 @@ namespace employee_management.Persistence.Seeds
     {
         public static async Task SeedAsync(ApplicationDbContext context)
         {
-            if (await context.Employees.AnyAsync())
-                return;
-
-            // Seed only requested employees under Position "Sale"
+            // Seed employees used by seeded login accounts.
+            // Add only missing records (do not overwrite existing employees).
             var salePositionId = await context.Positions
                 .Where(p => p.Name == "Sale")
                 .Select(p => p.Id)
@@ -21,11 +19,44 @@ namespace employee_management.Persistence.Seeds
             if (salePositionId == Guid.Empty)
                 return;
 
+            var executivePositionId = await context.Positions
+                .Where(p => p.Name == "ผู้บริหาร")
+                .Select(p => p.Id)
+                .FirstOrDefaultAsync();
+
+            if (executivePositionId == Guid.Empty)
+            {
+                executivePositionId = salePositionId;
+            }
+
             var employees = new List<Employee>
             {
+                // Separate employees for admin/superadmin accounts (avoid duplicates with sales staff)
                 new Employee
                 {
-                    Id = new Guid("11111111-1111-1111-1111-111111111111"), // Keep fixed ID (used by DefaultAdmin)
+                    Id = new Guid("88888888-8888-8888-8888-888888888888"),
+                    Name = "ผู้ดูแลระบบ",
+                    Phone = null,
+                    Status = EmployeeStatus.Active,
+                    PositionId = executivePositionId,
+                    Avatar = null,
+                    CreatedDate = DateTimeOffset.UtcNow,
+                    IsDeleted = false
+                },
+                new Employee
+                {
+                    Id = new Guid("99999999-9999-9999-9999-999999999999"),
+                    Name = "ผู้ดูแลระบบสูงสุด",
+                    Phone = null,
+                    Status = EmployeeStatus.Active,
+                    PositionId = executivePositionId,
+                    Avatar = null,
+                    CreatedDate = DateTimeOffset.UtcNow,
+                    IsDeleted = false
+                },
+                new Employee
+                {
+                    Id = new Guid("11111111-1111-1111-1111-111111111111"),
                     Name = "นางเอื้อมพร ปัดถา",
                     Phone = null,
                     Status = EmployeeStatus.Active,
@@ -36,7 +67,7 @@ namespace employee_management.Persistence.Seeds
                 },
                 new Employee
                 {
-                    Id = new Guid("22222222-2222-2222-2222-222222222222"), // Keep fixed ID (used by DefaultSuperAdmin)
+                    Id = new Guid("22222222-2222-2222-2222-222222222222"),
                     Name = "นางสาวภาสนา กันเติม",
                     Phone = null,
                     Status = EmployeeStatus.Active,
@@ -102,7 +133,17 @@ namespace employee_management.Persistence.Seeds
                 }
             };
 
-            await context.Employees.AddRangeAsync(employees);
+            var existingIds = await context.Employees
+                .AsNoTracking()
+                .Where(e => employees.Select(x => x.Id).Contains(e.Id))
+                .Select(e => e.Id)
+                .ToListAsync();
+
+            var toAdd = employees.Where(e => !existingIds.Contains(e.Id)).ToList();
+            if (toAdd.Count == 0)
+                return;
+
+            await context.Employees.AddRangeAsync(toAdd);
             await context.SaveChangesAsync();
         }
     }

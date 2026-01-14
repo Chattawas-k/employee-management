@@ -147,7 +147,17 @@ namespace employee_management.Application.Features.Manager.Commands.Queue.Transf
             await _unitOfWork.Save(cancellationToken);
 
             await _notificationService.SendQueueUpdatedNotificationAsync();
-            await _notificationService.SendEmployeeStatusChangedNotificationAsync();
+            await _notificationService.SendEmployeeStatusChangedNotificationAsync(
+                request.ToStaffId.ToString(),
+                "busy"
+            );
+            if (fromStaffId != Guid.Empty)
+            {
+                await _notificationService.SendEmployeeStatusChangedNotificationAsync(
+                    fromStaffId.ToString(),
+                    "available"
+                );
+            }
 
             _logger.LogInformation(
                 "Manager {ManagerId} transferred job {JobId} from {FromStaff} to {ToStaff}: {Reason}",

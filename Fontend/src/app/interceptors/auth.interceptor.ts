@@ -30,7 +30,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   return next(clonedRequest).pipe(
     catchError((error: HttpErrorResponse) => {
       // Handle 401 Unauthorized errors
-      if (error.status === 401 && !req.url.includes('/auth/')) {
+      if ((error.status === 401 || error.status === 403) && !req.url.includes('/auth/')) {
         const refreshToken = authService.getRefreshToken();
         
         // If we have a refresh token and not already refreshing, try to refresh

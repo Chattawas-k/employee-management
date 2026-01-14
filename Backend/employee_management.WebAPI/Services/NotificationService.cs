@@ -136,11 +136,11 @@ namespace employee_management.WebAPI.Services
         /// <summary>
         /// ส่ง notification เมื่อ employee status ถูกเปลี่ยน (break/unavailable/available)
         /// </summary>
-        public async Task SendEmployeeStatusChangedNotificationAsync()
+        public async Task SendEmployeeStatusChangedNotificationAsync(string employeeId, string status)
         {
             try
             {
-                await _hubContext.Clients.All.SendAsync("EmployeeStatusChanged");
+                await _hubContext.Clients.All.SendAsync("EmployeeStatusChanged", employeeId, status);
             }
             catch (Exception ex)
             {

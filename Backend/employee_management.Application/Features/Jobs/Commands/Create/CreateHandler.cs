@@ -282,7 +282,10 @@ namespace employee_management.Application.Features.Jobs.Commands.Create
 
             // Notify dashboards/monitors that READY list changed
             await _notificationService.SendQueueUpdatedNotificationAsync();
-            await _notificationService.SendEmployeeStatusChangedNotificationAsync();
+            await _notificationService.SendEmployeeStatusChangedNotificationAsync(
+                assigneeId.ToString(),
+                "busy"
+            );
         }
     }
 }

@@ -82,7 +82,12 @@ namespace employee_management.Application.Features.Queues.Commands.UpdateMyStatu
 
                 // Send SignalR notifications to update queue dashboard and employee status
                 await _notificationService.SendQueueUpdatedNotificationAsync();
-                await _notificationService.SendEmployeeStatusChangedNotificationAsync();
+                var statusKey = request.Status.ToString();
+                if (!string.IsNullOrEmpty(statusKey))
+                {
+                    statusKey = char.ToLowerInvariant(statusKey[0]) + statusKey.Substring(1);
+                }
+                await _notificationService.SendEmployeeStatusChangedNotificationAsync(request.EmployeeId.ToString(), statusKey);
 
                 _logger.LogInformation(
                     "Updated availability status for employee {EmployeeId} from {PreviousStatus} to {NewStatus}",

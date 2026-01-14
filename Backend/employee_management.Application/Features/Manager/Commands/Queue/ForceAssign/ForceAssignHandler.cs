@@ -130,7 +130,10 @@ namespace employee_management.Application.Features.Manager.Commands.Queue.ForceA
             await _unitOfWork.Save(cancellationToken);
 
             await _notificationService.SendQueueUpdatedNotificationAsync();
-            await _notificationService.SendEmployeeStatusChangedNotificationAsync();
+            await _notificationService.SendEmployeeStatusChangedNotificationAsync(
+                request.StaffId.ToString(),
+                "busy"
+            );
 
             _logger.LogInformation(
                 "Manager {ManagerId} force assigned job {JobId} from {PreviousAssignee} to {NewAssignee}",

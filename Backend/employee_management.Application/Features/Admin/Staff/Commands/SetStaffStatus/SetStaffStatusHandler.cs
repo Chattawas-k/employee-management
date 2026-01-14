@@ -1,4 +1,5 @@
 using employee_management.Application.Common.Exceptions;
+using employee_management.Application.Common.Services;
 using employee_management.Application.Features.Admin.Staff.Models;
 using employee_management.Application.Repository;
 using employee_management.Application.Repository.EmployeesRepository;
@@ -16,17 +17,23 @@ namespace employee_management.Application.Features.Admin.Staff.Commands.SetStaff
         private readonly IUnitOfWork _unitOfWork;
         private readonly IEmployeeRepository _employeeRepository;
         private readonly UserManager<User> _userManager;
+        private readonly IRefreshTokenRevoker _refreshTokenRevoker;
+        private readonly INotificationService _notificationService;
         private readonly ILogger<SetStaffStatusHandler> _logger;
 
         public SetStaffStatusHandler(
             IUnitOfWork unitOfWork,
             IEmployeeRepository employeeRepository,
             UserManager<User> userManager,
+            IRefreshTokenRevoker refreshTokenRevoker,
+            INotificationService notificationService,
             ILogger<SetStaffStatusHandler> logger)
         {
             _unitOfWork = unitOfWork;
             _employeeRepository = employeeRepository;
             _userManager = userManager;
+            _refreshTokenRevoker = refreshTokenRevoker;
+            _notificationService = notificationService;
             _logger = logger;
         }
 
@@ -45,6 +52,17 @@ namespace employee_management.Application.Features.Admin.Staff.Commands.SetStaff
 
                 _employeeRepository.Update(employee);
                 await _unitOfWork.Save(cancellationToken);
+
+                if (!request.IsActive)
+                {
+                    // Immediately revoke refresh tokens for all users linked to this employee
+                    await _refreshTokenRevoker.RevokeByEmployeeIdAsync(employee.Id, cancellationToken);
+                }
+                
+                // Notify clients so disabled accounts are kicked immediately.
+                // We use a distinct status key to avoid confusion with availability statuses.
+                var statusKey = request.IsActive ? "accountActive" : "accountDisabled";
+                await _notificationService.SendEmployeeStatusChangedNotificationAsync(employee.Id.ToString(), statusKey);
 
                 var user = await _userManager.Users
                     .AsNoTracking()

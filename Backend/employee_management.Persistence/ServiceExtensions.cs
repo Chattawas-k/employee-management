@@ -70,6 +70,7 @@ namespace employee_management.Persistence
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IClientSourceProvider, ClientSourceProvider>();
+            services.AddScoped<IRefreshTokenRevoker, RefreshTokenRevoker>();
 
             // Register authentication/login related services
             services.AddScoped<ILoginService, LoginService>();

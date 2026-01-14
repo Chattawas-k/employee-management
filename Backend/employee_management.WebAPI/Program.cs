@@ -96,7 +96,7 @@ builder.Services.AddAuthentication(options =>
             logger.LogError($"   Stack trace: {context.Exception.StackTrace}");
             return Task.CompletedTask;
         },
-        OnTokenValidated = context =>
+        OnTokenValidated = async context =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
             logger.LogInformation($"✅ JWT Token Validated Successfully for {context.Request.Path}");
@@ -110,8 +110,28 @@ builder.Services.AddAuthentication(options =>
                 logger.LogInformation($"   Server time (UTC): {DateTime.UtcNow}");
                 logger.LogInformation($"   Time until expiration: {timeUntilExp.TotalMinutes:F1} minutes");
             }
+
+            // Enforce immediate account disable: if token is linked to an EmployeeId and that employee is not Active,
+            // reject authentication for ALL requests (even if token hasn't expired yet).
+            var employeeIdClaim = context.Principal?.FindFirst("EmployeeId")?.Value;
+            if (!string.IsNullOrEmpty(employeeIdClaim) && Guid.TryParse(employeeIdClaim, out var employeeId) && employeeId != Guid.Empty)
+            {
+                var dbContext = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+                var employee = await dbContext.Employees
+                    .AsNoTracking()
+                    .Where(e => e.Id == employeeId)
+                    .Select(e => new { e.Status, e.IsDeleted })
+                    .FirstOrDefaultAsync();
+
+                if (employee == null || employee.IsDeleted || employee.Status != employee_management.Domain.Enums.EmployeeStatus.Active)
+                {
+                    logger.LogWarning("🔒 Rejecting token: linked employee {EmployeeId} is disabled/deleted/not found.", employeeId);
+                    context.Fail("Account is disabled.");
+                    return;
+                }
+            }
             
-            return Task.CompletedTask;
+            // keep request authorized
         },
         OnChallenge = context =>
         {

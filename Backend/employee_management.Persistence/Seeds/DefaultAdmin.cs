@@ -18,7 +18,8 @@ namespace employee_management.Persistence.Seeds
                 LastName = "User",
                 EmailConfirmed = true,
                 PhoneNumberConfirmed = true,
-                EmployeeId = new Guid("11111111-1111-1111-1111-111111111111") // Link to "สมหมาย ขายเก่ง"
+                // Use separate employee to avoid duplicate rows with sales staff
+                EmployeeId = new Guid("88888888-8888-8888-8888-888888888888")
             };
             var user = await userManager.FindByEmailAsync(defaultUser.Email);
             if (user == null)
@@ -26,6 +27,39 @@ namespace employee_management.Persistence.Seeds
                 await userManager.CreateAsync(defaultUser, "123Pa$$word!");
                 await userManager.AddToRoleAsync(defaultUser, "Basic");
                 await userManager.AddToRoleAsync(defaultUser, "Admin");
+            }
+            else
+            {
+                var needsUpdate = false;
+                if (user.EmployeeId != defaultUser.EmployeeId)
+                {
+                    user.EmployeeId = defaultUser.EmployeeId;
+                    needsUpdate = true;
+                }
+                if (!user.EmailConfirmed)
+                {
+                    user.EmailConfirmed = true;
+                    needsUpdate = true;
+                }
+                if (!user.PhoneNumberConfirmed)
+                {
+                    user.PhoneNumberConfirmed = true;
+                    needsUpdate = true;
+                }
+
+                if (needsUpdate)
+                {
+                    await userManager.UpdateAsync(user);
+                }
+
+                if (!await userManager.IsInRoleAsync(user, "Basic"))
+                {
+                    await userManager.AddToRoleAsync(user, "Basic");
+                }
+                if (!await userManager.IsInRoleAsync(user, "Admin"))
+                {
+                    await userManager.AddToRoleAsync(user, "Admin");
+                }
             }
         }
     }

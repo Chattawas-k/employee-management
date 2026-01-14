@@ -3,6 +3,9 @@ import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@micros
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
 import { firstValueFrom, Observable, Subject, Subscription } from 'rxjs';
+import { Router } from '@angular/router';
+import { ToastService } from './toast.service';
+import { getEmployeeIdFromToken } from '../utils/jwt.util';
 
 @Injectable({
   providedIn: 'root'
@@ -23,7 +26,11 @@ export class SignalRService {
   private readonly employeeStatusChangedSubscriptions: Subscription[] = [];
   private readonly jobAssignedSubscriptions: Subscription[] = [];
 
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private toastService: ToastService
+  ) {}
 
   get queueUpdated$(): Observable<void> {
     return this.queueUpdatedSubject.asObservable();
@@ -138,8 +145,21 @@ export class SignalRService {
         this.jobStatusChangedSubject.next();
       });
 
-      this.hubConnection.on('EmployeeStatusChanged', () => {
+      // Employee status changed (availability + account status). Payload is optional.
+      this.hubConnection.on('EmployeeStatusChanged', (employeeId?: string, status?: string) => {
+        // Always notify subscribers (refresh UI lists)
         this.employeeStatusChangedSubject.next();
+
+        // Immediate kick when account disabled
+        if (employeeId && status === 'accountDisabled') {
+          const token = this.authService.getToken();
+          const myEmployeeId = getEmployeeIdFromToken(token);
+          if (myEmployeeId && myEmployeeId.toLowerCase() === employeeId.toLowerCase()) {
+            this.toastService.error('โปรดติดต่อผู้ดูแลระบบ', 'บัญชีถูกปิดใช้งาน');
+            this.authService.logout();
+            this.router.navigate(['/login']);
+          }
+        }
       });
 
       this.hubConnection.on('ReceiveJobAssigned', (jobId: string, jobTitle: string, customer: string) => {

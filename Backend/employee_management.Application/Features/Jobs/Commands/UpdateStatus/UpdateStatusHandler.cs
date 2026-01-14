@@ -306,7 +306,15 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
 
                 // Send SignalR notification for queue update
                 await _notificationService.SendQueueUpdatedNotificationAsync();
-                await _notificationService.SendEmployeeStatusChangedNotificationAsync();
+                var statusKey = newAvailabilityStatus?.ToString() ?? string.Empty;
+                if (!string.IsNullOrEmpty(statusKey))
+                {
+                    statusKey = char.ToLowerInvariant(statusKey[0]) + statusKey.Substring(1);
+                }
+                await _notificationService.SendEmployeeStatusChangedNotificationAsync(
+                    job.AssigneeId.ToString(),
+                    statusKey
+                );
                 
                 _logger.LogInformation(
                     "Updated availability status for employee {EmployeeId} from {PreviousStatus} to {NewStatus} based on job {JobId} status {JobStatus}",

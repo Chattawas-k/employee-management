@@ -38,7 +38,7 @@ namespace employee_management.Application.Common.Services
         /// <summary>
         /// ส่ง notification เมื่อ employee status ถูกเปลี่ยน (break/unavailable/available)
         /// </summary>
-        Task SendEmployeeStatusChangedNotificationAsync();
+        Task SendEmployeeStatusChangedNotificationAsync(string employeeId, string status);
 
         // Manager-specific notifications
         Task SendDashboardUpdateNotificationAsync(object kpiData);
