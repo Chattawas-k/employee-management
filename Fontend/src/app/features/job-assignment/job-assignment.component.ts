@@ -3,16 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { JobAssignmentCardComponent, StaffMember } from '../../shared/components/job-assignment-card/job-assignment-card.component';
 import { AssignCustomerConfirmDialogComponent } from '../../shared/components/assign-customer-confirm-dialog/assign-customer-confirm-dialog.component';
-import { EmployeeService } from '../../services/employee.service';
-import { TaskService } from '../../services/task.service';
 import { QueueService } from '../../services/queue.service';
 import { SignalRService } from '../../services/signalr.service';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
-import { JobPriority } from '../../models/task.model';
 import { catchError, finalize } from 'rxjs/operators';
 import { forkJoin, of } from 'rxjs';
-import { EmployeeDropdownDto } from '../../models/employee.model';
 import { QueueDto } from '../../models/queue.model';
 import { QueueSummaryResponse } from '../../models/queue.model';
 import { getEmployeeIdFromToken } from '../../utils/jwt.util';
@@ -32,7 +28,7 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
   
   searchTerm = signal('');
   isLoading = signal(false);
-  activeTab = signal<'all' | AvailabilityStatusKey>('all');
+  activeTab = signal<'all' | AvailabilityStatusKey>('available');
 
   showAssignDialog = signal(false);
   isSubmittingAssign = signal(false);
@@ -47,8 +43,6 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
   private resizeObserver?: ResizeObserver;
 
   constructor(
-    private employeeService: EmployeeService,
-    private taskService: TaskService,
     private queueService: QueueService,
     private signalRService: SignalRService,
     private authService: AuthService,
@@ -155,13 +149,6 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
     const today = new Date();
 
     forkJoin({
-      employees: this.employeeService.getAllEmployees('Active').pipe(
-        catchError(error => {
-          console.error('Error loading employees:', error);
-          this.toastService.error('เกิดข้อผิดพลาดในการโหลดข้อมูลพนักงาน');
-          return of([]);
-        })
-      ),
       queues: this.queueService.getQueuesByDate(today).pipe(
         catchError(error => {
           console.error('Error loading queues:', error);
@@ -178,12 +165,10 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
       )
     }).pipe(
       finalize(() => this.isLoading.set(false))
-    ).subscribe(({ employees, queues, jobSummary }: { employees: EmployeeDropdownDto[]; queues: QueueDto[]; jobSummary: QueueSummaryResponse }) => {
-      // Create maps for quick lookup
-      const queueMap = new Map<string, QueueDto>();
-      queues.forEach((queue: QueueDto) => {
-        queueMap.set(queue.employeeId, queue);
-      });
+    ).subscribe(({ queues, jobSummary }: { queues: QueueDto[]; jobSummary: QueueSummaryResponse }) => {
+      // NOTE:
+      // Requirement: show only employees that are in the current queue order.
+      // Therefore we build staff list from QueueDto (not from all employees).
 
       // Count jobs by status per employee
       const pendingJobCountMap = new Map<string, number>();
@@ -209,42 +194,46 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
         }
       });
 
-      // Get current employee ID from token each time to ensure it's up-to-date
-      // This is important because the token might change or the component might be reused
-      const token = this.authService.getToken();
-      const currentEmpId = getEmployeeIdFromToken(token);
-      
-      // Map employees to StaffMember with real data
-      const staffMembers: StaffMember[] = employees.map((emp: EmployeeDropdownDto) => {
-        const queue = queueMap.get(emp.id);
-        const pendingTasks = pendingJobCountMap.get(emp.id) || 0;
-        const currentTasks = inProgressJobCountMap.get(emp.id) || 0;
-        const totalTasks = totalJobCountMap.get(emp.id) || 0;
-        
-        // Use AvailabilityStatus from backend (stored in database)
-        const availabilityStatus = queue?.availabilityStatus || null;
-        
-        // Map availability status to UI status
-        const { status, statusClass } = this.mapAvailabilityStatusToUIStatus(availabilityStatus);
-        
-        const avatarUrl = emp.avatar && emp.avatar.trim().length > 0
-          ? emp.avatar
-          : `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}&background=6366f1&color=fff&size=128`;
-        
-        return {
-          name: emp.name,
-          role: emp.positionName || 'ไม่ระบุตำแหน่ง',
-          avatarUrl,
-          status,
-          statusClass,
-          pendingTasks,
-          currentTasks,
-          totalTasks,
-          queuePosition: queue?.position || 0,
-          employeeId: emp.id,
-          queueStatus: (queue?.status as 'Active' | 'Busy' | 'Inactive') || undefined
-        };
-      });
+      const normalizeQueueStatus = (raw: QueueDto['status']): StaffMember['queueStatus'] | undefined => {
+        const lower = String(raw ?? '').toLowerCase();
+        if (lower === 'active') return 'Active';
+        if (lower === 'busy') return 'Busy';
+        if (lower === 'inactive') return 'Inactive';
+        return undefined;
+      };
+
+      // Build staff list from current queues only, ordered by queue position
+      const staffMembers: StaffMember[] = [...queues]
+        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        .map((queue: QueueDto) => {
+          const employeeId = queue.employeeId;
+          const pendingTasks = pendingJobCountMap.get(employeeId) || 0;
+          const currentTasks = inProgressJobCountMap.get(employeeId) || 0;
+          const totalTasks = totalJobCountMap.get(employeeId) || 0;
+
+          const availabilityStatus = queue.availabilityStatus || null;
+          const { status, statusClass } = this.mapAvailabilityStatusToUIStatus(availabilityStatus);
+
+          const employeeName = queue.employeeName || 'ไม่ระบุชื่อ';
+          const avatarFromApi = (queue.avatar ?? '').trim();
+          const avatarUrl = avatarFromApi.length > 0
+            ? avatarFromApi
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(employeeName)}&background=6366f1&color=fff&size=128`;
+
+          return {
+            name: employeeName,
+            role: queue.positionName || 'ไม่ระบุตำแหน่ง',
+            avatarUrl,
+            status,
+            statusClass,
+            pendingTasks,
+            currentTasks,
+            totalTasks,
+            queuePosition: queue.position || 0,
+            employeeId,
+            queueStatus: normalizeQueueStatus(queue.status)
+          };
+        });
 
       this.staffMembers.set(staffMembers);
     });

@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { QueueService } from '../../services/queue.service';
 import { EmployeeService } from '../../services/employee.service';
 import { QueueDto } from '../../models/queue.model';
-import { EmployeeDropdownDto } from '../../models/employee.model';
 import { EditQueueOrderDialogComponent } from '../../shared/components/edit-queue-order-dialog/edit-queue-order-dialog.component';
 import { ToastService } from '../../services/toast.service';
 import { catchError, finalize } from 'rxjs/operators';
@@ -24,11 +23,38 @@ export class QueueSettingsComponent implements OnInit {
   selectedDate = signal<Date>(new Date());
   showEditDialog = signal(false);
 
+  selectedDateInputValue = computed(() => this.formatBangkokDate(this.selectedDate()));
+
   constructor(
     private queueService: QueueService,
     private employeeService: EmployeeService,
     private toastService: ToastService
   ) {}
+
+  private formatBangkokDate(date: Date): string {
+    // Always format as YYYY-MM-DD in Asia/Bangkok (avoid toISOString() UTC day shift)
+    try {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Bangkok',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(date);
+
+      const get = (type: string) => parts.find(p => p.type === type)?.value ?? '';
+      const y = get('year');
+      const m = get('month');
+      const d = get('day');
+      if (y && m && d) return `${y}-${m}-${d}`;
+    } catch {
+      // Fallback below
+    }
+
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
 
   ngOnInit(): void {
     this.loadCurrentQueues();
@@ -210,7 +236,8 @@ export class QueueSettingsComponent implements OnInit {
           position: maxPosition + index + 1, // Add to end
           status: 'Active',
           availabilityStatus: 'Available' as const,
-          queueDate: new Date().toISOString().split('T')[0]
+          // IMPORTANT: use Bangkok date string to match backend query (avoid UTC date shift)
+          queueDate: this.formatBangkokDate(this.getCurrentQueueDate())
         };
       });
 
