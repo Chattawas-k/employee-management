@@ -1,5 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://192.168.1.119:5169/api/v1' // TODO: Update with production API URL
+  // Same-origin API via reverse proxy (Caddy): https://www.jg.xalpha.co.th/api/v1
+  apiUrl: '/api/v1'
 };
 

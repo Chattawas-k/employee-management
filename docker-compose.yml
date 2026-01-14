@@ -1,0 +1,62 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: employee_management_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-BackEndTest}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Backend/employee_management.WebAPI/Dockerfile
+    container_name: employee_management_api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__ApplicationDbContext: Host=postgres;Database=${POSTGRES_DB:-BackEndTest};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-change_me}
+      Jwt__Key: ${JWT_KEY:-0123456789ABCDEF0123456789ABCDEF}
+      Jwt__Issuer: ${JWT_ISSUER:-employee-managementAPI}
+      Jwt__Audience: ${JWT_AUDIENCE:-employee-managementAPIUsers}
+      Jwt__ExpiresInMinutes: ${JWT_EXPIRES_IN_MINUTES:-60}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Fontend/Dockerfile
+    container_name: employee_management_web
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: employee_management_caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+

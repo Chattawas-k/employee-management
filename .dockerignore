@@ -1,0 +1,16 @@
+**/.git
+**/.DS_Store
+
+# Backend build artifacts
+Backend/**/bin
+Backend/**/obj
+
+# Frontend artifacts
+Fontend/node_modules
+Fontend/dist
+
+# Editor/OS
+**/.vscode
+**/.idea
+**/*.user
+**/*.suo
