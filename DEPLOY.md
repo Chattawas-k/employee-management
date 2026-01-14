@@ -20,6 +20,11 @@ This repo contains:
 - Ports **80** and **443** open from the internet to the server
 - DNS record already points to this server (see next section)
 
+### Optional: expose PostgreSQL to outside
+If you need to connect to PostgreSQL from outside Docker (e.g. using DBeaver / TablePlus / psql), this stack maps PostgreSQL to host port **5432**.
+
+Security note: do **not** expose port 5432 to the public internet. Restrict firewall/security group rules to trusted IPs or use a VPN/SSH tunnel.
+
 ---
 
 ## 2) DNS setup
