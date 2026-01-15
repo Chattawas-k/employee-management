@@ -17,6 +17,7 @@ import { authGuard } from './guards/auth.guard';
 import { managerGuard } from './guards/manager.guard';
 import { adminGuard } from './guards/admin.guard';
 import { SetPasswordPage } from './features/auth-set-password/set-password.page';
+import { SalesReportAdminComponent } from './features/sales-report-admin/sales-report-admin.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -33,6 +34,7 @@ export const routes: Routes = [
   { path: 'assign', component: JobAssignmentComponent, canActivate: [authGuard] },
   { path: 'summary', component: QueueSummaryComponent, canActivate: [authGuard] },
   { path: 'report', component: SalesReportComponent, canActivate: [authGuard] },
+  { path: 'sales-report-admin', component: SalesReportAdminComponent, canActivate: [adminGuard] },
   { path: 'settings/employees', component: EmployeeManagementComponent, canActivate: [adminGuard] },
   { path: 'settings/queue', component: QueueSettingsComponent, canActivate: [authGuard] },
   { path: 'settings/product-categories', component: ProductCategoryManagementComponent, canActivate: [authGuard] },

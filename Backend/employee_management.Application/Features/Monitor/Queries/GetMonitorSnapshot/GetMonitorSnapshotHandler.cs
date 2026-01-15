@@ -22,7 +22,8 @@ namespace employee_management.Application.Features.Monitor.Queries.GetMonitorSna
         {
             var date = request.Date.Date;
 
-            var queues = await _queueRepository.GetByDateAsync(date, cancellationToken);
+            // Monitor shows only Basic-only staff names (exclude Admin/Manager/SuperAdmin and employees without login)
+            var queues = await _queueRepository.GetByDateBasicOnlyAsync(date, cancellationToken);
 
             // Active = waiting list (ready queue)
             var activeQueues = queues

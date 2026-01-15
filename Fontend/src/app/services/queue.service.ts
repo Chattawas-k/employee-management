@@ -39,9 +39,13 @@ export class QueueService {
     return `${y}-${m}-${d}`;
   }
 
-  getQueuesByDate(date: Date): Observable<GetQueuesByDateResponse> {
+  getQueuesByDate(date: Date, basicOnly: boolean = false): Observable<GetQueuesByDateResponse> {
     const dateStr = this.formatBangkokDate(date);
-    return this.http.get<GetQueuesByDateResponse>(`${this.apiUrl}/date/${dateStr}`);
+    let params = new HttpParams();
+    if (basicOnly) {
+      params = params.set('basicOnly', 'true');
+    }
+    return this.http.get<GetQueuesByDateResponse>(`${this.apiUrl}/date/${dateStr}`, { params });
   }
 
   getQueueSummary(date: Date): Observable<QueueSummaryResponse> {

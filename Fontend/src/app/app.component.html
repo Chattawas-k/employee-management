@@ -27,6 +27,8 @@
         <app-icon name="file-text" className="w-5 h-5"></app-icon>
         รายงานการขาย
       </a>
+
+      
       @if (hasManagerAccess()) {
       <div class="px-4 py-2.5 font-semibold text-sm text-blue-600 pt-4 mt-4 border-t border-slate-100">
         <span>เมนูอื่นๆ</span>
@@ -44,6 +46,13 @@
           class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
           <app-icon name="briefcase" className="w-5 h-5"></app-icon>
           มอบหมายงาน
+        </a>
+      }
+      @if (hasAdminAccess()) {
+        <a routerLink="/sales-report-admin" routerLinkActive="bg-indigo-600 text-white"
+          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
+          <app-icon name="file-text" className="w-5 h-5"></app-icon>
+          สรุปรายงานขาย
         </a>
       }
 

@@ -95,6 +95,99 @@ namespace employee_management.Persistence.Repository.JobsRepository
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<List<Job>> GetSalesReportsForAdminAsync(DateTime? dateFrom, DateTime? dateTo, Guid? assigneeId, string? search, CancellationToken cancellationToken)
+        {
+            // Base query for admin: all jobs, optionally filtered by date range (CreatedDate) and assignee.
+            // Search is applied partially in DB (Job fields + assignee name), and fully in-memory by handlers.
+            var query = BuildAdminSalesReportBaseQuery(dateFrom, dateTo, assigneeId, search);
+            return await query
+                .OrderByDescending(j => j.CreatedDate)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<Job>> GetSalesReportsForAdminExportAsync(DateTime? dateFrom, DateTime? dateTo, Guid? assigneeId, string? search, CancellationToken cancellationToken)
+        {
+            // Export uses same base query (no paging).
+            var query = BuildAdminSalesReportBaseQuery(dateFrom, dateTo, assigneeId, search);
+            return await query
+                .OrderByDescending(j => j.CreatedDate)
+                .ToListAsync(cancellationToken);
+        }
+
+        private IQueryable<Job> BuildAdminSalesReportBaseQuery(DateTime? dateFrom, DateTime? dateTo, Guid? assigneeId, string? search)
+        {
+            IQueryable<Job> query = Context.Jobs
+                .Include(j => j.Employee)
+                .Include(j => j.ProductCategory)
+                .Where(j => !j.IsDeleted);
+
+            if (assigneeId.HasValue && assigneeId.Value != Guid.Empty)
+            {
+                query = query.Where(j => j.AssigneeId == assigneeId.Value);
+            }
+
+            // Date filters are provided as date-only (Bangkok). Convert to UTC range and filter CreatedDate.
+            var (startUtc, endUtc) = ToUtcRangeFromBangkokDates(dateFrom, dateTo);
+            if (startUtc.HasValue)
+            {
+                query = query.Where(j => j.CreatedDate >= startUtc.Value);
+            }
+            if (endUtc.HasValue)
+            {
+                query = query.Where(j => j.CreatedDate < endUtc.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = $"%{search.Trim()}%";
+                query = query.Where(j =>
+                    EF.Functions.ILike(j.JobNumber, term) ||
+                    (j.JobRunningCode != null && EF.Functions.ILike(j.JobRunningCode, term)) ||
+                    EF.Functions.ILike(j.Title, term) ||
+                    EF.Functions.ILike(j.Customer, term) ||
+                    (j.Employee != null && EF.Functions.ILike(j.Employee.Name, term)));
+            }
+
+            return query;
+        }
+
+        private static (DateTimeOffset? startUtc, DateTimeOffset? endUtc) ToUtcRangeFromBangkokDates(DateTime? dateFrom, DateTime? dateTo)
+        {
+            if (!dateFrom.HasValue && !dateTo.HasValue)
+                return (null, null);
+
+            // Bangkok timezone: Asia/Bangkok (Linux/macOS) or SE Asia Standard Time (Windows)
+            TimeZoneInfo tz;
+            try
+            {
+                tz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Bangkok");
+            }
+            catch
+            {
+                tz = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            }
+
+            DateTimeOffset? startUtc = null;
+            DateTimeOffset? endUtc = null;
+
+            if (dateFrom.HasValue)
+            {
+                var localStart = DateTime.SpecifyKind(dateFrom.Value.Date, DateTimeKind.Unspecified);
+                var utcStart = TimeZoneInfo.ConvertTimeToUtc(localStart, tz);
+                startUtc = new DateTimeOffset(utcStart, TimeSpan.Zero);
+            }
+
+            if (dateTo.HasValue)
+            {
+                // inclusive end date → exclusive next day at 00:00
+                var localEndExclusive = DateTime.SpecifyKind(dateTo.Value.Date.AddDays(1), DateTimeKind.Unspecified);
+                var utcEndExclusive = TimeZoneInfo.ConvertTimeToUtc(localEndExclusive, tz);
+                endUtc = new DateTimeOffset(utcEndExclusive, TimeSpan.Zero);
+            }
+
+            return (startUtc, endUtc);
+        }
+
         private static List<Job> ApplyPaging(List<Job> jobs, int? pageNumber, int? pageSize)
         {
             if (!pageNumber.HasValue || !pageSize.HasValue || pageNumber.Value <= 0 || pageSize.Value <= 0)

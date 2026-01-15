@@ -25,9 +25,12 @@ namespace employee_management.WebAPI.Controllers
         }
 
         [HttpGet("date/{date}")]
-        public async Task<ActionResult<List<GetByDateResponse>>> GetByDate(DateTime date, CancellationToken cancellationToken)
+        public async Task<ActionResult<List<GetByDateResponse>>> GetByDate(
+            DateTime date,
+            [FromQuery] bool basicOnly = false,
+            CancellationToken cancellationToken = default)
         {
-            var response = await _mediator.Send(new GetByDateRequest(date), cancellationToken);
+            var response = await _mediator.Send(new GetByDateRequest(date, basicOnly), cancellationToken);
             return Ok(response);
         }
 

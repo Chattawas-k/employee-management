@@ -17,7 +17,9 @@ namespace employee_management.Application.Features.Queues.Queries.GetByDate
 
         public async Task<List<GetByDateResponse>> Handle(GetByDateRequest request, CancellationToken cancellationToken)
         {
-            var queues = await _queueRepository.GetByDateAsync(request.Date, cancellationToken);
+            var queues = request.BasicOnly
+                ? await _queueRepository.GetByDateBasicOnlyAsync(request.Date, cancellationToken)
+                : await _queueRepository.GetByDateAsync(request.Date, cancellationToken);
             return _mapper.Map<List<GetByDateResponse>>(queues);
         }
     }

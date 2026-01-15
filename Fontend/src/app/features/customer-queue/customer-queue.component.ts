@@ -254,7 +254,7 @@ export class CustomerQueueComponent implements OnInit, OnDestroy {
     const today = new Date();
 
     forkJoin({
-      queues: this.queueService.getQueuesByDate(today).pipe(
+      queues: this.queueService.getQueuesByDate(today, true).pipe(
         catchError(error => {
           console.error('Error loading queues:', error);
           this.toastService.error('เกิดข้อผิดพลาดในการโหลดข้อมูลคิว');

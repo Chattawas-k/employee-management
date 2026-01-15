@@ -5,6 +5,7 @@ using employee_management.Domain.Enums;
 using employee_management.Persistence.Context;
 using employee_management.Persistence.Services;
 using employee_management.Application.Common.Services;
+using Microsoft.AspNetCore.Identity;
 
 namespace employee_management.Persistence.Repository.QueuesRepository
 {
@@ -25,6 +26,50 @@ namespace employee_management.Persistence.Repository.QueuesRepository
                 .ThenInclude(e => e!.Position)
                 .ThenInclude(p => p!.Department)
                 .Where(q => q.QueueDate >= targetDate && q.QueueDate < nextDate && !q.IsDeleted)
+                .OrderBy(q => q.Position)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<Queue>> GetByDateBasicOnlyAsync(DateTime date, CancellationToken cancellationToken)
+        {
+            // Convert to UTC to avoid DateTime Kind issues with PostgreSQL
+            var targetDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+            var nextDate = targetDate.AddDays(1);
+
+            // Basic-only = has role Basic AND does NOT have any of Admin/SuperAdmin/Manager.
+            // Also implicitly requires a login (user) linked to EmployeeId.
+            var userRolePairs = from u in Context.Users
+                                where u.EmployeeId.HasValue && u.EmployeeId.Value != Guid.Empty
+                                join ur in Context.UserRoles on u.Id equals ur.UserId
+                                join r in Context.Roles on ur.RoleId equals r.Id
+                                select new
+                                {
+                                    EmployeeId = u.EmployeeId!.Value,
+                                    RoleName = r.Name!
+                                };
+
+            var allowedEmployeeIds = await userRolePairs
+                .GroupBy(x => x.EmployeeId)
+                .Where(g =>
+                    g.Any(x => x.RoleName == "Basic") &&
+                    !g.Any(x => x.RoleName == "Admin" || x.RoleName == "SuperAdmin" || x.RoleName == "Manager"))
+                .Select(g => g.Key)
+                .ToListAsync(cancellationToken);
+
+            if (allowedEmployeeIds.Count == 0)
+            {
+                return new List<Queue>();
+            }
+
+            return await Context.Queues
+                .Include(q => q.Employee)
+                .ThenInclude(e => e!.Position)
+                .ThenInclude(p => p!.Department)
+                .Where(q =>
+                    q.QueueDate >= targetDate &&
+                    q.QueueDate < nextDate &&
+                    !q.IsDeleted &&
+                    allowedEmployeeIds.Contains(q.EmployeeId))
                 .OrderBy(q => q.Position)
                 .ToListAsync(cancellationToken);
         }

@@ -57,7 +57,7 @@ namespace employee_management.Persistence.Seeds
                 new Employee
                 {
                     Id = new Guid("11111111-1111-1111-1111-111111111111"),
-                    Name = "นางเอื้อมพร ปัดถา",
+                    Name = "เอื้อมพร ปัดถา",
                     Phone = null,
                     Status = EmployeeStatus.Active,
                     PositionId = salePositionId,
@@ -68,7 +68,7 @@ namespace employee_management.Persistence.Seeds
                 new Employee
                 {
                     Id = new Guid("22222222-2222-2222-2222-222222222222"),
-                    Name = "นางสาวภาสนา กันเติม",
+                    Name = "ภาสนา กันเติม",
                     Phone = null,
                     Status = EmployeeStatus.Active,
                     PositionId = salePositionId,
@@ -79,7 +79,7 @@ namespace employee_management.Persistence.Seeds
                 new Employee
                 {
                     Id = new Guid("33333333-3333-3333-3333-333333333333"),
-                    Name = "นางจนิสตา แสวงจิตร",
+                    Name = "จนิสตา แสวงจิตร",
                     Phone = null,
                     Status = EmployeeStatus.Active,
                     PositionId = salePositionId,
@@ -90,7 +90,7 @@ namespace employee_management.Persistence.Seeds
                 new Employee
                 {
                     Id = new Guid("44444444-4444-4444-4444-444444444444"),
-                    Name = "นางเสงี่ยม แก้ววิชัย",
+                    Name = "เสงี่ยม แก้ววิชัย",
                     Phone = null,
                     Status = EmployeeStatus.Active,
                     PositionId = salePositionId,
@@ -101,7 +101,7 @@ namespace employee_management.Persistence.Seeds
                 new Employee
                 {
                     Id = new Guid("55555555-5555-5555-5555-555555555555"),
-                    Name = "นางสาวลักษมี จารุภาค",
+                    Name = "ลักษมี จารุภาค",
                     Phone = null,
                     Status = EmployeeStatus.Active,
                     PositionId = salePositionId,
@@ -112,7 +112,7 @@ namespace employee_management.Persistence.Seeds
                 new Employee
                 {
                     Id = new Guid("66666666-6666-6666-6666-666666666666"),
-                    Name = "นางสาวเพ็ญพิสุข เขตตะ",
+                    Name = "เพ็ญพิสุข เขตตะ",
                     Phone = null,
                     Status = EmployeeStatus.Active,
                     PositionId = salePositionId,
@@ -123,7 +123,7 @@ namespace employee_management.Persistence.Seeds
                 new Employee
                 {
                     Id = new Guid("77777777-7777-7777-7777-777777777777"),
-                    Name = "นางสาวชฎาพร ก่อแก้ว",
+                    Name = "ชฎาพร ก่อแก้ว",
                     Phone = null,
                     Status = EmployeeStatus.Active,
                     PositionId = salePositionId,
