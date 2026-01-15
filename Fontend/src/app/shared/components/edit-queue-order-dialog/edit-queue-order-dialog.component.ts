@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { QueueDto } from '../../../models/queue.model';
 import { AddEmployeeToQueueDialogComponent } from '../add-employee-to-queue-dialog/add-employee-to-queue-dialog.component';
 import { ConfirmDialogService } from '../../../services/confirm-dialog.service';
+import { EmployeeDropdownDto } from '../../../models/employee.model';
 
 @Component({
   selector: 'app-edit-queue-order-dialog',
@@ -17,7 +18,6 @@ export class EditQueueOrderDialogComponent implements OnInit, OnChanges {
   @Input() queueDate: Date = new Date();
   @Output() close = new EventEmitter<void>();
   @Output() save = new EventEmitter<{ queues: QueueDto[]; deletedQueueIds: string[] }>();
-  @Output() addEmployee = new EventEmitter<string[]>();
 
   reorderedQueues = signal<QueueDto[]>([]);
   draggedIndex = signal<number | null>(null);
@@ -158,13 +158,68 @@ export class EditQueueOrderDialogComponent implements OnInit, OnChanges {
     this.showAddDialog.set(true);
   }
 
-  onAddEmployeeSelected(employeeIds: string[]): void {
-    this.addEmployee.emit(employeeIds);
+  onAddEmployeeSelected(employees: EmployeeDropdownDto[]): void {
+    if (!employees || employees.length === 0) {
+      this.showAddDialog.set(false);
+      return;
+    }
+
+    const existingIds = new Set(this.reorderedQueues().map(q => q.employeeId.toLowerCase()));
+    const toAdd = employees.filter(e => !existingIds.has(e.id.toLowerCase()));
+    if (toAdd.length === 0) {
+      this.showAddDialog.set(false);
+      return;
+    }
+
+    const current = [...this.reorderedQueues()];
+    const maxPosition = current.length > 0 ? Math.max(...current.map(q => q.position)) : 0;
+    const queueDateYmd = this.formatBangkokDate(this.queueDate);
+
+    const newQueues: QueueDto[] = toAdd.map((emp, index) => ({
+      id: `temp-${emp.id}-${Date.now()}-${index}`,
+      employeeId: emp.id,
+      employeeName: emp.name,
+      positionName: emp.positionName,
+      departmentName: emp.departmentName,
+      avatar: emp.avatar,
+      position: maxPosition + index + 1,
+      status: 'Active',
+      availabilityStatus: 'available',
+      queueDate: queueDateYmd,
+    }));
+
+    const updated = [...current, ...newQueues].map((q, i) => ({ ...q, position: i + 1 }));
+    this.reorderedQueues.set(updated);
     this.showAddDialog.set(false);
   }
 
   closeAddDialog(): void {
     this.showAddDialog.set(false);
+  }
+
+  private formatBangkokDate(date: Date): string {
+    // Always format as YYYY-MM-DD in Asia/Bangkok (avoid toISOString() UTC day shift)
+    try {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Bangkok',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(date);
+
+      const get = (type: string) => parts.find(p => p.type === type)?.value ?? '';
+      const y = get('year');
+      const m = get('month');
+      const d = get('day');
+      if (y && m && d) return `${y}-${m}-${d}`;
+    } catch {
+      // Fallback below
+    }
+
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
   onBackdropClick(): void {

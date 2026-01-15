@@ -28,7 +28,7 @@
       @for (queue of reorderedQueues(); track queue.id; let i = $index) {
         @if (getEmployeeDisplayName(queue.employeeName); as nameInfo) {
           <div 
-            class="flex items-center gap-4 p-4 bg-white rounded-lg border border-gray-200 cursor-move transition-all hover:shadow-md"
+            class="flex items-center gap-4 px-4 py-1 bg-white rounded-lg border border-gray-200 cursor-move transition-all hover:shadow-md"
             [class.opacity-50]="draggedIndex() === i"
             [class.border-blue-300]="draggedIndex() === i"
             draggable="true"

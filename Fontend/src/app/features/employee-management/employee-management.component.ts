@@ -152,7 +152,8 @@ export class EmployeeManagementComponent implements OnInit {
 
   filteredStaff = computed(() => {
     const base = this.isAdminLimited()
-      ? this.staff().filter(s => this.isBasicOnlyStaff(s))
+      // Admin: show only Basic-only + account must be Active
+      ? this.staff().filter(s => this.isBasicOnlyStaff(s) && s.accountStatus === 'active')
       : this.staff();
 
     const term = (this.searchTerm() || '').trim().toLowerCase();

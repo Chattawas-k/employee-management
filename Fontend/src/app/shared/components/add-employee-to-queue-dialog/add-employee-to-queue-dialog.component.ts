@@ -18,7 +18,7 @@ export class AddEmployeeToQueueDialogComponent implements OnInit {
   @Input() currentQueues: QueueDto[] = [];
   @Input() queueDate: Date = new Date();
   @Output() close = new EventEmitter<void>();
-  @Output() add = new EventEmitter<string[]>();
+  @Output() add = new EventEmitter<EmployeeDropdownDto[]>();
 
   availableEmployees = signal<EmployeeDropdownDto[]>([]);
   selectedEmployeeIds = signal<Set<string>>(new Set());
@@ -81,8 +81,13 @@ export class AddEmployeeToQueueDialogComponent implements OnInit {
     if (selectedIds.length === 0) {
       return;
     }
-    // Emit array of employee IDs and close dialog
-    this.add.emit(selectedIds);
+
+    const selectedEmployees = selectedIds
+      .map(id => this.availableEmployees().find(e => e.id === id))
+      .filter((e): e is EmployeeDropdownDto => !!e);
+
+    // Emit selected employees and close dialog
+    this.add.emit(selectedEmployees);
     // Close this dialog (will return to edit dialog)
     this.close.emit();
   }

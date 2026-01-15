@@ -1,7 +1,6 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { QueueService } from '../../services/queue.service';
-import { EmployeeService } from '../../services/employee.service';
 import { QueueDto } from '../../models/queue.model';
 import { EditQueueOrderDialogComponent } from '../../shared/components/edit-queue-order-dialog/edit-queue-order-dialog.component';
 import { ToastService } from '../../services/toast.service';
@@ -27,7 +26,6 @@ export class QueueSettingsComponent implements OnInit {
 
   constructor(
     private queueService: QueueService,
-    private employeeService: EmployeeService,
     private toastService: ToastService
   ) {}
 
@@ -204,54 +202,6 @@ export class QueueSettingsComponent implements OnInit {
   }
 
   // Deletion is staged in the edit dialog and applied on Save via bulk update (single API call).
-
-  addEmployeeToQueue(employeeIds: string[]): void {
-    if (!employeeIds || employeeIds.length === 0) {
-      return;
-    }
-
-    // Get employee details
-    this.employeeService.getAllEmployees('Active').pipe(
-      catchError(error => {
-        console.error('Error loading employees:', error);
-        this.toastService.error('เกิดข้อผิดพลาดในการโหลดข้อมูลพนักงาน');
-        return of([]);
-      })
-    ).subscribe(employees => {
-      // Create temporary QueueDto for new employees
-      const currentQueues = this.currentQueues();
-      const maxPosition = currentQueues.length > 0 
-        ? Math.max(...currentQueues.map(q => q.position))
-        : 0;
-
-      const newQueues: QueueDto[] = employeeIds.map((employeeId, index) => {
-        const employee = employees.find(emp => emp.id === employeeId);
-        return {
-          id: `temp-${employeeId}-${Date.now()}-${index}`, // Temporary ID
-          employeeId: employeeId,
-          employeeName: employee?.name || 'ไม่ระบุชื่อ',
-          positionName: employee?.positionName,
-          departmentName: employee?.departmentName,
-          avatar: employee?.avatar,
-          position: maxPosition + index + 1, // Add to end
-          status: 'Active',
-          availabilityStatus: 'Available' as const,
-          // IMPORTANT: use Bangkok date string to match backend query (avoid UTC date shift)
-          queueDate: this.formatBangkokDate(this.getCurrentQueueDate())
-        };
-      });
-
-      // Update current queues with new employees
-      const updatedQueues = [...currentQueues, ...newQueues];
-      this.currentQueues.set(updatedQueues);
-      
-      // Update edit dialog if open
-      if (this.showEditDialog()) {
-        // The edit dialog will pick up the changes via @Input binding
-        this.toastService.success(`เพิ่มพนักงาน ${employeeIds.length} คนเข้าไปในคิวแล้ว`);
-      }
-    });
-  }
 
   getCurrentQueueDate(): Date {
     return new Date(); // Always use today for current queue

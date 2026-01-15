@@ -52,6 +52,12 @@ namespace employee_management.Application.Features.Admin.Staff.Queries.GetStaffL
 
                     if (request.BasicOnly)
                     {
+                        // Also hide disabled accounts for basic-only view
+                        if (employee.Status != EmployeeStatus.Active)
+                        {
+                            continue;
+                        }
+
                         // Basic-only = has Basic AND does NOT have any of Admin/SuperAdmin/Manager
                         var normalized = roles.Select(r => (r ?? string.Empty).Trim()).ToList();
                         var hasBasic = normalized.Any(r => r.Equals("Basic", StringComparison.OrdinalIgnoreCase));
