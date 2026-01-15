@@ -1,11 +1,11 @@
 import { Component, Input, Output, EventEmitter, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { EmployeeService } from '../../../services/employee.service';
 import { EmployeeDropdownDto } from '../../../models/employee.model';
 import { QueueDto } from '../../../models/queue.model';
 import { catchError, finalize } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { StaffService } from '../../../services/staff.service';
 
 @Component({
   selector: 'app-add-employee-to-queue-dialog',
@@ -25,7 +25,7 @@ export class AddEmployeeToQueueDialogComponent implements OnInit {
   isLoading = signal(false);
   searchText = signal<string>('');
 
-  constructor(private employeeService: EmployeeService) {}
+  constructor(private staffService: StaffService) {}
 
   ngOnInit(): void {
     this.loadAvailableEmployees();
@@ -33,13 +33,22 @@ export class AddEmployeeToQueueDialogComponent implements OnInit {
 
   loadAvailableEmployees(): void {
     this.isLoading.set(true);
-    this.employeeService.getAllEmployees('Active').pipe(
+    // Show only employees who have login and are Basic-only.
+    // Using /admin/staff ensures "has login"; basicOnly=true ensures role filter.
+    this.staffService.getStaffList({ basicOnly: true }).pipe(
       catchError(error => {
         console.error('Error loading employees:', error);
-        return of([]);
+        return of({ staff: [] });
       }),
       finalize(() => this.isLoading.set(false))
-    ).subscribe(employees => {
+    ).subscribe(res => {
+      const staff = (res?.staff ?? []).filter(s => s.accountStatus === 'active');
+      const employees: EmployeeDropdownDto[] = staff.map(s => ({
+        id: s.staffId,
+        name: s.fullName,
+        positionName: s.position || undefined,
+      }));
+
       // Filter out employees that are already in the queue
       const queueEmployeeIds = new Set(this.currentQueues.map(q => q.employeeId.toLowerCase()));
       const available = employees.filter(emp => 

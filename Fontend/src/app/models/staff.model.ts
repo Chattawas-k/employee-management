@@ -64,3 +64,14 @@ export interface ResetStaffPasswordResponse {
   success: boolean;
 }
 
+export interface SetStaffAvailabilityStatusBody {
+  status: string;
+}
+
+export interface SetStaffAvailabilityStatusResponse {
+  employeeId: string;
+  availabilityStatus: string | number;
+  queueStatus: string;
+  updatedDate?: string;
+}
+

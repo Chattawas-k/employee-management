@@ -12,11 +12,16 @@ import { getDeterministicAvatarColors, getInitials } from '../../shared/utils/av
 import { AdminPasswordLinkDialogComponent } from '../../shared/components/admin-password-link-dialog/admin-password-link-dialog.component';
 import { GeneratePasswordLinkResponse, PasswordLinkType } from '../../models/password-link.model';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
+import { AuthService } from '../../services/auth.service';
+import { QueueService } from '../../services/queue.service';
+import { QueueDto } from '../../models/queue.model';
+import { AvailabilityStatusKey, getAvailabilityStatusBadgeClass, getAvailabilityStatusLabel, normalizeAvailabilityStatus } from '../../shared/utils/availability-status.util';
+import { StatusUpdateDialogComponent } from '../../shared/components/status-update-dialog/status-update-dialog.component';
 
 @Component({
   selector: 'app-employee-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, StaffDialogComponent, PositionDialogComponent, AdminPasswordLinkDialogComponent],
+  imports: [CommonModule, FormsModule, StaffDialogComponent, PositionDialogComponent, AdminPasswordLinkDialogComponent, StatusUpdateDialogComponent],
   templateUrl: './employee-management.component.html',
   styleUrls: ['./employee-management.component.scss']
 })
@@ -27,6 +32,10 @@ export class EmployeeManagementComponent implements OnInit {
   staff = signal<StaffListItem[]>([]);
   isLoadingStaff = signal(false);
   searchTerm = signal('');
+
+  // Availability status (today)
+  queuesToday = signal<QueueDto[]>([]);
+  isLoadingAvailability = signal(false);
 
   // Row action menu (rendered as fixed overlay to avoid table/overflow clipping)
   staffActionMenu = signal<{ item: StaffListItem; left: number; top: number } | null>(null);
@@ -39,6 +48,11 @@ export class EmployeeManagementComponent implements OnInit {
   isPasswordLinkDialogOpen = signal(false);
   passwordLinkDialogTitle = signal('ลิงก์ตั้งรหัสผ่าน');
   passwordLinkData = signal<GeneratePasswordLinkResponse | null>(null);
+
+  // Staff availability status dialog (admin action)
+  isStaffStatusDialogOpen = signal(false);
+  isSubmittingStaffStatus = signal(false);
+  selectedStaffForStatus = signal<StaffListItem | null>(null);
   
   // Positions
   positions = signal<PositionDto[]>([]);
@@ -53,7 +67,9 @@ export class EmployeeManagementComponent implements OnInit {
     private staffService: StaffService,
     private positionService: PositionService,
     private toastService: ToastService,
-    private confirmDialog: ConfirmDialogService
+    private confirmDialog: ConfirmDialogService,
+    private authService: AuthService,
+    private queueService: QueueService
   ) {}
 
   @HostListener('document:click')
@@ -81,6 +97,9 @@ export class EmployeeManagementComponent implements OnInit {
   }
 
   setActiveTab(tab: 'staff' | 'positions'): void {
+    // Admin (non-superadmin) is limited to staff tab only
+    if (this.isAdminLimited() && tab === 'positions') return;
+
     // Always reload data when clicking tab, even if it's the same tab
     if (tab === 'staff') {
       this.activeTab.set(tab);
@@ -108,14 +127,37 @@ export class EmployeeManagementComponent implements OnInit {
       next: (res) => {
         this.staff.set(res.staff || []);
         this.isLoadingStaff.set(false);
+        this.loadTodayQueues();
+      }
+    });
+  }
+
+  private loadTodayQueues(): void {
+    this.isLoadingAvailability.set(true);
+    const today = new Date();
+    this.queueService.getQueuesByDate(today, this.isAdminLimited()).pipe(
+      catchError(error => {
+        console.error('Error loading today queues:', error);
+        this.queuesToday.set([]);
+        this.isLoadingAvailability.set(false);
+        return of([] as QueueDto[]);
+      })
+    ).subscribe({
+      next: (queues) => {
+        this.queuesToday.set(queues || []);
+        this.isLoadingAvailability.set(false);
       }
     });
   }
 
   filteredStaff = computed(() => {
+    const base = this.isAdminLimited()
+      ? this.staff().filter(s => this.isBasicOnlyStaff(s))
+      : this.staff();
+
     const term = (this.searchTerm() || '').trim().toLowerCase();
-    if (!term) return this.staff();
-    return this.staff().filter(s =>
+    if (!term) return base;
+    return base.filter(s =>
       s.fullName.toLowerCase().includes(term) ||
       (s.position || '').toLowerCase().includes(term) ||
       (s.email || '').toLowerCase().includes(term) ||
@@ -124,12 +166,50 @@ export class EmployeeManagementComponent implements OnInit {
     );
   });
 
+  // Role-based behavior (RootAdmin = SuperAdmin)
+  isRootAdmin = computed(() => {
+    const user = this.authService.getCurrentUser();
+    const roles = Array.isArray(user?.roles) ? user.roles : (user?.roles ? [user.roles] : []);
+    return roles.some((r: unknown) => String(r ?? '').trim().toLowerCase() === 'superadmin');
+  });
+
+  isAdminLimited = computed(() => {
+    const user = this.authService.getCurrentUser();
+    const roles = Array.isArray(user?.roles) ? user.roles : (user?.roles ? [user.roles] : []);
+    const normalized = roles.map((r: unknown) => String(r ?? '').trim().toLowerCase());
+    const hasAdmin = normalized.includes('admin') || normalized.includes('superadmin');
+    return hasAdmin && !this.isRootAdmin();
+  });
+
+  private isBasicOnlyStaff(item: StaffListItem): boolean {
+    const roles = item.roles || [];
+    const normalized = roles.map(r => (r ?? '').toString().trim().toLowerCase());
+    const hasBasic = normalized.includes('basic');
+    const hasForbidden = normalized.some(r => r === 'admin' || r === 'superadmin' || r === 'manager');
+    return hasBasic && !hasForbidden;
+  }
+
+  getWorkStatus(staffId: string): AvailabilityStatusKey {
+    const q = this.queuesToday().find(x => x.employeeId === staffId);
+    return normalizeAvailabilityStatus(q?.availabilityStatus);
+  }
+
+  getWorkStatusLabel(staffId: string): string {
+    return getAvailabilityStatusLabel(this.getWorkStatus(staffId));
+  }
+
+  getWorkStatusClass(staffId: string): string {
+    return `border ${getAvailabilityStatusBadgeClass(this.getWorkStatus(staffId))}`;
+  }
+
   onAddStaff(): void {
+    if (this.isAdminLimited()) return;
     this.selectedStaff.set(null);
     this.isStaffDialogOpen.set(true);
   }
 
   onEditStaff(item: StaffListItem): void {
+    if (this.isAdminLimited()) return;
     this.closeStaffActionMenu();
     this.selectedStaff.set(item);
     this.isStaffDialogOpen.set(true);
@@ -145,6 +225,7 @@ export class EmployeeManagementComponent implements OnInit {
   }
 
   async toggleAccountStatus(item: StaffListItem): Promise<void> {
+    if (this.isAdminLimited()) return;
     this.closeStaffActionMenu();
     const shouldEnable = item.accountStatus === 'disabled';
     if (!shouldEnable) {
@@ -171,6 +252,7 @@ export class EmployeeManagementComponent implements OnInit {
   }
 
   generatePasswordLink(item: StaffListItem, type: PasswordLinkType): void {
+    if (this.isAdminLimited()) return;
     this.closeStaffActionMenu();
     const title = type === 'invite' ? 'สร้างลิงก์ตั้งรหัสผ่าน' : 'สร้างลิงก์รีเซ็ตรหัสผ่านใหม่';
     this.passwordLinkDialogTitle.set(title);
@@ -185,6 +267,44 @@ export class EmployeeManagementComponent implements OnInit {
         console.error('Error generating password link:', error);
         this.toastService.error('เกิดข้อผิดพลาดในการสร้างลิงก์');
         this.isPasswordLinkDialogOpen.set(false);
+      }
+    });
+  }
+
+  openStaffStatusDialog(item: StaffListItem): void {
+    this.closeStaffActionMenu();
+    this.selectedStaffForStatus.set(item);
+    this.isStaffStatusDialogOpen.set(true);
+  }
+
+  closeStaffStatusDialog(force: boolean = false): void {
+    if (!force && this.isSubmittingStaffStatus()) return;
+    this.isStaffStatusDialogOpen.set(false);
+    this.selectedStaffForStatus.set(null);
+  }
+
+  confirmStaffStatusChange(status: AvailabilityStatusKey): void {
+    const staff = this.selectedStaffForStatus();
+    if (!staff) return;
+
+    this.isSubmittingStaffStatus.set(true);
+    this.staffService.setStaffAvailabilityStatus(staff.staffId, { status }).pipe(
+      catchError(error => {
+        console.error('Error setting staff availability status:', error);
+        const msg = error?.error?.message || 'เกิดข้อผิดพลาดในการเปลี่ยนสถานะพนักงาน';
+        this.toastService.error(msg);
+        return of(null);
+      })
+    ).subscribe({
+      next: (res) => {
+        this.isSubmittingStaffStatus.set(false);
+        if (!res) return;
+        this.toastService.success('เปลี่ยนสถานะพนักงานสำเร็จ');
+        this.closeStaffStatusDialog(true);
+        this.loadTodayQueues();
+      },
+      error: () => {
+        this.isSubmittingStaffStatus.set(false);
       }
     });
   }

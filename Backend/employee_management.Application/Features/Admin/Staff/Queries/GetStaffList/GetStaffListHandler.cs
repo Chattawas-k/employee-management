@@ -50,6 +50,22 @@ namespace employee_management.Application.Features.Admin.Staff.Queries.GetStaffL
 
                     var roles = await _userManager.GetRolesAsync(user);
 
+                    if (request.BasicOnly)
+                    {
+                        // Basic-only = has Basic AND does NOT have any of Admin/SuperAdmin/Manager
+                        var normalized = roles.Select(r => (r ?? string.Empty).Trim()).ToList();
+                        var hasBasic = normalized.Any(r => r.Equals("Basic", StringComparison.OrdinalIgnoreCase));
+                        var hasForbidden = normalized.Any(r =>
+                            r.Equals("Admin", StringComparison.OrdinalIgnoreCase) ||
+                            r.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) ||
+                            r.Equals("Manager", StringComparison.OrdinalIgnoreCase));
+
+                        if (!hasBasic || hasForbidden)
+                        {
+                            continue;
+                        }
+                    }
+
                     staff.Add(new StaffListItemDto(
                         StaffId: employee.Id,
                         FullName: employee.Name,

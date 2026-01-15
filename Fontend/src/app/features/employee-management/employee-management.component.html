@@ -20,24 +20,28 @@
             </svg>
           </div>
           <!-- Add Button -->
+          @if (!isAdminLimited()) {
+            <button
+              (click)="onAddStaff()"
+              class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>เพิ่มพนักงาน</span>
+            </button>
+          }
+        </div>
+      } @else {
+        @if (!isAdminLimited()) {
           <button
-            (click)="onAddStaff()"
+            (click)="onAddPosition()"
             class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            <span>เพิ่มพนักงาน</span>
+            <span>เพิ่มตำแหน่ง</span>
           </button>
-        </div>
-      } @else {
-        <button
-          (click)="onAddPosition()"
-          class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          <span>เพิ่มตำแหน่ง</span>
-        </button>
+        }
       }
     </div>
   </header>
@@ -53,14 +57,16 @@
           : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
         พนักงานและสิทธิ์
       </button>
-      <button
-        (click)="setActiveTab('positions')"
-        class="py-4 px-1 border-b-2 font-medium text-sm transition-colors"
-        [class]="activeTab() === 'positions' 
-          ? 'border-indigo-500 text-indigo-600' 
-          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
-        ตำแหน่ง
-      </button>
+      @if (!isAdminLimited()) {
+        <button
+          (click)="setActiveTab('positions')"
+          class="py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+          [class]="activeTab() === 'positions' 
+            ? 'border-indigo-500 text-indigo-600' 
+            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
+          ตำแหน่ง
+        </button>
+      }
     </nav>
   </div>
 
@@ -92,7 +98,8 @@
                   <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500">ตำแหน่ง</th>
                   <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500">อีเมล</th>
                   <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500">สิทธิ์ใช้งาน</th>
-                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500">สถานะ</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500">สถานะการทำงาน</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-gray-500">สถานะบัญชี</th>
                   <th scope="col" class="relative px-6 py-4 text-right"><span class="sr-only">Actions</span></th>
                 </tr>
               </thead>
@@ -126,6 +133,12 @@
                     </td>
                     <td class="px-6 py-5 whitespace-nowrap text-sm text-gray-500">
                       {{ getPrimaryRoleLabel(item.roles) }}
+                    </td>
+                    <td class="px-6 py-5 whitespace-nowrap">
+                      <span class="inline-flex items-center gap-2 px-2 py-1 text-xs font-medium rounded-full" [class]="getWorkStatusClass(item.staffId)">
+                        <span class="h-2 w-2 rounded-full" [class]="getWorkStatus(item.staffId) === 'available' ? 'bg-green-500' : getWorkStatus(item.staffId) === 'busy' ? 'bg-orange-500' : getWorkStatus(item.staffId) === 'lunchBreak' ? 'bg-yellow-500' : getWorkStatus(item.staffId) === 'leave' ? 'bg-red-500' : getWorkStatus(item.staffId) === 'offsiteCustomer' ? 'bg-blue-500' : 'bg-gray-400'"></span>
+                        <span>{{ getWorkStatusLabel(item.staffId) }}</span>
+                      </span>
                     </td>
                     <td class="px-6 py-5 whitespace-nowrap">
                       <span class="px-2 py-1 text-xs font-medium rounded-full" [class]="getAccountStatusClass(item.accountStatus)">
@@ -240,6 +253,13 @@
         <div class="py-2">
           <button
             type="button"
+            (click)="openStaffStatusDialog(menu.item)"
+            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150">
+            เปลี่ยนสถานะพนักงาน
+          </button>
+          @if (!isAdminLimited()) {
+          <button
+            type="button"
             (click)="onEditStaff(menu.item)"
             class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150">
             แก้ไขข้อมูลพนักงาน
@@ -257,6 +277,7 @@
             class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150">
             สร้างลิงก์รีเซ็ตรหัสผ่านใหม่
           </button>
+          }
         </div>
       </div>
     </div>
@@ -312,5 +333,15 @@
       (close)="onPositionDialogClose()"
       (saved)="onPositionDialogSaved()">
     </app-position-dialog>
+  }
+
+  @if (isStaffStatusDialogOpen() && selectedStaffForStatus(); as staff) {
+    <app-status-update-dialog
+      [currentStatus]="getWorkStatus(staff.staffId)"
+      [isSubmitting]="isSubmittingStaffStatus()"
+      (confirm)="confirmStaffStatusChange($event)"
+      (cancel)="closeStaffStatusDialog()"
+      (close)="closeStaffStatusDialog()">
+    </app-status-update-dialog>
   }
 </div>

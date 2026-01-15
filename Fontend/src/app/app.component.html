@@ -147,10 +147,12 @@
         </div>
         <div class="ml-3 flex-1">
           <p class="text-sm font-semibold text-gray-900">{{ getUserName() }}</p>
+          @if (canChangeOwnStatus()) {
           <div class="flex items-center gap-1.5 mt-0.5">
             <span class="h-2 w-2 rounded-full" [class]="statusInfo().dotClass"></span>
             <p class="text-xs" [class]="getStatusTextClass()">{{ statusInfo().text }}</p>
           </div>
+        }
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 transition-transform"
           [class]="isStatusMenuOpen() ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">

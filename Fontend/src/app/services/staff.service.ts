@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
@@ -12,6 +12,8 @@ import {
   SetStaffRoleResponse,
   SetStaffStatusBody,
   SetStaffStatusResponse,
+  SetStaffAvailabilityStatusBody,
+  SetStaffAvailabilityStatusResponse,
   UpdateStaffProfileBody,
   UpdateStaffProfileResponse
 } from '../models/staff.model';
@@ -25,8 +27,12 @@ export class StaffService {
 
   constructor(private http: HttpClient) {}
 
-  getStaffList(): Observable<GetStaffListResponse> {
-    return this.http.get<GetStaffListResponse>(this.apiUrl);
+  getStaffList(options?: { basicOnly?: boolean }): Observable<GetStaffListResponse> {
+    let params = new HttpParams();
+    if (options?.basicOnly) {
+      params = params.set('basicOnly', 'true');
+    }
+    return this.http.get<GetStaffListResponse>(this.apiUrl, { params });
   }
 
   createStaff(request: CreateStaffRequest): Observable<CreateStaffResponse> {
@@ -39,6 +45,10 @@ export class StaffService {
 
   setStaffStatus(staffId: string, body: SetStaffStatusBody): Observable<SetStaffStatusResponse> {
     return this.http.put<SetStaffStatusResponse>(`${this.apiUrl}/${staffId}/status`, body);
+  }
+
+  setStaffAvailabilityStatus(staffId: string, body: SetStaffAvailabilityStatusBody): Observable<SetStaffAvailabilityStatusResponse> {
+    return this.http.put<SetStaffAvailabilityStatusResponse>(`${this.apiUrl}/${staffId}/availability-status`, body);
   }
 
   setStaffRole(staffId: string, body: SetStaffRoleBody): Observable<SetStaffRoleResponse> {

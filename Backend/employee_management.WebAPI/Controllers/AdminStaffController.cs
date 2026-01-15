@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using employee_management.Application.Features.Admin.Staff.Commands.CreateStaff;
 using employee_management.Application.Features.Admin.Staff.Commands.ResetStaffPassword;
 using employee_management.Application.Features.Admin.Staff.Commands.SetStaffStatus;
+using employee_management.Application.Features.Admin.Staff.Commands.SetStaffAvailabilityStatus;
 using employee_management.Application.Features.Admin.Staff.Commands.SetStaffRole;
 using employee_management.Application.Features.Admin.Staff.Commands.UpdateStaffProfile;
 using employee_management.Application.Features.Admin.Staff.Queries.GetStaffList;
@@ -35,13 +36,18 @@ namespace employee_management.WebAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<GetStaffListResponse>> GetStaff(CancellationToken cancellationToken)
+        public async Task<ActionResult<GetStaffListResponse>> GetStaff(
+            [FromQuery] bool basicOnly = false,
+            CancellationToken cancellationToken = default)
         {
-            var response = await _mediator.Send(new GetStaffListRequest(), cancellationToken);
+            // Admin users are always limited to basic-only; SuperAdmin can choose via query.
+            var enforcedBasicOnly = basicOnly || !User.IsInRole("SuperAdmin");
+            var response = await _mediator.Send(new GetStaffListRequest(enforcedBasicOnly), cancellationToken);
             return Ok(response);
         }
 
         [HttpPost]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<ActionResult<CreateStaffResponse>> CreateStaff(
             [FromBody] CreateStaffRequest request,
             CancellationToken cancellationToken)
@@ -51,6 +57,7 @@ namespace employee_management.WebAPI.Controllers
         }
 
         [HttpPut("{staffId:guid}")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<ActionResult<UpdateStaffProfileResponse>> UpdateStaffProfile(
             Guid staffId,
             [FromBody] UpdateStaffProfileBody body,
@@ -69,6 +76,7 @@ namespace employee_management.WebAPI.Controllers
         }
 
         [HttpPut("{staffId:guid}/status")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<ActionResult<SetStaffStatusResponse>> SetStatus(
             Guid staffId,
             [FromBody] SetStaffStatusBody body,
@@ -79,7 +87,30 @@ namespace employee_management.WebAPI.Controllers
             return Ok(response);
         }
 
+        [HttpPut("{staffId:guid}/availability-status")]
+        public async Task<ActionResult<SetStaffAvailabilityStatusResponse>> SetAvailabilityStatus(
+            Guid staffId,
+            [FromBody] SetStaffAvailabilityStatusBody body,
+            CancellationToken cancellationToken)
+        {
+            // Get actor EmployeeId from JWT token claims
+            var employeeIdClaim = User.FindFirst("EmployeeId")?.Value;
+            if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var actorEmployeeId) || actorEmployeeId == Guid.Empty)
+            {
+                return BadRequest("EmployeeId not found in token, invalid format, or not linked to this user.");
+            }
+
+            var request = new SetStaffAvailabilityStatusRequest(
+                StaffId: staffId,
+                Status: body.Status,
+                ChangedByEmployeeId: actorEmployeeId);
+
+            var response = await _mediator.Send(request, cancellationToken);
+            return Ok(response);
+        }
+
         [HttpPut("{staffId:guid}/role")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<ActionResult<SetStaffRoleResponse>> SetRole(
             Guid staffId,
             [FromBody] SetStaffRoleBody body,
@@ -91,6 +122,7 @@ namespace employee_management.WebAPI.Controllers
         }
 
         [HttpPost("{staffId:guid}/reset-password")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<ActionResult<ResetStaffPasswordResponse>> ResetPassword(
             Guid staffId,
             [FromBody] ResetStaffPasswordBody body,
@@ -102,6 +134,7 @@ namespace employee_management.WebAPI.Controllers
         }
 
         [HttpPost("{staffId:guid}/password-link")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<IActionResult> GeneratePasswordLink(
             Guid staffId,
             [FromBody] GeneratePasswordLinkBody body,
@@ -165,6 +198,10 @@ namespace employee_management.WebAPI.Controllers
 
     public sealed record GeneratePasswordLinkBody(
         string Type
+    );
+
+    public sealed record SetStaffAvailabilityStatusBody(
+        string Status
     );
 }
 

@@ -149,7 +149,8 @@ export class JobAssignmentComponent implements OnInit, OnDestroy, AfterViewInit 
     const today = new Date();
 
     forkJoin({
-      queues: this.queueService.getQueuesByDate(today).pipe(
+      // Show only Basic-only employees in queue (and backend also excludes disabled accounts)
+      queues: this.queueService.getQueuesByDate(today, true).pipe(
         catchError(error => {
           console.error('Error loading queues:', error);
           // Continue even if queue data fails

@@ -25,7 +25,13 @@ namespace employee_management.Persistence.Repository.QueuesRepository
                 .Include(q => q.Employee)
                 .ThenInclude(e => e!.Position)
                 .ThenInclude(p => p!.Department)
-                .Where(q => q.QueueDate >= targetDate && q.QueueDate < nextDate && !q.IsDeleted)
+                .Where(q =>
+                    q.QueueDate >= targetDate &&
+                    q.QueueDate < nextDate &&
+                    !q.IsDeleted &&
+                    q.Employee != null &&
+                    !q.Employee.IsDeleted &&
+                    q.Employee.Status == EmployeeStatus.Active)
                 .OrderBy(q => q.Position)
                 .ToListAsync(cancellationToken);
         }
@@ -69,6 +75,9 @@ namespace employee_management.Persistence.Repository.QueuesRepository
                     q.QueueDate >= targetDate &&
                     q.QueueDate < nextDate &&
                     !q.IsDeleted &&
+                    q.Employee != null &&
+                    !q.Employee.IsDeleted &&
+                    q.Employee.Status == EmployeeStatus.Active &&
                     allowedEmployeeIds.Contains(q.EmployeeId))
                 .OrderBy(q => q.Position)
                 .ToListAsync(cancellationToken);
@@ -97,7 +106,14 @@ namespace employee_management.Persistence.Repository.QueuesRepository
                 .Include(q => q.Employee)
                 .ThenInclude(e => e!.Position)
                 .ThenInclude(p => p!.Department)
-                .Where(q => q.QueueDate >= targetDate && q.QueueDate < nextDate && q.Status == QueueStatus.Active && !q.IsDeleted)
+                .Where(q =>
+                    q.QueueDate >= targetDate &&
+                    q.QueueDate < nextDate &&
+                    q.Status == QueueStatus.Active &&
+                    !q.IsDeleted &&
+                    q.Employee != null &&
+                    !q.Employee.IsDeleted &&
+                    q.Employee.Status == EmployeeStatus.Active)
                 .OrderBy(q => q.Position)
                 .ToListAsync(cancellationToken);
         }
