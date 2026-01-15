@@ -20,6 +20,7 @@ namespace employee_management.Application.Features.Monitor.Queries.GetMonitorSna
         Guid EmployeeId,
         string EmployeeName,
         int QueuePosition,
+        int Round,
         string? Avatar
     );
 
@@ -30,6 +31,7 @@ namespace employee_management.Application.Features.Monitor.Queries.GetMonitorSna
         string? JobRunningCode,
         QueueStatus QueueStatus,
         AvailabilityStatus AvailabilityStatus,
+        int Round,
         string? Avatar
     );
 }

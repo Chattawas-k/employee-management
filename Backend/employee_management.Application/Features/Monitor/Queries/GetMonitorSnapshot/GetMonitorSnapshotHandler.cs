@@ -43,6 +43,7 @@ namespace employee_management.Application.Features.Monitor.Queries.GetMonitorSna
                     EmployeeId: first.EmployeeId,
                     EmployeeName: first.Employee?.Name ?? string.Empty,
                     QueuePosition: 1,
+                    Round: first.Round < 1 ? 1 : first.Round,
                     Avatar: first.Employee?.Avatar
                 );
 
@@ -54,6 +55,7 @@ namespace employee_management.Application.Features.Monitor.Queries.GetMonitorSna
                         EmployeeId: q.EmployeeId,
                         EmployeeName: q.Employee?.Name ?? string.Empty,
                         QueuePosition: i, // relative position for UI (starts at 1)
+                        Round: q.Round < 1 ? 1 : q.Round,
                         Avatar: q.Employee?.Avatar
                     ));
                 }
@@ -92,6 +94,7 @@ namespace employee_management.Application.Features.Monitor.Queries.GetMonitorSna
                     JobRunningCode: job?.JobRunningCode,
                     QueueStatus: q.Status,
                     AvailabilityStatus: q.AvailabilityStatus,
+                    Round: q.Round < 1 ? 1 : q.Round,
                     Avatar: q.Employee?.Avatar
                 );
             }).ToList();
