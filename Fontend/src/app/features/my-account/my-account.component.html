@@ -199,6 +199,7 @@
   
       <!-- Action Cards: Status / Password -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
+        @if (canChangeOwnStatus()) {
         <button
           type="button"
           (click)="openStatusDialog()"
@@ -219,6 +220,7 @@
             </div>
           </div>
         </button>
+        }
   
         <button
           type="button"

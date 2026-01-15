@@ -12,6 +12,7 @@ using employee_management.Application.Features.Queues.Queries.GetByDate;
 using employee_management.Application.Features.Queues.Queries.GetMyQueueInfo;
 using employee_management.Domain.Enums;
 using employee_management.WebAPI.Controllers.Base;
+using System.Security.Claims;
 
 namespace employee_management.WebAPI.Controllers
 {
@@ -109,6 +110,11 @@ namespace employee_management.WebAPI.Controllers
             [FromBody] UpdateMyQueueStatusRequestDto request,
             CancellationToken cancellationToken)
         {
+            if (!IsBasicOnlyUser(User))
+            {
+                return Forbid("Only Basic-only users can change their own status.");
+            }
+
             // Get EmployeeId from JWT token claims
             var employeeIdClaim = User.FindFirst("EmployeeId")?.Value;
             if (string.IsNullOrEmpty(employeeIdClaim) || !Guid.TryParse(employeeIdClaim, out var employeeId) || employeeId == Guid.Empty)
@@ -143,6 +149,19 @@ namespace employee_management.WebAPI.Controllers
             var requestWithEmployeeId = new UpdateMyQueueStatusRequest(employeeId, availabilityStatus);
             var response = await _mediator.Send(requestWithEmployeeId, cancellationToken);
             return Ok(response);
+        }
+
+        private static bool IsBasicOnlyUser(ClaimsPrincipal user)
+        {
+            var roles = user.Claims
+                .Where(c => c.Type == ClaimTypes.Role || c.Type == "role" || c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase))
+                .Select(c => (c.Value ?? string.Empty).Trim())
+                .Where(v => !string.IsNullOrEmpty(v))
+                .Select(v => v.ToLowerInvariant())
+                .ToHashSet();
+
+            if (!roles.Contains("basic")) return false;
+            return !(roles.Contains("admin") || roles.Contains("superadmin") || roles.Contains("manager"));
         }
 
         [HttpPost("migrate-inactive-status")]

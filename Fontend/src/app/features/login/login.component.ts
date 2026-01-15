@@ -32,7 +32,7 @@ export class LoginComponent {
 
     // Redirect if already authenticated
     if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/my-tasks']);
+      this.router.navigate([this.getDefaultRouteForCurrentUser()]);
     }
 
     const rememberedEmail = localStorage.getItem(this.rememberedEmailKey);
@@ -42,6 +42,25 @@ export class LoginComponent {
         rememberMe: true
       });
     }
+  }
+
+  private getDefaultRouteForRoles(rolesInput: unknown): string {
+    const roles = Array.isArray(rolesInput) ? rolesInput : (rolesInput ? [rolesInput] : []);
+    const normalized = roles.map(r => String(r ?? '').trim().toLowerCase());
+
+    const hasAdmin = normalized.includes('admin') || normalized.includes('superadmin');
+    if (hasAdmin) return '/assign';
+
+    const hasBasicOnly = normalized.includes('basic') && !normalized.some(r => r === 'admin' || r === 'superadmin' || r === 'manager');
+    if (hasBasicOnly) return '/my-tasks';
+
+    // Safe fallback
+    return '/my-tasks';
+  }
+
+  private getDefaultRouteForCurrentUser(): string {
+    const user = this.authService.getCurrentUser();
+    return this.getDefaultRouteForRoles(user?.roles);
   }
 
   onSubmit() {
@@ -59,7 +78,7 @@ export class LoginComponent {
         if (response.token) {
           this.updateRememberedEmail(credentials.email, credentials.rememberMe);
           this.toastService.success('เข้าสู่ระบบสำเร็จ', `ยินดีต้อนรับ ${response.userName || ''}`);
-          this.router.navigate(['/my-tasks']);
+          this.router.navigate([this.getDefaultRouteForRoles(response.roles)]);
         } else {
           this.toastService.error('เข้าสู่ระบบไม่สำเร็จ', 'ไม่พบ token ใน response');
         }

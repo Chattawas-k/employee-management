@@ -2,6 +2,7 @@ export {
   BellRing,
   Clock,
   Armchair,
+  List,
   ListOrdered,
   ListChecks,
   AlertCircle,
@@ -41,6 +42,7 @@ export {
   Home,
   Compass,
   MapPin,
-  Flag
+  Flag,
+  Tag
 } from 'lucide-angular';
 

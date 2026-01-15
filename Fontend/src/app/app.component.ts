@@ -77,6 +77,18 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   });
 
+  // Only allow self status change if user is Basic-only (no Admin/Manager/SuperAdmin)
+  canChangeOwnStatus = computed(() => {
+    const user = this.currentUser();
+    if (!user || !user.roles) return false;
+    const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
+    const normalized: string[] = roles.map((role: unknown) => String(role ?? '').trim().toLowerCase());
+
+    const hasBasic = normalized.includes('basic');
+    const hasForbidden = normalized.some((role: string) => role === 'admin' || role === 'superadmin' || role === 'manager');
+    return hasBasic && !hasForbidden;
+  });
+
   // Check if user has Manager access (Manager, Admin, or SuperAdmin role)
   hasManagerAccess = computed(() => {
     const user = this.currentUser();
@@ -102,6 +114,14 @@ export class AppComponent implements OnInit, OnDestroy {
       return roleLower === 'admin' || 
              roleLower === 'superadmin';
     });
+  });
+
+  // Check if user has SuperAdmin access (SuperAdmin role only)
+  hasSuperAdminAccess = computed(() => {
+    const user = this.currentUser();
+    if (!user || !user.roles) return false;
+    const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
+    return roles.some((role: string) => role.toLowerCase() === 'superadmin');
   });
 
   statusInfo = computed(() => {
