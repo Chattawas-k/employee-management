@@ -37,12 +37,16 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
         {
             try
             {
+                _logger.LogInformation(
+                    "Admin override: Starting Master Queue bulk update by user {UserId} (EmployeeId: {EmployeeId})",
+                    _currentUserService.UserId, _currentUserService.EmployeeId);
+
                 int updatedCount = 0;
                 int deletedCount = 0;
                 var notFoundIds = new List<Guid>();
 
                 // Capture before/after for audit (Master Queue reorder)
-                var queuesForAudit = new List<(Guid QueueId, Guid EmployeeId, DateTime QueueDate, int BeforePosition, int? AfterPosition)>();
+                var queuesForAudit = new List<(Guid QueueId, Guid EmployeeId, DateTime QueueDate, int BeforePosition, int? AfterPosition, int Round)>();
 
                 foreach (var queueItem in request.Queues)
                 {
@@ -54,16 +58,25 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
                         continue;
                     }
 
+                    // IMPORTANT: Round is NOT reset during admin override - preserve current Round value
+                    var currentRound = queue.Round;
+                    
                     queuesForAudit.Add((
                         QueueId: queue.Id,
                         EmployeeId: queue.EmployeeId,
                         QueueDate: queue.QueueDate.Date,
                         BeforePosition: queue.Position,
-                        AfterPosition: queueItem.Position));
+                        AfterPosition: queueItem.Position,
+                        Round: currentRound));
 
                     queue.Position = queueItem.Position;
                     queue.Status = queueItem.Status;
+                    // Round is NOT modified - preserve existing Round value
                     queue.UpdatedDate = DateTimeOffset.UtcNow;
+                    
+                    _logger.LogDebug(
+                        "Updating queue {QueueId} - EmployeeId: {EmployeeId}, Position: {OldPos} -> {NewPos}, Round: {Round} (preserved)",
+                        queue.Id, queue.EmployeeId, queue.Position, queueItem.Position, currentRound);
                     
                     _queueRepository.Update(queue);
                     updatedCount++;
@@ -85,7 +98,8 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
                         EmployeeId: queue.EmployeeId,
                         QueueDate: queue.QueueDate.Date,
                         BeforePosition: queue.Position,
-                        AfterPosition: null));
+                        AfterPosition: null,
+                        Round: queue.Round));
 
                     _queueRepository.Delete(queue);
                     deletedCount++;
@@ -105,13 +119,13 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
                 foreach (var group in queuesForAudit.GroupBy(q => q.QueueDate))
                 {
                     var beforeList = group
-                        .Select(x => new { id = x.QueueId, employeeId = x.EmployeeId, position = x.BeforePosition })
+                        .Select(x => new { id = x.QueueId, employeeId = x.EmployeeId, position = x.BeforePosition, round = x.Round })
                         .OrderBy(x => x.position)
                         .ToList();
 
                     var afterList = group
                         .Where(x => x.AfterPosition.HasValue)
-                        .Select(x => new { id = x.QueueId, employeeId = x.EmployeeId, position = x.AfterPosition!.Value })
+                        .Select(x => new { id = x.QueueId, employeeId = x.EmployeeId, position = x.AfterPosition!.Value, round = x.Round })
                         .OrderBy(x => x.position)
                         .ToList();
 
@@ -124,15 +138,26 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
                         EntityId = group.First().QueueId,
                         BeforeJson = JsonSerializer.Serialize(beforeList),
                         AfterJson = JsonSerializer.Serialize(afterList),
-                        Reason = $"Master Queue update (reorder/delete) for {group.Key:yyyy-MM-dd}",
+                        Reason = $"Admin override: Master Queue update (reorder/delete) for {group.Key:yyyy-MM-dd}. Round values preserved.",
                         Timestamp = DateTimeOffset.UtcNow
                     };
                     _auditLogRepository.Create(auditLog);
+                    
+                    _logger.LogInformation(
+                        "Audit log created for Master Queue admin override on {Date}. " +
+                        "Updated: {UpdatedCount}, Deleted: {DeletedCount}. Round values preserved.",
+                        group.Key.ToString("yyyy-MM-dd"),
+                        afterList.Count,
+                        group.Count(g => !g.AfterPosition.HasValue));
                 }
 
                 await _unitOfWork.Save(cancellationToken);
 
-                _logger.LogInformation("Bulk update completed. Updated: {UpdatedCount}, Deleted: {DeletedCount}", updatedCount, deletedCount);
+                _logger.LogInformation(
+                    "Admin override: Master Queue bulk update completed successfully. " +
+                    "Updated: {UpdatedCount}, Deleted: {DeletedCount}. " +
+                    "Round values were NOT reset (preserved from original queue entries).",
+                    updatedCount, deletedCount);
                 return new BulkUpdateResponse(updatedCount, deletedCount, DateTimeOffset.UtcNow);
             }
             catch (NoDataFoundException)

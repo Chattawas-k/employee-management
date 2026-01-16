@@ -20,8 +20,8 @@ namespace employee_management.WebAPI.Services
             _serviceProvider = serviceProvider;
             _dateTimeProvider = dateTimeProvider;
             _logger = logger;
-            // Only run reset close to midnight; initializing to "yesterday" ensures we run
-            // if the service starts within the first minutes of a new day.
+            // Run reset at 02:30 AM Bangkok time; initializing to "yesterday" ensures we run
+            // if the service starts after 02:30 on a new day.
             _lastResetBusinessDate = _dateTimeProvider.GetBangkokTodayDate().AddDays(-1);
         }
 
@@ -37,13 +37,16 @@ namespace employee_management.WebAPI.Services
                     var today = bangkokNow.Date;
                     var timeOfDay = bangkokNow.TimeOfDay;
 
-                    // Run once per business day, near midnight Bangkok time.
-                    // Expanded window: 23:55 - 00:10 to ensure we catch the reset even if there's a delay
+                    // Run once per business day at 02:30 AM Bangkok time.
+                    // Window: 02:25 - 02:35 to ensure we catch the reset even if there's a delay
                     // This avoids accidental resets during the day.
-                    var isInMidnightWindow = timeOfDay >= TimeSpan.FromMinutes(23 * 60 + 55) || // 23:55 or later
-                                            timeOfDay < TimeSpan.FromMinutes(10); // Before 00:10
+                    var targetHour = 2;
+                    var targetMinute = 30;
+                    var windowStart = TimeSpan.FromHours(targetHour).Add(TimeSpan.FromMinutes(25)); // 02:25
+                    var windowEnd = TimeSpan.FromHours(targetHour).Add(TimeSpan.FromMinutes(35)); // 02:35
+                    var isInResetWindow = timeOfDay >= windowStart && timeOfDay < windowEnd;
 
-                    if (today > _lastResetBusinessDate && isInMidnightWindow)
+                    if (today > _lastResetBusinessDate && isInResetWindow)
                     {
                         _logger.LogInformation("Starting daily reset at {Time} (Bangkok) for date {Date}", 
                             bangkokNow, today.ToString("yyyy-MM-dd"));

@@ -314,6 +314,48 @@ namespace employee_management.Persistence.Repository.QueuesRepository
             queue.Round = Math.Max(queue.Round - 1, 1);
             Context.Queues.Update(queue);
         }
+
+        public async Task<List<Queue>> GetLatestMasterQueueAsync(DateTime beforeDate, CancellationToken cancellationToken)
+        {
+            // Convert to UTC to avoid DateTime Kind issues with PostgreSQL
+            var beforeDateUtc = DateTime.SpecifyKind(beforeDate.Date, DateTimeKind.Utc);
+            
+            // Find the most recent date that has queues before the specified date
+            var latestDate = await Context.Queues
+                .Where(q =>
+                    q.QueueDate < beforeDateUtc &&
+                    !q.IsDeleted &&
+                    q.Employee != null &&
+                    !q.Employee.IsDeleted &&
+                    q.Employee.Status == EmployeeStatus.Active)
+                .OrderByDescending(q => q.QueueDate)
+                .Select(q => q.QueueDate)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (latestDate == default(DateTime))
+            {
+                // No queues found before the specified date
+                return new List<Queue>();
+            }
+
+            // Get all queues for that latest date, ordered by position
+            var latestDateStart = DateTime.SpecifyKind(latestDate.Date, DateTimeKind.Utc);
+            var latestDateEnd = latestDateStart.AddDays(1);
+
+            return await Context.Queues
+                .Include(q => q.Employee)
+                .ThenInclude(e => e!.Position)
+                .ThenInclude(p => p!.Department)
+                .Where(q =>
+                    q.QueueDate >= latestDateStart &&
+                    q.QueueDate < latestDateEnd &&
+                    !q.IsDeleted &&
+                    q.Employee != null &&
+                    !q.Employee.IsDeleted &&
+                    q.Employee.Status == EmployeeStatus.Active)
+                .OrderBy(q => q.Position)
+                .ToListAsync(cancellationToken);
+        }
     }
 }
 

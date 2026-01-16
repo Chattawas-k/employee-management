@@ -15,6 +15,7 @@ namespace employee_management.Application.Repository.QueuesRepository
         Task RotateQueueToTailAsync(Guid employeeId, DateTime date, CancellationToken cancellationToken);
         Task IncrementRoundAsync(Guid employeeId, DateTime date, CancellationToken cancellationToken);
         Task DecrementRoundAsync(Guid employeeId, DateTime date, CancellationToken cancellationToken);
+        Task<List<Queue>> GetLatestMasterQueueAsync(DateTime beforeDate, CancellationToken cancellationToken);
     }
 }
 
