@@ -3,29 +3,15 @@
 	# email you@example.com
 }
 
-www.jg.xalpha.co.th {
-	redir https://jg.xalpha.co.th{uri} permanent
-}
-
 jg.xalpha.co.th {
 	encode zstd gzip
-
 	@api path /api/v1/*
-	handle @api {
-		reverse_proxy api:8080
-	}
-
+	handle @api { reverse_proxy api:8080 }
 	@hubs path /hubs/*
-	handle @hubs {
-		reverse_proxy api:8080
-	}
-
-	handle {
-		reverse_proxy web:8080
-	}
+	handle @hubs { reverse_proxy api:8080 }
+	handle { reverse_proxy web:8080 }
 }
 
-# --- NEW: n8n ---
 n8n-trippocket.xalpha.co.th {
 	encode zstd gzip
 	reverse_proxy n8n:55678

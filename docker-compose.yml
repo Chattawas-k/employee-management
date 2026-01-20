@@ -57,6 +57,7 @@ services:
       - api
     restart: unless-stopped
     networks:
+      - default
       - proxy_net
 
 volumes:
