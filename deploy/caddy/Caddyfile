@@ -5,11 +5,24 @@
 
 jg.xalpha.co.th {
 	encode zstd gzip
-	@api path /api/v1/*
-	handle @api { reverse_proxy api:8080 }
-	@hubs path /hubs/*
-	handle @hubs { reverse_proxy api:8080 }
-	handle { reverse_proxy web:8080 }
+
+	@api {
+		path /api/v1/*
+	}
+	handle @api {
+		reverse_proxy api:8080
+	}
+
+	@hubs {
+		path /hubs/*
+	}
+	handle @hubs {
+		reverse_proxy api:8080
+	}
+
+	handle {
+		reverse_proxy web:8080
+	}
 }
 
 n8n-trippocket.xalpha.co.th {
