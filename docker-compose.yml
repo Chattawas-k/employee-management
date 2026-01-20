@@ -56,9 +56,14 @@ services:
       - web
       - api
     restart: unless-stopped
+    networks:
+      - proxy_net
 
 volumes:
   postgres_data:
   caddy_data:
   caddy_config:
 
+networks:
+  proxy_net:
+    external: true

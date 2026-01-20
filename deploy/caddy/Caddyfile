@@ -25,3 +25,8 @@ jg.xalpha.co.th {
 	}
 }
 
+# --- NEW: n8n ---
+n8n-trippocket.xalpha.co.th {
+	encode zstd gzip
+	reverse_proxy n8n:55678
+}
