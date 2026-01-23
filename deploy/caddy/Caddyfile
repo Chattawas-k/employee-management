@@ -29,8 +29,9 @@ n8n-trippocket.xalpha.co.th {
 	encode zstd gzip
 	reverse_proxy n8n:55678
 }
+
 trippocket.xalpha.co.th {
-    tls
+    encode zstd gzip
 
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -41,7 +42,6 @@ trippocket.xalpha.co.th {
         -Server
     }
 
-    # API Routes
     handle /api/* {
         reverse_proxy trippocket-backend:8080 {
             header_up X-Real-IP {remote_host}
@@ -50,12 +50,10 @@ trippocket.xalpha.co.th {
         }
     }
 
-    # Swagger UI
     handle /swagger* {
         reverse_proxy trippocket-backend:8080
     }
 
-    # Frontend Routes
     handle {
         reverse_proxy trippocket-frontend:80 {
             header_up X-Real-IP {remote_host}
@@ -64,3 +62,4 @@ trippocket.xalpha.co.th {
         }
     }
 }
+
