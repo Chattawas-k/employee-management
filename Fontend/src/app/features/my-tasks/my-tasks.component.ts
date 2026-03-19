@@ -657,6 +657,18 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       }
     }
 
+    // For successful sales, store saleValue in description field (backend expects numeric value here)
+    // If saleValue exists and status is success, use it; otherwise use additionalInfo
+    let descriptionValue = reportData.additionalInfo || '';
+    if (reportData.status?.toLowerCase() === 'success' && reportData.saleValue && reportData.saleValue > 0) {
+      // Store saleValue as the primary value in description for successful sales
+      descriptionValue = reportData.saleValue.toString();
+      // Append additionalInfo if it exists
+      if (reportData.additionalInfo && reportData.additionalInfo.trim()) {
+        descriptionValue += ` | ${reportData.additionalInfo}`;
+      }
+    }
+
     const report: UpdateJobStatusReportDto = {
       customerName: reportData.customerName || taskToMove.customerName || '',
       customerContact: reportData.contactInfo || '',
@@ -664,7 +676,7 @@ export class MyTasksComponent implements OnInit, OnDestroy {
       reasonIds,
       reasons,
       productCategory: productCategories.join(', '),
-      description: reportData.additionalInfo || ''
+      description: descriptionValue
     };
 
     // Determine status based on sales status

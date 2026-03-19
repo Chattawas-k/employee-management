@@ -100,7 +100,15 @@ namespace employee_management.WebAPI.Services
                 }
 
                 // Wait before next check
-                await Task.Delay(_checkInterval, stoppingToken);
+                try
+                {
+                    await Task.Delay(_checkInterval, stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected when service is stopping
+                    break;
+                }
             }
 
             _logger.LogInformation("DailyResetBackgroundService stopped");

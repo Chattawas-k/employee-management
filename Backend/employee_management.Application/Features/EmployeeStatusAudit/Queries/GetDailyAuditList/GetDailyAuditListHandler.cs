@@ -138,7 +138,7 @@ namespace employee_management.Application.Features.EmployeeStatusAudit.Queries.G
             }
             else if (dayEvents.Count > 0 && dayEvents[0].PreviousStatus.HasValue)
             {
-                events.Add((dayEvents[0].PreviousStatus.Value, dayStartUtc));
+                events.Add((dayEvents[0].PreviousStatus!.Value, dayStartUtc));
             }
             else
             {

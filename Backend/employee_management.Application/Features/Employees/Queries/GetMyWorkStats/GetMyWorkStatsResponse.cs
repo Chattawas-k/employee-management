@@ -21,6 +21,7 @@ namespace employee_management.Application.Features.Employees.Queries.GetMyWorkSt
         int Success,
         int Pending,
         int Failed,
-        decimal ConversionRate
+        decimal ConversionRate,
+        decimal TotalSalesAmount
     );
 }

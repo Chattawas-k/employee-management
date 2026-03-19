@@ -1,5 +1,6 @@
 using MediatR;
 using employee_management.Application.Repository.JobsRepository;
+using employee_management.Application.Common.Helpers;
 using employee_management.Domain.Enums;
 
 namespace employee_management.Application.Features.Manager.Queries.Deals.GetDealsSummary
@@ -29,7 +30,7 @@ namespace employee_management.Application.Features.Manager.Queries.Deals.GetDeal
 
             var totalSales = wonJobs
                 .Where(j => j.Report != null && j.Report.SalesStatus.ToLower() == "success")
-                .Sum(j => j.Report?.Description != null && decimal.TryParse(j.Report.Description, out var amount) ? amount : 0m);
+                .Sum(j => SalesAmountHelper.ExtractSalesAmount(j.Report?.Description));
 
             var avgDeal = wonJobs.Count > 0 ? totalSales / wonJobs.Count : 0m;
             var conversionRate = handledJobs.Count > 0 ? (double)wonJobs.Count / handledJobs.Count * 100 : 0;

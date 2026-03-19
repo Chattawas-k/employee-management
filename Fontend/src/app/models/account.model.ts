@@ -22,6 +22,7 @@ export interface SalesStats {
   pending: number;
   failed: number;
   conversionRate: number;
+  totalSalesAmount: number;
 }
 
 export interface ChangePasswordRequest {

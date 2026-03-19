@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using employee_management.Application.Common.Services;
+using employee_management.Application.Common.Exceptions;
 using employee_management.Domain.Entities;
 using employee_management.Persistence.Context;
 using System.IdentityModel.Tokens.Jwt;
@@ -39,7 +40,7 @@ namespace employee_management.Persistence.Services
         {
             var user = await _userManager.FindByEmailAsync(request.Email);
             if (user == null || !await _userManager.CheckPasswordAsync(user, request.Password))
-                throw new InvalidOperationException("Invalid login credentials.");
+                throw new UnauthorizedException("Invalid login credentials.");
 
             await EnsureUserEmployeeIsActiveAsync(user);
 
@@ -81,7 +82,7 @@ namespace employee_management.Persistence.Services
                                         && rt.Expires > DateTime.UtcNow);
 
             if (refreshTokenEntity == null || refreshTokenEntity.User == null)
-                throw new InvalidOperationException("Invalid refresh token.");
+                throw new UnauthorizedException("Invalid refresh token.");
 
             var user = refreshTokenEntity.User;
 
@@ -262,7 +263,7 @@ namespace employee_management.Persistence.Services
         {
             var principal = await ValidateAzureAdTokenAsync(accessToken);
             if (principal == null)
-                throw new InvalidOperationException("Invalid Azure AD token.");
+                throw new UnauthorizedException("Invalid Azure AD token.");
 
             var email = principal.FindFirst(ClaimTypes.Email)?.Value ?? principal.FindFirst("preferred_username")?.Value;
             if (string.IsNullOrEmpty(email))
@@ -318,7 +319,7 @@ namespace employee_management.Persistence.Services
 
             if (employee.Status != EmployeeStatus.Active)
             {
-                throw new InvalidOperationException("Account is disabled.");
+                throw new UnauthorizedException("Account is disabled.");
             }
         }
     }

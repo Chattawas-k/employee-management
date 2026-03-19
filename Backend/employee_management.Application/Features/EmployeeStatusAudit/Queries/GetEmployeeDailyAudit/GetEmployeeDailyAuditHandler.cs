@@ -120,7 +120,7 @@ namespace employee_management.Application.Features.EmployeeStatusAudit.Queries.G
             }
             else if (dayEvents.Count > 0 && dayEvents[0].PreviousStatus.HasValue)
             {
-                points.Add((dayEvents[0].PreviousStatus.Value, dayStartUtc));
+                points.Add((dayEvents[0].PreviousStatus!.Value, dayStartUtc));
             }
             else
             {

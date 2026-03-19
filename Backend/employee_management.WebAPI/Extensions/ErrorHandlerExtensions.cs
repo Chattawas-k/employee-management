@@ -30,6 +30,7 @@ namespace employee_management.WebAPI.Extensions
                     context.Response.StatusCode = exception switch
                     {
                         BadRequestException => (int)HttpStatusCode.BadRequest,
+                        UnauthorizedException => (int)HttpStatusCode.Unauthorized,
                         NoDataFoundException => (int)HttpStatusCode.NotFound,
                         UserAlreadyExistsException => (int)HttpStatusCode.Conflict,
                         SocketException => (int)HttpStatusCode.ServiceUnavailable,

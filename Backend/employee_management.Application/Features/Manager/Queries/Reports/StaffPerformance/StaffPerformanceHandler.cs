@@ -1,6 +1,7 @@
 using MediatR;
 using employee_management.Application.Repository.JobsRepository;
 using employee_management.Application.Repository.EmployeesRepository;
+using employee_management.Application.Common.Helpers;
 using employee_management.Domain.Enums;
 
 namespace employee_management.Application.Features.Manager.Queries.Reports.StaffPerformance
@@ -48,10 +49,8 @@ namespace employee_management.Application.Features.Manager.Queries.Reports.Staff
 
                 // Calculate sales
                 var totalSales = wonJobs
-                    .Where(j => j.Report != null && 
-                        j.Report.SalesStatus.ToLower() == "success" &&
-                        decimal.TryParse(j.Report.Description, out var amount))
-                    .Sum(j => decimal.Parse(j.Report!.Description!));
+                    .Where(j => j.Report != null && j.Report.SalesStatus.ToLower() == "success")
+                    .Sum(j => SalesAmountHelper.ExtractSalesAmount(j.Report?.Description));
 
                 var avgDealValue = wonCount > 0 ? totalSales / wonCount : 0;
 

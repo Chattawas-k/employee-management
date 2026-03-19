@@ -191,6 +191,45 @@
             containerClass="rounded-xl shadow-sm border border-gray-100"
           />
         </div>
+
+        <!-- Sales Summary Section -->
+        <div class="mt-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">สรุปยอดขาย</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            <app-summary-card
+              title="ยอดเงินที่ขายได้"
+              [value]="(stats.salesStats.totalSalesAmount ?? 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
+              unit="บาท"
+              icon="check-circle"
+              valueClass="text-gray-900"
+              iconBgClass="bg-green-100"
+              iconClass="text-green-600"
+              containerClass="rounded-xl shadow-sm border border-gray-100"
+            />
+
+            <app-summary-card
+              title="จำนวนที่ขายสำเร็จ"
+              [value]="stats.salesStats.success"
+              unit="รายการ"
+              icon="chart-bar"
+              valueClass="text-gray-900"
+              iconBgClass="bg-blue-100"
+              iconClass="text-blue-600"
+              containerClass="rounded-xl shadow-sm border border-gray-100"
+            />
+
+            <app-summary-card
+              title="อัตราการแปลง"
+              [value]="(stats.salesStats.conversionRate ?? 0).toFixed(2)"
+              unit="%"
+              icon="trending-up"
+              valueClass="text-gray-900"
+              iconBgClass="bg-purple-100"
+              iconClass="text-purple-600"
+              containerClass="rounded-xl shadow-sm border border-gray-100"
+            />
+          </div>
+        </div>
       }
     </div>
     }

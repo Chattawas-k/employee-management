@@ -1,5 +1,6 @@
 using MediatR;
 using employee_management.Application.Repository.JobsRepository;
+using employee_management.Application.Common.Helpers;
 using employee_management.Domain.Enums;
 using System.Text.Json;
 using employee_management.Domain.Entities;
@@ -60,6 +61,7 @@ namespace employee_management.Application.Features.Employees.Queries.GetMyWorkSt
                 int successCount = 0;
                 int pendingCount = 0;
                 int failedCount = 0;
+                decimal totalSalesAmount = 0;
 
                 foreach (var job in jobsWithReports)
                 {
@@ -70,7 +72,12 @@ namespace employee_management.Application.Features.Employees.Queries.GetMyWorkSt
                         {
                             var salesStatus = report.SalesStatus?.ToLower() ?? string.Empty;
                             if (salesStatus == "success")
+                            {
                                 successCount++;
+                                // Calculate sales amount from Description field using helper
+                                var amount = SalesAmountHelper.ExtractSalesAmount(report.Description);
+                                totalSalesAmount += amount;
+                            }
                             else if (salesStatus == "pending")
                                 pendingCount++;
                             else if (salesStatus == "failed")
@@ -93,7 +100,8 @@ namespace employee_management.Application.Features.Employees.Queries.GetMyWorkSt
                     Success: successCount,
                     Pending: pendingCount,
                     Failed: failedCount,
-                    ConversionRate: conversionRate
+                    ConversionRate: conversionRate,
+                    TotalSalesAmount: totalSalesAmount
                 );
 
                 return new GetMyWorkStatsResponse(

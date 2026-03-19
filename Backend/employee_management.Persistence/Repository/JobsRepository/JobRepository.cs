@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using employee_management.Application.Repository.JobsRepository;
+using employee_management.Application.Common.Helpers;
 using employee_management.Domain.Entities;
 using employee_management.Domain.Enums;
 using employee_management.Persistence.Context;
@@ -323,7 +324,7 @@ namespace employee_management.Persistence.Repository.JobsRepository
             
             foreach (var job in jobs.Where(j => j.Report != null && j.Report.SalesStatus.ToLower() == "success"))
             {
-                var amount = job.Report?.Description != null && decimal.TryParse(job.Report.Description, out var saleAmount) ? saleAmount : 0m;
+                var amount = employee_management.Application.Common.Helpers.SalesAmountHelper.ExtractSalesAmount(job.Report?.Description);
                 if (amount <= 0) continue;
                 
                 // Priority: Use JobReport.ProductCategory (from Sales Report dialog)
