@@ -163,15 +163,11 @@ namespace employee_management.WebAPI.Controllers
             var ws = workbook.Worksheets.Add("SalesReport");
             var headers = new[]
             {
-                // Job
-                "JobId","JobNumber","JobRunningCode","Title","Customer(Original)","Channel","Priority","JobStatus","IsEscalated",
-                "ProductCategoryId","ProductCategoryName","AssigneeId","AssigneeName",
-                // Time (Bangkok)
-                "CreatedAt(BKK)","AssignedAt(BKK)","StartedAt(BKK)","ClosedAt(BKK)","SlaWaitingBreachAt(BKK)","SlaAssignedBreachAt(BKK)","SaleDateDerived(BKK)",
-                // Sales report
-                "CustomerName","CustomerContact","SalesStatus","Reasons","ProductCategory(Report)","Description(Report)",
-                // Debug
-                "StatusLogs"
+                "JobNumber", "JobRunningCode", "AssigneeName",
+                "CreatedAt(BKK)", "AssignedAt(BKK)", "StartedAt(BKK)", "ClosedAt(BKK)",
+                "CustomerName", "CustomerContact", "SalesStatus", "Reasons",
+                "ProductCategory(Report)", "Description(Report)",
+                "ปิดงานโดยใคร", "ยอดเงิน(สำเร็จ)"
             };
 
             for (var i = 0; i < headers.Length; i++)
@@ -182,7 +178,7 @@ namespace employee_management.WebAPI.Controllers
             ws.SheetView.FreezeRows(1);
             ws.Range(1, 1, 1, headers.Length).SetAutoFilter();
 
-            var dtFormat = "yyyy-mm-dd hh:mm:ss";
+            var dtFormat = "yyyy-mm-dd hh:mm";
 
             for (var r = 0; r < response.Rows.Count; r++)
             {
@@ -190,31 +186,15 @@ namespace employee_management.WebAPI.Controllers
                 var excelRow = r + 2;
                 var c = 1;
 
-                // Job
-                ws.Cell(excelRow, c++).Value = row.JobId.ToString();
                 ws.Cell(excelRow, c++).Value = row.JobNumber;
                 ws.Cell(excelRow, c++).Value = row.JobRunningCode ?? string.Empty;
-                ws.Cell(excelRow, c++).Value = row.Title;
-                ws.Cell(excelRow, c++).Value = row.CustomerOriginal;
-                ws.Cell(excelRow, c++).Value = row.Channel;
-                ws.Cell(excelRow, c++).Value = row.Priority.ToString();
-                ws.Cell(excelRow, c++).Value = row.JobStatus.ToString();
-                ws.Cell(excelRow, c++).Value = row.IsEscalated ? "true" : "false";
-                ws.Cell(excelRow, c++).Value = row.ProductCategoryId?.ToString() ?? string.Empty;
-                ws.Cell(excelRow, c++).Value = row.ProductCategoryName ?? string.Empty;
-                ws.Cell(excelRow, c++).Value = row.AssigneeId.ToString();
                 ws.Cell(excelRow, c++).Value = row.AssigneeName ?? string.Empty;
 
-                // Time (Bangkok)
                 SetDateTimeCell(ws.Cell(excelRow, c++), ToBangkok(row.CreatedAt, tz), dtFormat);
                 SetDateTimeCell(ws.Cell(excelRow, c++), ToBangkok(row.AssignedAt, tz), dtFormat);
                 SetDateTimeCell(ws.Cell(excelRow, c++), ToBangkok(row.StartedAt, tz), dtFormat);
                 SetDateTimeCell(ws.Cell(excelRow, c++), ToBangkok(row.ClosedAt, tz), dtFormat);
-                SetDateTimeCell(ws.Cell(excelRow, c++), ToBangkok(row.SlaWaitingBreachAt, tz), dtFormat);
-                SetDateTimeCell(ws.Cell(excelRow, c++), ToBangkok(row.SlaAssignedBreachAt, tz), dtFormat);
-                SetDateTimeCell(ws.Cell(excelRow, c++), ToBangkok(row.SaleDateDerived, tz), dtFormat);
 
-                // Sales report
                 ws.Cell(excelRow, c++).Value = row.CustomerName;
                 ws.Cell(excelRow, c++).Value = row.CustomerContact;
                 ws.Cell(excelRow, c++).Value = row.SalesStatus;
@@ -222,33 +202,16 @@ namespace employee_management.WebAPI.Controllers
                 ws.Cell(excelRow, c++).Value = row.ProductCategoryReport;
                 ws.Cell(excelRow, c++).Value = row.DescriptionReport;
 
-                // Debug
-                ws.Cell(excelRow, c++).Value = row.StatusLogsSummary;
+                ws.Cell(excelRow, c++).Value = row.ClosedByAdminName ?? string.Empty;
+                if (row.SaleValueDerived.HasValue)
+                {
+                    ws.Cell(excelRow, c).Value = row.SaleValueDerived.Value;
+                    ws.Cell(excelRow, c).Style.NumberFormat.Format = "#,##0.00";
+                }
+                c++;
             }
 
             ws.Columns().AdjustToContents(1, headers.Length);
-
-            // Sheet 2: StatusLogs
-            var ws2 = workbook.Worksheets.Add("StatusLogs");
-            ws2.Cell(1, 1).Value = "JobId";
-            ws2.Cell(1, 2).Value = "JobNumber";
-            ws2.Cell(1, 3).Value = "Status";
-            ws2.Cell(1, 4).Value = "Timestamp(BKK)";
-            ws2.Row(1).Style.Font.Bold = true;
-            ws2.SheetView.FreezeRows(1);
-            ws2.Range(1, 1, 1, 4).SetAutoFilter();
-
-            for (var i = 0; i < response.StatusLogs.Count; i++)
-            {
-                var log = response.StatusLogs[i];
-                var excelRow = i + 2;
-                ws2.Cell(excelRow, 1).Value = log.JobId.ToString();
-                ws2.Cell(excelRow, 2).Value = log.JobNumber;
-                ws2.Cell(excelRow, 3).Value = log.Status;
-                SetDateTimeCell(ws2.Cell(excelRow, 4), ToBangkok(log.Timestamp, tz), dtFormat);
-            }
-
-            ws2.Columns().AdjustToContents(1, 4);
 
             using var ms = new MemoryStream();
             workbook.SaveAs(ms);

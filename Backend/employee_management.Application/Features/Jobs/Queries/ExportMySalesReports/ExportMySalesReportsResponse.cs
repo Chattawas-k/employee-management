@@ -42,6 +42,10 @@ namespace employee_management.Application.Features.Jobs.Queries.ExportMySalesRep
         public string ProductCategoryReport { get; set; } = string.Empty;
         public string DescriptionReport { get; set; } = string.Empty;
 
+        // Extra columns requested
+        public string? ClosedByAdminName { get; set; }
+        public decimal? SaleValueDerived { get; set; }
+
         // Audit/debug
         public string StatusLogsSummary { get; set; } = string.Empty;
         public string? ReportJsonRaw { get; set; }

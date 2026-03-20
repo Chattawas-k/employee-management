@@ -92,6 +92,11 @@ namespace employee_management.Application.Features.Jobs.Queries.ExportMySalesRep
                     ProductCategoryReport = report?.ProductCategory ?? string.Empty,
                     DescriptionReport = report?.Description ?? string.Empty,
 
+                    ClosedByAdminName = report?.ClosedByAdminName,
+                    SaleValueDerived = salesStatus == "success"
+                        ? ExtractSaleValue(report?.Description)
+                        : null,
+
                     StatusLogsSummary = SummarizeStatusLogs(statusLogsList),
                     ReportJsonRaw = reportJsonRaw
                 });
@@ -127,6 +132,32 @@ namespace employee_management.Application.Features.Jobs.Queries.ExportMySalesRep
                 .Select(l => $"{l.Status}@{l.Timestamp:O}");
 
             return string.Join("; ", parts);
+        }
+
+        private static decimal? ExtractSaleValue(string? description)
+        {
+            if (string.IsNullOrWhiteSpace(description))
+                return null;
+
+            var desc = description.Trim();
+
+            if (decimal.TryParse(desc, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var direct) && direct > 0)
+                return direct;
+
+            foreach (var sep in new[] { "|", ",", ";", "\n", "\r" })
+            {
+                var idx = desc.IndexOf(sep, StringComparison.Ordinal);
+                if (idx > 0)
+                {
+                    var before = desc[..idx].Trim();
+                    if (decimal.TryParse(before, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out var num) && num > 0)
+                        return num;
+                }
+            }
+
+            return null;
         }
     }
 }
