@@ -39,6 +39,11 @@ export const routes: Routes = [
   { path: 'summary', component: QueueSummaryComponent, canActivate: [authGuard] },
   { path: 'report', component: SalesReportComponent, canActivate: [basicOnlyGuard] },
   { path: 'sales-report-admin', component: SalesReportAdminComponent, canActivate: [adminGuard] },
+  {
+    path: 'admin-active-jobs',
+    loadComponent: () => import('./features/admin-active-jobs/admin-active-jobs.component').then(m => m.AdminActiveJobsComponent),
+    canActivate: [adminGuard]
+  },
   { path: 'settings/employees', component: EmployeeManagementComponent, canActivate: [adminGuard] },
   { path: 'settings/queue', component: QueueSettingsComponent, canActivate: [adminGuard] },
   { path: 'settings/product-categories', component: ProductCategoryManagementComponent, canActivate: [superAdminGuard] },

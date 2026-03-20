@@ -81,6 +81,7 @@ export interface UpdateJobStatusRequest {
   status: JobStatus;
   rejectReason?: string;
   report?: UpdateJobStatusReportDto;
+  isAdminOverride?: boolean;
 }
 
 export interface UpdateJobStatusReportDto {
@@ -91,6 +92,30 @@ export interface UpdateJobStatusReportDto {
   reasons: string[];
   productCategory: string;
   description: string;
+}
+
+export interface ActiveJobDto {
+  id: string;
+  jobNumber: string;
+  jobRunningCode?: string | null;
+  title: string;
+  customer: string;
+  description: string;
+  channel: string;
+  assigneeId: string;
+  assigneeName?: string | null;
+  assigneeAvatar?: string | null;
+  status: JobStatus;
+  priority: JobPriority;
+  isEscalated: boolean;
+  createdDate: string;
+  assignedDate?: string | null;
+  startedDate?: string | null;
+}
+
+export interface GetActiveJobsResponse {
+  jobs: ActiveJobDto[];
+  totalCount: number;
 }
 
 export interface UpdateJobStatusResponse {

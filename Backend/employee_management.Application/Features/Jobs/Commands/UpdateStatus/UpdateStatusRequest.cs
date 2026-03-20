@@ -9,6 +9,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
         public JobStatus Status { get; set; }
         public string? RejectReason { get; set; }
         public UpdateStatusJobReportDto? Report { get; set; }
+        public bool IsAdminOverride { get; set; } = false;
     }
 }
 

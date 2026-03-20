@@ -3,6 +3,7 @@ using MediatR;
 using employee_management.Application.Common.Exceptions;
 using employee_management.Application.Common.Services;
 using employee_management.Application.Repository;
+using employee_management.Application.Repository.EmployeesRepository;
 using employee_management.Application.Repository.JobStatusHistoriesRepository;
 using employee_management.Application.Repository.JobsRepository;
 using employee_management.Application.Repository.QueuesRepository;
@@ -28,6 +29,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
         private readonly IClientSourceProvider _clientSourceProvider;
         private readonly IBusinessDateTimeProvider _dateTimeProvider;
         private readonly ISalesReasonRepository _salesReasonRepository;
+        private readonly IEmployeeRepository _employeeRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<UpdateStatusHandler> _logger;
 
@@ -44,6 +46,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
             IClientSourceProvider clientSourceProvider,
             IBusinessDateTimeProvider dateTimeProvider,
             ISalesReasonRepository salesReasonRepository,
+            IEmployeeRepository employeeRepository,
             IMapper mapper, 
             ILogger<UpdateStatusHandler> logger)
         {
@@ -59,6 +62,7 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
             _clientSourceProvider = clientSourceProvider;
             _dateTimeProvider = dateTimeProvider;
             _salesReasonRepository = salesReasonRepository;
+            _employeeRepository = employeeRepository;
             _mapper = mapper;
             _logger = logger;
         }
@@ -78,19 +82,30 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                 var previousStatus = job.Status;
                 job.Status = request.Status;
 
-                // Job status history (Manual) - only when status actually changes
+                // Determine if this is an admin closing the job on behalf of the assignee
+                var isAdminOverride = request.IsAdminOverride &&
+                    _currentUserService.EmployeeId.HasValue &&
+                    _currentUserService.EmployeeId.Value != job.AssigneeId;
+
+                // Job status history - only when status actually changes
                 if (previousStatus != request.Status)
                 {
-                    var notes = request.Status == JobStatus.Cancelled && !string.IsNullOrWhiteSpace(request.RejectReason)
-                        ? $"Cancelled: {request.RejectReason}"
-                        : null;
+                    string? notes = null;
+                    if (isAdminOverride)
+                    {
+                        notes = "Admin override";
+                    }
+                    else if (request.Status == JobStatus.Cancelled && !string.IsNullOrWhiteSpace(request.RejectReason))
+                    {
+                        notes = $"Cancelled: {request.RejectReason}";
+                    }
 
                     _jobStatusHistoryRepository.Create(new JobStatusHistory
                     {
                         JobId = job.Id,
                         PreviousStatus = previousStatus,
                         NewStatus = request.Status,
-                        ChangeSource = JobChangeSource.Manual,
+                        ChangeSource = isAdminOverride ? JobChangeSource.AdminOverride : JobChangeSource.Manual,
                         ChangedByEmployeeId = _currentUserService.EmployeeId,
                         ChangedDate = DateTimeOffset.UtcNow,
                         Notes = notes
@@ -168,6 +183,14 @@ namespace employee_management.Application.Features.Jobs.Commands.UpdateStatus
                                 .Select(r => r.Label)
                                 .ToList();
                         }
+                    }
+
+                    // Record admin info when admin closes on behalf of the employee
+                    if (isAdminOverride && _currentUserService.EmployeeId.HasValue)
+                    {
+                        report.ClosedByAdminId = _currentUserService.EmployeeId.Value;
+                        var adminEmployee = await _employeeRepository.Get(_currentUserService.EmployeeId.Value, cancellationToken);
+                        report.ClosedByAdminName = adminEmployee?.Name ?? string.Empty;
                     }
 
                     job.Report = report;

@@ -20,6 +20,7 @@ namespace employee_management.Application.Repository.JobsRepository
         Task<List<Job>> GetTopWaitingJobsAsync(int count, CancellationToken cancellationToken);
         Task<Dictionary<string, decimal>> GetSalesByCategoryAsync(DateTime dateFrom, DateTime dateTo, CancellationToken cancellationToken);
         Task<Dictionary<employee_management.Domain.Enums.JobStatus, int>> GetStatusCountsAsync(DateTime? dateFrom, DateTime? dateTo, CancellationToken cancellationToken);
+        Task<List<Job>> GetActiveJobsAsync(Guid? assigneeId, string? search, CancellationToken cancellationToken);
     }
 }
 

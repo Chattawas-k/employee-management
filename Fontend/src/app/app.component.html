@@ -37,6 +37,13 @@
         </a>
       }
       @if (hasAdminAccess()) {
+        <a routerLink="/admin-active-jobs" routerLinkActive="bg-indigo-600 text-white"
+          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
+          <app-icon name="play" className="w-5 h-5"></app-icon>
+          งานที่กำลังดำเนินการ
+        </a>
+      }
+      @if (hasAdminAccess()) {
         <a routerLink="/sales-report-admin" routerLinkActive="bg-indigo-600 text-white"
           class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
           <app-icon name="file-text" className="w-5 h-5"></app-icon>
@@ -182,6 +189,13 @@
             class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700">
             <app-icon name="briefcase" className="w-5 h-5"></app-icon>
             มอบหมายงาน
+          </a>
+
+          <a routerLink="/admin-active-jobs" routerLinkActive="bg-indigo-600 text-white"
+            (click)="isMobileMenuOpen.set(false)"
+            class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700">
+            <app-icon name="play" className="w-5 h-5"></app-icon>
+            งานที่กำลังดำเนินการ
           </a>
 
           <a routerLink="/sales-report-admin" routerLinkActive="bg-indigo-600 text-white"

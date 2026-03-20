@@ -401,6 +401,36 @@ namespace employee_management.Persistence.Repository.JobsRepository
                 .GroupBy(j => j.Status)
                 .ToDictionary(g => g.Key, g => g.Count());
         }
+
+        public async Task<List<Job>> GetActiveJobsAsync(Guid? assigneeId, string? search, CancellationToken cancellationToken)
+        {
+            var query = Context.Jobs
+                .Include(j => j.Employee)
+                .Where(j => !j.IsDeleted &&
+                    (j.Status == employee_management.Domain.Enums.JobStatus.Assigned ||
+                     j.Status == employee_management.Domain.Enums.JobStatus.InProgress));
+
+            if (assigneeId.HasValue)
+            {
+                query = query.Where(j => j.AssigneeId == assigneeId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchLower = search.Trim().ToLower();
+                query = query.Where(j =>
+                    j.JobNumber.ToLower().Contains(searchLower) ||
+                    j.Customer.ToLower().Contains(searchLower) ||
+                    j.Title.ToLower().Contains(searchLower) ||
+                    (j.Employee != null && j.Employee.Name.ToLower().Contains(searchLower)));
+            }
+
+            return await query
+                .OrderBy(j => j.StartedDate.HasValue ? 0 : 1)
+                .ThenBy(j => j.StartedDate)
+                .ThenBy(j => j.AssignedDate)
+                .ToListAsync(cancellationToken);
+        }
     }
 }
 
