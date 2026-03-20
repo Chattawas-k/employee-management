@@ -218,16 +218,27 @@
               containerClass="rounded-xl shadow-sm border border-gray-100"
             />
 
-            <app-summary-card
-              title="อัตราการแปลง"
-              [value]="(stats.salesStats.conversionRate ?? 0).toFixed(2)"
-              unit="%"
-              icon="trending-up"
-              valueClass="text-gray-900"
-              iconBgClass="bg-purple-100"
-              iconClass="text-purple-600"
-              containerClass="rounded-xl shadow-sm border border-gray-100"
-            />
+            <div class="relative">
+              <app-summary-card
+                title="อัตราการแปลง"
+                [value]="(stats.salesStats.conversionRate ?? 0).toFixed(2)"
+                unit="%"
+                icon="trending-up"
+                valueClass="text-gray-900"
+                iconBgClass="bg-purple-100"
+                iconClass="text-purple-600"
+                containerClass="rounded-xl shadow-sm border border-gray-100"
+              />
+              <button
+                type="button"
+                (click)="openConversionRateInfoDialog()"
+                class="absolute top-2 right-2 w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                aria-label="ดูคำอธิบายอัตราการแปลง">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       }
@@ -355,6 +366,14 @@
           (cancel)="closeDateRangeDialog()"
           (close)="closeDateRangeDialog()">
         </app-date-range-picker-dialog>
+      }
+
+      @if (showConversionRateInfoDialog()) {
+        <app-info-dialog
+          title="คำอธิบายอัตราการแปลง"
+          [content]="getConversionRateExplanation()"
+          (close)="closeConversionRateInfoDialog()">
+        </app-info-dialog>
       }
 
       @if (showAvatarDialog()) {

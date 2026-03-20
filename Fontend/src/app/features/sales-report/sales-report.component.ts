@@ -522,6 +522,13 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       }
 
+      // Extract sale value from description if status is Success
+      // Description may contain: "5000" or "5000 | additional info" or "ยอด 5000 บาท"
+      let saleValue: number | undefined = undefined;
+      if (status === 'Success' && apiReport.description) {
+        saleValue = this.extractSalesAmount(apiReport.description);
+      }
+
       const report: SalesReport = {
         id: id,
         jobNumber: apiReport.jobNumber || '',
@@ -539,7 +546,7 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
             ? String(apiReport.assigneeAvatar)
             : this.getFallbackAvatarUrl(apiReport.assigneeName || 'ไม่ระบุ')
         },
-        saleValue: undefined, // Not available in current API response
+        saleValue: saleValue,
         invoiceId: apiReport.invoiceId || undefined,
         nextFollowUp: undefined, // Not available in current API response
         notes: apiReport.description || '',
@@ -554,6 +561,59 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private getFallbackAvatarUrl(name: string, size = 128): string {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=6366f1&color=fff&size=${size}`;
+  }
+
+  /**
+   * Extracts sales amount from description field.
+   * Description may contain: "5000" or "5000 | additional info" or "ยอด 5000 บาท"
+   */
+  private extractSalesAmount(description: string): number | undefined {
+    if (!description || typeof description !== 'string') {
+      return undefined;
+    }
+
+    const desc = description.trim();
+    
+    // Try parsing the entire description first
+    const parsed = parseFloat(desc);
+    if (!isNaN(parsed) && parsed > 0) {
+      return parsed;
+    }
+
+    // Try extracting number from format like "5000 | info" or "5000, info"
+    const separators = ['|', ',', '\n', '\r', ';'];
+    for (const sep of separators) {
+      const parts = desc.split(sep);
+      if (parts.length > 0) {
+        const firstPart = parts[0].trim();
+        const num = parseFloat(firstPart);
+        if (!isNaN(num) && num > 0) {
+          return num;
+        }
+      }
+    }
+
+    // Try to extract number from text using regex (e.g., "ยอด 5000 บาท", "ราคา 5000", "5000 บาท")
+    // Look for numbers that might be amounts (typically larger numbers, could be with commas or spaces)
+    const numberPattern = /\d{1,3}(?:[,\s]\d{3})*(?:\.\d{1,2})?/g;
+    const matches = desc.match(numberPattern);
+    
+    if (matches && matches.length > 0) {
+      // Find the largest number (most likely to be the sale amount)
+      let maxAmount = 0;
+      for (const match of matches) {
+        const numStr = match.replace(/[,\s]/g, '');
+        const num = parseFloat(numStr);
+        if (!isNaN(num) && num > maxAmount && num >= 1) {
+          maxAmount = num;
+        }
+      }
+      if (maxAmount > 0) {
+        return maxAmount;
+      }
+    }
+
+    return undefined;
   }
 
   searchTerm = signal('');

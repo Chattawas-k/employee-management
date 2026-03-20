@@ -21,13 +21,14 @@ import { StatusUpdateDialogComponent } from '../../shared/components/status-upda
 import { PasswordChangeDialogComponent } from '../../shared/components/password-change-dialog/password-change-dialog.component';
 import { LogoutConfirmDialogComponent } from '../../shared/components/logout-confirm-dialog/logout-confirm-dialog.component';
 import { DateRangePickerDialogComponent } from '../../shared/components/date-range-picker-dialog/date-range-picker-dialog.component';
+import { InfoDialogComponent } from '../../shared/components/info-dialog/info-dialog.component';
 import { MyStatusStore } from '../../services/my-status.store';
 import { ReceiveCustomerService } from '../../services/receive-customer.service';
 
 @Component({
   selector: 'app-my-account',
   standalone: true,
-  imports: [CommonModule, RouterModule, SummaryCardComponent, CalloutCardComponent, StatusUpdateDialogComponent, PasswordChangeDialogComponent, LogoutConfirmDialogComponent, DateRangePickerDialogComponent],
+  imports: [CommonModule, RouterModule, SummaryCardComponent, CalloutCardComponent, StatusUpdateDialogComponent, PasswordChangeDialogComponent, LogoutConfirmDialogComponent, DateRangePickerDialogComponent, InfoDialogComponent],
   templateUrl: './my-account.component.html',
   styleUrls: ['./my-account.component.scss']
 })
@@ -69,6 +70,7 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   isSubmittingAvatar = signal(false);
   avatarPreviewUrl = signal<string>('');
   avatarFile = signal<File | null>(null);
+  showConversionRateInfoDialog = signal(false);
 
   // Date range display state (controls the blue label)
   displayDateRange = signal<{ start: Date; end: Date } | null>(null);
@@ -716,6 +718,40 @@ export class MyAccountComponent implements OnInit, OnDestroy {
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}&background=6366f1&color=fff&size=128`;
     }
     return 'https://ui-avatars.com/api/?name=User&background=6366f1&color=fff&size=128';
+  }
+
+  openConversionRateInfoDialog(): void {
+    this.showConversionRateInfoDialog.set(true);
+  }
+
+  closeConversionRateInfoDialog(): void {
+    this.showConversionRateInfoDialog.set(false);
+  }
+
+  getConversionRateExplanation(): string {
+    const stats = this.workStats();
+    if (!stats) return '';
+    
+    const total = stats.salesStats.total;
+    const success = stats.salesStats.success;
+    const pending = stats.salesStats.pending;
+    const failed = stats.salesStats.failed;
+    const conversionRate = stats.salesStats.conversionRate ?? 0;
+    
+    return `อัตราการแปลงคำนวณจาก:
+
+สูตร: (จำนวนที่ขายสำเร็จ ÷ จำนวนรายงานทั้งหมด) × 100
+
+ข้อมูลปัจจุบัน:
+• จำนวนรายงานทั้งหมด: ${total} รายการ
+• ขายสำเร็จ: ${success} รายการ
+• รอดำเนินการ: ${pending} รายการ
+• ไม่สำเร็จ: ${failed} รายการ
+
+การคำนวณ:
+(${success} ÷ ${total}) × 100 = ${conversionRate.toFixed(2)}%
+
+หมายเหตุ: อัตราการแปลงคำนวณจากงานที่มีรายงานการขายเท่านั้น`;
   }
 
 }

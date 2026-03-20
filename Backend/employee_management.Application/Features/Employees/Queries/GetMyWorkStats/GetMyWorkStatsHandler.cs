@@ -39,24 +39,48 @@ namespace employee_management.Application.Features.Employees.Queries.GetMyWorkSt
                     endDate = DateTime.Today.AddDays(1).AddSeconds(-1);
                 }
 
-                // Get all jobs for the employee within the date range
+                // Get all jobs for the employee
                 var allJobs = await _jobRepository.GetMyTasksAsync(request.EmployeeId, cancellationToken);
                 
-                // Filter by date range
-                var jobs = allJobs.Where(j => j.CreatedDate >= startDate && j.CreatedDate <= endDate).ToList();
+                // Convert date range to UTC DateTimeOffset for proper comparison
+                // CreatedDate and ClosedDate are stored as DateTimeOffset (UTC)
+                var startDateUtc = DateTime.SpecifyKind(startDate.Date, DateTimeKind.Utc);
+                var endDateUtc = DateTime.SpecifyKind(endDate.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+                var startDateOffset = new DateTimeOffset(startDateUtc, TimeSpan.Zero);
+                var endDateOffset = new DateTimeOffset(endDateUtc, TimeSpan.Zero);
+                
+                // For task statistics: filter by CreatedDate (when job was created)
+                var jobsByCreatedDate = allJobs.Where(j => j.CreatedDate >= startDateOffset && j.CreatedDate <= endDateOffset).ToList();
 
                 // Calculate task statistics
                 var taskStats = new TaskStatsDto(
-                    Total: jobs.Count,
-                    Pending: jobs.Count(j => j.Status == JobStatus.Pending),
-                    InProgress: jobs.Count(j => j.Status == JobStatus.InProgress || j.Status == JobStatus.Assigned),
-                    CompletedWon: jobs.Count(j => j.Status == JobStatus.ClosedWon),
-                    CompletedLost: jobs.Count(j => j.Status == JobStatus.ClosedLost),
-                    Cancelled: jobs.Count(j => j.Status == JobStatus.Cancelled)
+                    Total: jobsByCreatedDate.Count,
+                    Pending: jobsByCreatedDate.Count(j => j.Status == JobStatus.Pending),
+                    InProgress: jobsByCreatedDate.Count(j => j.Status == JobStatus.InProgress || j.Status == JobStatus.Assigned),
+                    CompletedWon: jobsByCreatedDate.Count(j => j.Status == JobStatus.ClosedWon),
+                    CompletedLost: jobsByCreatedDate.Count(j => j.Status == JobStatus.ClosedLost),
+                    Cancelled: jobsByCreatedDate.Count(j => j.Status == JobStatus.Cancelled)
                 );
 
-                // Calculate sales statistics from job reports
-                var jobsWithReports = jobs.Where(j => !string.IsNullOrWhiteSpace(j.ReportJson)).ToList();
+                // For sales statistics: filter by ClosedDate (when job was closed) for closed jobs
+                // This ensures sales are counted in the period when they were actually closed, not when created
+                // For old data without ClosedDate, fallback to CreatedDate to ensure backward compatibility
+                var jobsWithReports = allJobs
+                    .Where(j => !string.IsNullOrWhiteSpace(j.ReportJson))
+                    .Where(j =>
+                    {
+                        // For closed jobs, prefer ClosedDate but fallback to CreatedDate for old data
+                        if (j.Status == JobStatus.ClosedWon || j.Status == JobStatus.ClosedLost)
+                        {
+                            // Use ClosedDate if available, otherwise use CreatedDate (for backward compatibility with old data)
+                            // Compare DateTimeOffset directly (they're already in UTC)
+                            var jobDate = j.ClosedDate ?? j.CreatedDate;
+                            return jobDate >= startDateOffset && jobDate <= endDateOffset;
+                        }
+                        // For non-closed jobs with reports, use CreatedDate
+                        return j.CreatedDate >= startDateOffset && j.CreatedDate <= endDateOffset;
+                    })
+                    .ToList();
                 
                 int successCount = 0;
                 int pendingCount = 0;
@@ -71,12 +95,32 @@ namespace employee_management.Application.Features.Employees.Queries.GetMyWorkSt
                         if (report != null)
                         {
                             var salesStatus = report.SalesStatus?.ToLower() ?? string.Empty;
+                            
                             if (salesStatus == "success")
                             {
                                 successCount++;
                                 // Calculate sales amount from Description field using helper
                                 var amount = SalesAmountHelper.ExtractSalesAmount(report.Description);
-                                totalSalesAmount += amount;
+                                if (amount > 0)
+                                {
+                                    totalSalesAmount += amount;
+                                    _logger.LogInformation(
+                                        "Extracted sales amount {Amount} from job {JobId} (JobNumber: {JobNumber}). Description: {Description}",
+                                        amount, job.Id, job.JobNumber, report.Description);
+                                }
+                                else if (!string.IsNullOrWhiteSpace(report.Description))
+                                {
+                                    // Log when we have a description but couldn't extract amount (for debugging)
+                                    _logger.LogWarning(
+                                        "Could not extract sales amount from description for job {JobId} (JobNumber: {JobNumber}). Description: {Description}",
+                                        job.Id, job.JobNumber, report.Description);
+                                }
+                                else
+                                {
+                                    _logger.LogWarning(
+                                        "Job {JobId} (JobNumber: {JobNumber}) has success status but no description",
+                                        job.Id, job.JobNumber);
+                                }
                             }
                             else if (salesStatus == "pending")
                                 pendingCount++;

@@ -63,7 +63,11 @@ export class SalesReportDetailDialogComponent {
 
   formatCurrency(value?: number): string {
     if (value === undefined || value === null) return '-';
-    return 'THB ' + new Intl.NumberFormat('en-US', { useGrouping: true }).format(value);
+    return new Intl.NumberFormat('th-TH', { 
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      useGrouping: true 
+    }).format(value) + ' บาท';
   }
 }
 
