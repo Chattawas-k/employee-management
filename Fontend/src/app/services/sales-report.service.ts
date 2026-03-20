@@ -33,7 +33,7 @@ export class SalesReportService {
 
   constructor(private http: HttpClient) {}
 
-  getSalesReports(status?: string, page?: number, pageSize?: number): Observable<GetSalesReportsResponse> {
+  getSalesReports(status?: string, page?: number, pageSize?: number, dateFrom?: string, dateTo?: string, assigneeId?: string): Observable<GetSalesReportsResponse> {
     let url = `${this.apiUrl}/sales-reports`;
     const params: string[] = [];
     
@@ -49,6 +49,18 @@ export class SalesReportService {
     
     if (pageSize !== undefined && pageSize !== null) {
       params.push(`pageSize=${encodeURIComponent(pageSize)}`);
+    }
+    
+    if (dateFrom) {
+      params.push(`dateFrom=${encodeURIComponent(dateFrom)}`);
+    }
+    
+    if (dateTo) {
+      params.push(`dateTo=${encodeURIComponent(dateTo)}`);
+    }
+    
+    if (assigneeId) {
+      params.push(`assigneeId=${encodeURIComponent(assigneeId)}`);
     }
     
     if (params.length > 0) {

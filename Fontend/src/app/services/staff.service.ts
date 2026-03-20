@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import {
   CreateStaffRequest,
@@ -24,14 +25,23 @@ import { GeneratePasswordLinkRequest, GeneratePasswordLinkResponse } from '../mo
 })
 export class StaffService {
   private apiUrl = `${environment.apiUrl}/admin/staff`;
+  private employeeApiUrl = `${environment.apiUrl}/employee/staff`;
 
   constructor(private http: HttpClient) {}
 
   getStaffList(options?: { basicOnly?: boolean }): Observable<GetStaffListResponse> {
-    let params = new HttpParams();
-    if (options?.basicOnly) {
-      params = params.set('basicOnly', 'true');
+    // Use employee/staff endpoint which works for all roles (Basic, Admin, SuperAdmin)
+    // It always returns basic-only staff (Basic role only) for security
+    // If admin needs all staff, they should call admin/staff endpoint directly
+    if (options?.basicOnly !== false) {
+      // Default to basic-only staff via employee endpoint
+      return this.http.get<GetStaffListResponse>(this.employeeApiUrl);
     }
+    
+    // Only use admin endpoint if explicitly requesting all staff (basicOnly = false)
+    // This requires Admin or SuperAdmin role
+    let params = new HttpParams();
+    params = params.set('basicOnly', 'false');
     return this.http.get<GetStaffListResponse>(this.apiUrl, { params });
   }
 

@@ -5,6 +5,7 @@ import { CalloutCardComponent } from '../../shared/components/callout-card/callo
 import { SalesReportDetailDialogComponent } from '../../shared/components/sales-report-detail-dialog/sales-report-detail-dialog.component';
 import { SalesReportDialogComponent } from '../../shared/components/sales-report-dialog/sales-report-dialog.component';
 import { OpenJobDialogComponent } from '../../shared/components/open-job-dialog/open-job-dialog.component';
+import { DateRangePickerDialogComponent, DateRangeYmd } from '../../shared/components/date-range-picker-dialog/date-range-picker-dialog.component';
 import { SalesReport, ReportStatus } from '../../models/sales-report.model';
 import { SalesReportService } from '../../services/sales-report.service';
 import { TaskService } from '../../services/task.service';
@@ -16,6 +17,8 @@ import { of } from 'rxjs';
 import { ToastService } from '../../services/toast.service';
 import { MyStatusStore } from '../../services/my-status.store';
 import { ReceiveCustomerService } from '../../services/receive-customer.service';
+import { StaffService } from '../../services/staff.service';
+import { StaffListItem } from '../../models/staff.model';
 
 // Re-export for backward compatibility
 export type { ReportStatus } from '../../models/sales-report.model';
@@ -24,7 +27,7 @@ export type { SalesReport } from '../../models/sales-report.model';
 @Component({
   selector: 'app-sales-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, CalloutCardComponent, SalesReportDetailDialogComponent, SalesReportDialogComponent, OpenJobDialogComponent],
+  imports: [CommonModule, FormsModule, CalloutCardComponent, SalesReportDetailDialogComponent, SalesReportDialogComponent, OpenJobDialogComponent, DateRangePickerDialogComponent],
   templateUrl: './sales-report.component.html',
   styleUrls: ['./sales-report.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -42,6 +45,31 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   totalCount = signal(0); // Total count from API for pagination
   private maxSeenCount = 0; // Track maximum count we've seen to improve estimation
   
+  // Date range filter
+  dateFrom = signal<string>(''); // YYYY-MM-DD
+  dateTo = signal<string>('');   // YYYY-MM-DD
+  showDateRangeDialog = signal(false);
+  dialogStartYmd = computed(() => this.dateFrom() || this.toYmd(new Date()));
+  dialogEndYmd = computed(() => this.dateTo() || this.toYmd(new Date()));
+  
+  displayDateRangeLabel = computed(() => {
+    const s = this.dateFrom();
+    const e = this.dateTo();
+    if (!s || !e) return '';
+    const fmt = new Intl.DateTimeFormat('th-TH-u-ca-gregory-nu-latn', { month: 'short', day: 'numeric', year: 'numeric' });
+    const sd = new Date(`${s}T00:00:00`);
+    const ed = new Date(`${e}T00:00:00`);
+    return s === e ? fmt.format(sd) : `${fmt.format(sd)} - ${fmt.format(ed)}`;
+  });
+  
+  // Employee filter
+  assigneeId = signal<string>('');
+  staffOptions = signal<StaffListItem[]>([]);
+  
+  private toYmd(d: Date): string {
+    return d.toISOString().split('T')[0];
+  }
+  
   // Centralized status (same across pages)
   private myStatusStore = inject(MyStatusStore);
   private receiveCustomerService = inject(ReceiveCustomerService);
@@ -55,6 +83,7 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
     private taskService: TaskService,
     private authService: AuthService,
     private toastService: ToastService,
+    private staffService: StaffService,
   ) {}
   
   // Mock data removed - now using API data
@@ -159,10 +188,29 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     this.myStatusStore.init();
+    this.loadStaffOptions();
     // Load initial data with current tab and page
     this.loadSalesReports(this.activeTab(), this.currentPage());
     // Load counts separately to show in tabs
     this.loadCounts();
+  }
+  
+  private loadStaffOptions(): void {
+    this.staffService.getStaffList().pipe(
+      catchError(err => {
+        console.error('Failed to load staff list:', err);
+        return of({ staff: [] });
+      })
+    ).subscribe(res => {
+      const staff = (res?.staff ?? []).slice().sort((a, b) => a.fullName.localeCompare(b.fullName));
+      this.staffOptions.set(staff);
+    });
+  }
+  
+  onAssigneeChange(assigneeId: string): void {
+    this.assigneeId.set(assigneeId);
+    this.currentPage.set(1);
+    this.loadSalesReports(this.activeTab(), 1);
   }
 
   ngAfterViewInit(): void {
@@ -352,7 +400,10 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
     const pageSize = this.itemsPerPage();
     // Map 'All' to undefined for API
     const apiStatus = status === 'All' ? undefined : status;
-    this.salesReportService.getSalesReports(apiStatus, page, pageSize).pipe(
+    const dateFrom = this.dateFrom() || undefined;
+    const dateTo = this.dateTo() || undefined;
+    const assigneeId = this.assigneeId() || undefined;
+    this.salesReportService.getSalesReports(apiStatus, page, pageSize, dateFrom, dateTo, assigneeId).pipe(
       catchError(error => {
         console.error('Error loading sales reports:', error);
         console.error('Error details:', {
@@ -630,6 +681,9 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   // Pagination state
   itemsPerPage = signal(8);
   currentPage = signal(1);
+  
+  // Expose Math to template
+  Math = Math;
 
   // Product categories are now loaded from master data, no need for hardcoded list
   private readonly pendingReasons = [
@@ -960,6 +1014,31 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
       default:
         return 'bg-slate-500';
     }
+  }
+  
+  // Date range picker methods
+  openDateRangeDialog(): void {
+    this.showDateRangeDialog.set(true);
+  }
+  
+  closeDateRangeDialog(): void {
+    this.showDateRangeDialog.set(false);
+  }
+  
+  applyDateRange(range: DateRangeYmd): void {
+    this.dateFrom.set(range.startYmd);
+    this.dateTo.set(range.endYmd);
+    this.showDateRangeDialog.set(false);
+    // Reload reports with new date range
+    this.currentPage.set(1);
+    this.loadSalesReports(this.activeTab(), 1);
+  }
+  
+  clearDateRange(): void {
+    this.dateFrom.set('');
+    this.dateTo.set('');
+    this.currentPage.set(1);
+    this.loadSalesReports(this.activeTab(), 1);
   }
 
   getStatusIcon(status: ReportStatus): { color: string, text: string } {

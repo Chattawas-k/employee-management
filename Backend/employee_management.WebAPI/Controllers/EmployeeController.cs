@@ -9,6 +9,7 @@ using employee_management.Application.Features.Employees.Queries.Search;
 using employee_management.Application.Features.Employees.Queries.DropdownList;
 using employee_management.Application.Features.Employees.Queries.GetMyWorkStats;
 using employee_management.Application.Features.Employees.Commands.UpdateMyAvatar;
+using employee_management.Application.Features.Admin.Staff.Queries.GetStaffList;
 using employee_management.WebAPI.Controllers.Base;
 using employee_management.Domain.Enums;
 
@@ -160,6 +161,17 @@ namespace employee_management.WebAPI.Controllers
             }
 
             var response = await _mediator.Send(new UpdateMyAvatarRequest(employeeId, null), cancellationToken);
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Get staff list for Basic role users. Always returns basic-only staff (Basic role only, no Admin/SuperAdmin/Manager).
+        /// </summary>
+        [HttpGet("staff")]
+        public async Task<ActionResult<GetStaffListResponse>> GetStaffList(CancellationToken cancellationToken = default)
+        {
+            // Always enforce BasicOnly = true for Basic staff to ensure security
+            var response = await _mediator.Send(new GetStaffListRequest(BasicOnly: true), cancellationToken);
             return Ok(response);
         }
     }
