@@ -114,7 +114,7 @@ namespace employee_management.Application.Common.Services
                 var yesterdayQueues = await _queueRepository.GetByDateAsync(yesterday, cancellationToken);
                 var yesterdayOrdered = yesterdayQueues
                     .Where(q => !q.IsDeleted)
-                    .OrderBy(q => q.Position)
+                    .OrderBy(q => q.InitialPosition > 0 ? q.InitialPosition : q.Position)
                     .ToList();
 
                 _logger.LogInformation("Found {Count} queue entries from yesterday", yesterdayOrdered.Count);
@@ -238,11 +238,13 @@ namespace employee_management.Application.Common.Services
                 for (var i = 0; i < finalOrder.Count; i++)
                 {
                     var employeeId = finalOrder[i];
+                    var pos = i + 1;
 
                     var queue = new Queue
                     {
                         EmployeeId = employeeId,
-                        Position = i + 1,
+                        Position = pos,
+                        InitialPosition = pos,
                         Status = QueueStatus.Inactive,
                         AvailabilityStatus = AvailabilityStatus.Unavailable, // Set to "ไม่พร้อมรับงาน"
                         Round = 1, // Reset round to 1

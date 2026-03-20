@@ -39,10 +39,14 @@ namespace employee_management.Application.Features.Queues.Commands.ResetDaily
             var previousDate = businessDate.AddDays(-1);
 
             // Rotate Master Queue based on previous day (head -> tail)
+            // IMPORTANT: Sort by InitialPosition (start-of-day position), NOT Position.
+            // Position changes throughout the day via RotateQueueToTailAsync, so using end-of-day
+            // Position would rotate the wrong person (the one who received 0 jobs ends up at
+            // the lowest Position by end of day because others were rotated past them).
             var previousQueues = await _queueRepository.GetByDateAsync(previousDate, cancellationToken);
             var previousOrdered = previousQueues
                 .Where(q => !q.IsDeleted)
-                .OrderBy(q => q.Position)
+                .OrderBy(q => q.InitialPosition > 0 ? q.InitialPosition : q.Position)
                 .ToList();
 
             var rotatedEmployeeIds = new List<Guid>();
@@ -84,10 +88,15 @@ namespace employee_management.Application.Features.Queues.Commands.ResetDaily
             
             foreach (var employeeId in finalOrder)
             {
+                var pos = position++;
                 var queue = new Domain.Entities.Queue
                 {
                     EmployeeId = employeeId,
-                    Position = position++,
+                    Position = pos,
+                    // InitialPosition is set once here and never modified during the day.
+                    // The daily reset uses it to determine which employee was "head" at
+                    // the start of the previous day for the head-to-tail rotation.
+                    InitialPosition = pos,
                     // Daily reset: everyone starts "not ready"
                     Status = QueueStatus.Inactive,
                     AvailabilityStatus = AvailabilityStatus.Unavailable,
