@@ -49,9 +49,33 @@
          class="w-full sm:w-56 pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
        >
      </div>
-     <button class="hidden sm:flex items-center gap-2 px-4 py-2.5 border border-gray-200 bg-white rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm">
-       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-       <span>ตัวกรอง</span>
+     <!-- Date range filter button (desktop) -->
+     <button
+       type="button"
+       (click)="openDateRangeDialog()"
+       class="hidden sm:flex items-center gap-2 px-4 py-2.5 border rounded-lg text-sm font-medium shadow-sm transition-colors whitespace-nowrap"
+       [class.border-indigo-300]="displayDateRangeLabel()"
+       [class.bg-indigo-50]="displayDateRangeLabel()"
+       [class.text-indigo-700]="displayDateRangeLabel()"
+       [class.hover:bg-indigo-100]="displayDateRangeLabel()"
+       [class.border-gray-200]="!displayDateRangeLabel()"
+       [class.bg-white]="!displayDateRangeLabel()"
+       [class.text-gray-700]="!displayDateRangeLabel()"
+       [class.hover:bg-gray-50]="!displayDateRangeLabel()">
+       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+       </svg>
+       <span>{{ displayDateRangeLabel() || 'ช่วงเวลา' }}</span>
+       @if (displayDateRangeLabel()) {
+         <button
+           type="button"
+           (click)="clearDateRange(); $event.stopPropagation()"
+           class="ml-1 -mr-1 p-0.5 rounded-full text-indigo-400 hover:text-indigo-700 hover:bg-indigo-200 transition-colors">
+           <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+           </svg>
+         </button>
+       }
      </button>
      <button
        (click)="exportMySalesReport()"
@@ -83,20 +107,33 @@
             >
           </div>
           
-          <!-- Date Range Button -->
+          <!-- Date Range Button (same design as desktop) -->
           <button
             type="button"
             (click)="openDateRangeDialog()"
-            class="w-full flex items-center justify-between gap-3 bg-white px-4 py-2.5 border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-300 transition-colors text-left">
-            <div class="min-w-0 flex-1">
-              <p class="text-xs text-gray-500 mb-0.5">ช่วงเวลา</p>
-              <p class="text-sm text-gray-900 font-medium truncate">
-                {{ displayDateRangeLabel() || 'ทั้งหมด' }}
-              </p>
-            </div>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7l4-4 4 4m0 10l-4 4-4-4" />
+            class="w-full flex items-center gap-2 px-4 py-2.5 border rounded-lg text-sm font-medium shadow-sm transition-colors"
+            [class.border-indigo-300]="displayDateRangeLabel()"
+            [class.bg-indigo-50]="displayDateRangeLabel()"
+            [class.text-indigo-700]="displayDateRangeLabel()"
+            [class.hover:bg-indigo-100]="displayDateRangeLabel()"
+            [class.border-gray-200]="!displayDateRangeLabel()"
+            [class.bg-white]="!displayDateRangeLabel()"
+            [class.text-gray-700]="!displayDateRangeLabel()"
+            [class.hover:bg-gray-50]="!displayDateRangeLabel()">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
+            <span class="flex-1 text-left truncate">{{ displayDateRangeLabel() || 'ช่วงเวลา' }}</span>
+            @if (displayDateRangeLabel()) {
+              <button
+                type="button"
+                (click)="clearDateRange(); $event.stopPropagation()"
+                class="ml-1 -mr-1 p-0.5 rounded-full text-indigo-400 hover:text-indigo-700 hover:bg-indigo-200 transition-colors flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            }
           </button>
         </div>
       }

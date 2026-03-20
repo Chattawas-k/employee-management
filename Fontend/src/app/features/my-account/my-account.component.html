@@ -108,20 +108,33 @@
 
       <!-- Custom Date Picker -->
       @if (showCustomDatePicker()) {
-        <div class="bg-slate-100 rounded-lg p-2 mb-6">
+        <div class="mb-4">
           <button
             type="button"
             (click)="openDateRangeDialog()"
-            class="w-full flex items-center justify-between gap-3 bg-white px-4 py-3 bg-gray-50-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-            <div class="text-left min-w-0">
-              <p class="text-[13px] text-gray-500">ช่วงวันที่</p>
-              <p class="text-base text-gray-900 font-medium truncate">
-                {{ displayDateRangeLabel() || 'เลือกช่วงวันที่' }}
-              </p>
-            </div>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7l4-4 4 4m0 10l-4 4-4-4" />
+            class="w-full flex items-center gap-2 px-4 py-2.5 border rounded-lg text-sm font-medium shadow-sm transition-colors"
+            [class.border-blue-300]="displayDateRangeLabel()"
+            [class.bg-blue-50]="displayDateRangeLabel()"
+            [class.text-blue-700]="displayDateRangeLabel()"
+            [class.hover:bg-blue-100]="displayDateRangeLabel()"
+            [class.border-gray-200]="!displayDateRangeLabel()"
+            [class.bg-white]="!displayDateRangeLabel()"
+            [class.text-gray-700]="!displayDateRangeLabel()"
+            [class.hover:bg-gray-50]="!displayDateRangeLabel()">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
+            <span class="flex-1 text-left truncate">{{ displayDateRangeLabel() || 'เลือกช่วงวันที่' }}</span>
+            @if (displayDateRangeLabel()) {
+              <button
+                type="button"
+                (click)="clearDateRange(); $event.stopPropagation()"
+                class="ml-1 -mr-1 p-0.5 rounded-full text-blue-400 hover:text-blue-700 hover:bg-blue-200 transition-colors flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            }
           </button>
         </div>
       }

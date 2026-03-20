@@ -325,12 +325,13 @@ export class MyAccountComponent implements OnInit, OnDestroy {
     this.selectedPeriod.set(period);
     if (period === 'custom') {
       this.showCustomDatePicker.set(true);
-      // Ensure defaults exist for custom
+      // Ensure defaults exist for custom (default to today)
       const todayYmd = this.toYmd(new Date());
       if (!this.customStartDate()) this.customStartDate.set(todayYmd);
       if (!this.customEndDate()) this.customEndDate.set(todayYmd);
-      // Set label to current custom values (does not auto-update on input change)
+      // Sync display label and reload stats to match the current custom range
       this.setDisplayDateRangeForCustomInputs();
+      this.loadWorkStats();
     } else {
       this.showCustomDatePicker.set(false);
       this.setDisplayDateRangeForPeriod(period);
@@ -370,6 +371,15 @@ export class MyAccountComponent implements OnInit, OnDestroy {
     this.customEndDate.set(range.endYmd);
     this.setDisplayDateRangeForCustomInputs();
     this.closeDateRangeDialog();
+    this.loadWorkStats();
+  }
+
+  clearDateRange(): void {
+    const todayYmd = this.toYmd(new Date());
+    this.customStartDate.set(todayYmd);
+    this.customEndDate.set(todayYmd);
+    // Re-sync label and reload stats for the reset (today) range
+    this.setDisplayDateRangeForCustomInputs();
     this.loadWorkStats();
   }
 
