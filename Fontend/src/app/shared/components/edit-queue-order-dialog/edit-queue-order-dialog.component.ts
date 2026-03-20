@@ -17,7 +17,7 @@ export class EditQueueOrderDialogComponent implements OnInit, OnChanges {
   @Input() queues: QueueDto[] = [];
   @Input() queueDate: Date = new Date();
   @Output() close = new EventEmitter<void>();
-  @Output() save = new EventEmitter<{ queues: QueueDto[]; deletedQueueIds: string[] }>();
+  @Output() save = new EventEmitter<{ queues: QueueDto[]; deletedQueueIds: string[]; updateMaster: boolean }>();
 
   reorderedQueues = signal<QueueDto[]>([]);
   draggedIndex = signal<number | null>(null);
@@ -121,8 +121,12 @@ export class EditQueueOrderDialogComponent implements OnInit, OnChanges {
     this.draggedIndex.set(null);
   }
 
-  onSave(): void {
-    this.save.emit({ queues: this.reorderedQueues(), deletedQueueIds: this.deletedQueueIds() });
+  onSaveTodayOnly(): void {
+    this.save.emit({ queues: this.reorderedQueues(), deletedQueueIds: this.deletedQueueIds(), updateMaster: false });
+  }
+
+  onSaveMaster(): void {
+    this.save.emit({ queues: this.reorderedQueues(), deletedQueueIds: this.deletedQueueIds(), updateMaster: true });
   }
 
   onCancel(): void {

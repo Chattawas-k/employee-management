@@ -90,11 +90,12 @@ export class QueueService {
   }
 
   bulkUpdateQueues(
-    payload: Array<{ id: string; position: number; status: string }> | { queues: Array<{ id: string; position: number; status: string }>; deletedQueueIds?: string[] }
+    payload: Array<{ id: string; position: number; status: string }> | { queues: Array<{ id: string; position: number; status: string }>; deletedQueueIds?: string[]; updateMaster?: boolean }
   ): Observable<any> {
     // Backward compatibility: allow passing just an array (old signature)
     const queues = Array.isArray(payload) ? payload : payload.queues;
     const deletedQueueIds = Array.isArray(payload) ? [] : (payload.deletedQueueIds ?? []);
+    const updateMaster = Array.isArray(payload) ? false : (payload.updateMaster ?? false);
 
     // Map status to backend QueueStatus enum
     const queueItems = queues.map((queue: any) => {
@@ -112,7 +113,7 @@ export class QueueService {
       };
     });
 
-    return this.http.put(`${this.apiUrl}/bulk-update`, { queues: queueItems, deletedQueueIds });
+    return this.http.put(`${this.apiUrl}/bulk-update`, { queues: queueItems, deletedQueueIds, updateMaster });
   }
 
   archiveQueue(sourceDate: Date, targetDate?: Date): Observable<any> {

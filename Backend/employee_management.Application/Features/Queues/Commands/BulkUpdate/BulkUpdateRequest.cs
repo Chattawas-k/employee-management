@@ -11,7 +11,13 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
 
     public sealed record BulkUpdateRequest(
         List<QueueUpdateItem> Queues,
-        List<Guid>? DeletedQueueIds = null
+        List<Guid>? DeletedQueueIds = null,
+        /// <summary>
+        /// When true, also updates InitialPosition to match the new Position.
+        /// This makes the reorder persistent across daily resets (Master Queue change).
+        /// When false (default), only Position is updated — affects today only.
+        /// </summary>
+        bool UpdateMaster = false
     ) : IRequest<BulkUpdateResponse>;
 }
 

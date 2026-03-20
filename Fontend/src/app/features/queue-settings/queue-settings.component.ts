@@ -137,11 +137,12 @@ export class QueueSettingsComponent implements OnInit {
     this.showEditDialog.set(false);
   }
 
-  saveQueueOrder(payload: { queues: QueueDto[]; deletedQueueIds: string[] }): void {
+  saveQueueOrder(payload: { queues: QueueDto[]; deletedQueueIds: string[]; updateMaster: boolean }): void {
     this.isLoading.set(true);
     const updatedQueues = payload.queues;
     const deletedQueueIds = payload.deletedQueueIds ?? [];
-    
+    const updateMaster = payload.updateMaster ?? false;
+
     // Separate existing queues and new queues (temp IDs)
     const existingQueues = updatedQueues
       .filter(q => !q.id.startsWith('temp-'))
@@ -167,7 +168,7 @@ export class QueueSettingsComponent implements OnInit {
     const operations: Observable<any>[] = [];
 
     if (updateRequests.length > 0 || deletedQueueIds.length > 0) {
-      operations.push(this.queueService.bulkUpdateQueues({ queues: updateRequests, deletedQueueIds }));
+      operations.push(this.queueService.bulkUpdateQueues({ queues: updateRequests, deletedQueueIds, updateMaster }));
     }
 
     if (createRequests.length > 0) {
@@ -193,7 +194,10 @@ export class QueueSettingsComponent implements OnInit {
       })
     ).subscribe(response => {
       if (response) {
-        this.toastService.success('บันทึกลำดับคิวสำเร็จ');
+        const msg = updateMaster
+          ? 'ตั้งค่า Master Queue สำเร็จ — วันถัดไปจะใช้ลำดับนี้เป็นต้นแบบ'
+          : 'บันทึกลำดับคิววันนี้สำเร็จ — วันพรุ่งนี้จะกลับลำดับเดิม';
+        this.toastService.success(msg);
         this.closeEditDialog();
         // Reload data to reflect changes
         this.loadCurrentQueues();

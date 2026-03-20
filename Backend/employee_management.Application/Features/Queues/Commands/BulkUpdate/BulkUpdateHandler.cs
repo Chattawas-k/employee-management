@@ -38,8 +38,8 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
             try
             {
                 _logger.LogInformation(
-                    "Admin override: Starting Master Queue bulk update by user {UserId} (EmployeeId: {EmployeeId})",
-                    _currentUserService.UserId, _currentUserService.EmployeeId);
+                    "Admin override: Starting queue bulk update by user {UserId} (EmployeeId: {EmployeeId}), UpdateMaster={UpdateMaster}",
+                    _currentUserService.UserId, _currentUserService.EmployeeId, request.UpdateMaster);
 
                 int updatedCount = 0;
                 int deletedCount = 0;
@@ -71,6 +71,12 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
 
                     queue.Position = queueItem.Position;
                     queue.Status = queueItem.Status;
+                    // When UpdateMaster=true, sync InitialPosition so daily reset
+                    // uses this new order as the rotation base going forward.
+                    if (request.UpdateMaster)
+                    {
+                        queue.InitialPosition = queueItem.Position;
+                    }
                     // Round is NOT modified - preserve existing Round value
                     queue.UpdatedDate = DateTimeOffset.UtcNow;
                     
@@ -129,6 +135,7 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
                         .OrderBy(x => x.position)
                         .ToList();
 
+                    var reorderType = request.UpdateMaster ? "Master (persistent)" : "Today-only (position only)";
                     var auditLog = new AuditLog
                     {
                         ActorId = _currentUserService.UserId ?? Guid.Empty,
@@ -138,7 +145,7 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
                         EntityId = group.First().QueueId,
                         BeforeJson = JsonSerializer.Serialize(beforeList),
                         AfterJson = JsonSerializer.Serialize(afterList),
-                        Reason = $"Admin override: Master Queue update (reorder/delete) for {group.Key:yyyy-MM-dd}. Round values preserved.",
+                        Reason = $"Admin override: Queue reorder [{reorderType}] for {group.Key:yyyy-MM-dd}. Round values preserved.",
                         Timestamp = DateTimeOffset.UtcNow
                     };
                     _auditLogRepository.Create(auditLog);
@@ -154,9 +161,9 @@ namespace employee_management.Application.Features.Queues.Commands.BulkUpdate
                 await _unitOfWork.Save(cancellationToken);
 
                 _logger.LogInformation(
-                    "Admin override: Master Queue bulk update completed successfully. " +
-                    "Updated: {UpdatedCount}, Deleted: {DeletedCount}. " +
-                    "Round values were NOT reset (preserved from original queue entries).",
+                    "Admin override: Queue bulk update completed. Type={UpdateMaster}, " +
+                    "Updated: {UpdatedCount}, Deleted: {DeletedCount}. Round values preserved.",
+                    request.UpdateMaster ? "Master(persistent)" : "Today-only",
                     updatedCount, deletedCount);
                 return new BulkUpdateResponse(updatedCount, deletedCount, DateTimeOffset.UtcNow);
             }
