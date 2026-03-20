@@ -69,5 +69,63 @@ export class SalesReportDetailDialogComponent {
       useGrouping: true 
     }).format(value) + ' บาท';
   }
+
+  /**
+   * Get sale value from report, extracting from notes/description if saleValue is not available
+   */
+  getSaleValue(): number | undefined {
+    // If saleValue exists, use it
+    if (this.report.saleValue !== undefined && this.report.saleValue !== null && this.report.saleValue > 0) {
+      return this.report.saleValue;
+    }
+
+    // Otherwise, try to extract from notes (which contains description from API)
+    const text = this.report.notes || '';
+    if (!text) return undefined;
+
+    // Try to extract number from text
+    // Handle formats like: "65300", "65300 | info", "ยอด 65300 บาท"
+    const trimmed = text.trim();
+    
+    // Try parsing the entire text first
+    const parsed = parseFloat(trimmed);
+    if (!isNaN(parsed) && parsed > 0) {
+      return parsed;
+    }
+
+    // Try extracting from format like "5000 | info" or "5000, info"
+    const separators = ['|', ',', '\n', '\r', ';'];
+    for (const sep of separators) {
+      const parts = trimmed.split(sep);
+      if (parts.length > 0) {
+        const firstPart = parts[0].trim();
+        const num = parseFloat(firstPart);
+        if (!isNaN(num) && num > 0) {
+          return num;
+        }
+      }
+    }
+
+    // Try extracting number from Thai text like "ยอด 5000 บาท" or any number pattern
+    const numberPattern = /\d{1,3}(?:[,\s]\d{3})*(?:\.\d{1,2})?/g;
+    const matches = trimmed.match(numberPattern);
+    
+    if (matches && matches.length > 0) {
+      // Find the largest number (most likely to be the sale amount)
+      let maxAmount = 0;
+      for (const match of matches) {
+        const numStr = match.replace(/[,\s]/g, '');
+        const num = parseFloat(numStr);
+        if (!isNaN(num) && num > maxAmount && num >= 1) {
+          maxAmount = num;
+        }
+      }
+      if (maxAmount > 0) {
+        return maxAmount;
+      }
+    }
+
+    return undefined;
+  }
 }
 
