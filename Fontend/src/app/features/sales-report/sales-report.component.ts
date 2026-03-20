@@ -1016,6 +1016,22 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
   
+  /**
+   * Get sale value from report, extracting from notes if saleValue is not available
+   */
+  getSaleValue(report: SalesReport): number | undefined {
+    // If saleValue exists, use it
+    if (report.saleValue !== undefined && report.saleValue !== null && report.saleValue > 0) {
+      return report.saleValue;
+    }
+
+    // Otherwise, try to extract from notes (which contains description from API)
+    const text = report.notes || '';
+    if (!text) return undefined;
+
+    return this.extractSalesAmount(text);
+  }
+  
   // Date range picker methods
   openDateRangeDialog(): void {
     this.showDateRangeDialog.set(true);
