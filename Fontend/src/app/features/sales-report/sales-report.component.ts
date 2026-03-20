@@ -231,7 +231,13 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.isExporting()) return;
 
     this.isExporting.set(true);
-    this.salesReportService.exportMySalesReportsXlsx().pipe(
+    // Get current filters for export
+    const searchTerm = this.searchTerm().trim() || undefined;
+    const dateFrom = this.dateFrom() || undefined;
+    const dateTo = this.dateTo() || undefined;
+    const status = this.activeTab() === 'All' ? undefined : this.activeTab().toLowerCase();
+    
+    this.salesReportService.exportMySalesReportsXlsx(searchTerm, dateFrom, dateTo, status).pipe(
       finalize(() => this.isExporting.set(false)),
       catchError((error) => {
         console.error('Export failed:', error);
@@ -668,6 +674,7 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   searchTerm = signal('');
+  showMobileSearch = signal(false); // For responsive: show/hide search bar
   activeTab = signal<ReportStatus | 'All'>('All');
   showDetailDialog = signal(false);
   selectedReport = signal<SalesReport | null>(null);
@@ -736,20 +743,52 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // Reports are already filtered and paginated by API, just apply search filter
   filteredReports = computed(() => {
-    const term = this.searchTerm().toLowerCase();
+    const term = this.searchTerm().toLowerCase().trim();
     const reports = this.allReports();
 
     if (!term) {
       return reports;
     }
 
-    return reports.filter(report =>
-      report.customerName.toLowerCase().includes(term) ||
-      report.contactInfo.toLowerCase().includes(term) ||
-      report.jobNumber.toLowerCase().includes(term) ||
-      (report.jobRunningCode || '').toLowerCase().includes(term) ||
-      report.interestedProducts.some(p => p.toLowerCase().includes(term))
-    );
+    return reports.filter(report => {
+      // Search in customer name
+      if (report.customerName.toLowerCase().includes(term)) return true;
+      
+      // Search in contact info (phone number)
+      if (report.contactInfo.toLowerCase().includes(term)) return true;
+      
+      // Search in job number
+      if (report.jobNumber.toLowerCase().includes(term)) return true;
+      
+      // Search in job running code
+      if ((report.jobRunningCode || '').toLowerCase().includes(term)) return true;
+      
+      // Search in interested products
+      if (report.interestedProducts.some(p => p.toLowerCase().includes(term))) return true;
+      
+      // Search in submitted date (วันที่รับลูกค้า)
+      if (report.submittedAt) {
+        const dateStr = this.formatThaiDateTime(report.submittedAt).toLowerCase();
+        if (dateStr.includes(term)) return true;
+        
+        // Also try searching in date format like "19/03/2026" or "19-03-2026"
+        const d = new Date(report.submittedAt);
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const year = d.getFullYear();
+        const dateFormats = [
+          `${day}/${month}/${year}`,
+          `${day}-${month}-${year}`,
+          `${year}-${month}-${day}`,
+          `${day} ${month} ${year}`,
+          `${day}/${month}`,
+          `${day}-${month}`
+        ];
+        if (dateFormats.some(fmt => fmt.includes(term))) return true;
+      }
+      
+      return false;
+    });
   });
   
   totalPages = computed(() => {

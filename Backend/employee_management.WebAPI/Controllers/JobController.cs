@@ -126,6 +126,8 @@ namespace employee_management.WebAPI.Controllers
             [FromQuery] string? status = null,
             [FromQuery] int? pageNumber = null,
             [FromQuery] int? pageSize = null,
+            [FromQuery] DateTime? dateFrom = null,
+            [FromQuery] DateTime? dateTo = null,
             CancellationToken cancellationToken = default)
         {
             // Get EmployeeId from JWT token claims
@@ -136,7 +138,7 @@ namespace employee_management.WebAPI.Controllers
                 return BadRequest("EmployeeId not found in token, invalid format, or not linked to this user.");
             }
 
-            var response = await _mediator.Send(new GetSalesReportsRequest(employeeId, status, pageNumber, pageSize), cancellationToken);
+            var response = await _mediator.Send(new GetSalesReportsRequest(employeeId, status, pageNumber, pageSize, dateFrom, dateTo), cancellationToken);
             return Ok(response);
         }
 

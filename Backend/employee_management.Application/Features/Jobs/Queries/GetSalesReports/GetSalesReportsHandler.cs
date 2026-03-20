@@ -32,6 +32,8 @@ namespace employee_management.Application.Features.Jobs.Queries.GetSalesReports
                     request.Status,
                     request.PageNumber,
                     request.PageSize,
+                    request.DateFrom,
+                    request.DateTo,
                     cancellationToken);
                 _logger.LogInformation("Retrieved {Count} jobs from repository", jobs.Count);
                 

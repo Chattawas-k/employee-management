@@ -1,9 +1,26 @@
 <div class="bg-white px-4 sm:px-8 ">
   <!-- Header -->
   <header class="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center pb-6 pt-6">
-    <div class="flex items-center gap-4">
+    <div class="flex items-center justify-between gap-4">
       <div>
         <h1 class="text-4xl font-medium ">รายงานการขาย</h1>
+      </div>
+      <div class="flex items-center gap-2 sm:hidden">
+        <button
+          type="button"
+          (click)="showMobileSearch.set(!showMobileSearch())"
+          class="flex items-center justify-center w-10 h-10 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 shadow-sm transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </button>
+        <button
+          (click)="exportMySalesReport()"
+          [disabled]="isExporting()"
+          class="flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          [title]="isExporting() ? 'กำลัง Export...' : 'Export'">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+        </button>
       </div>
     </div>
   </header>
@@ -15,33 +32,76 @@
 <div class="flex-1 p-4 sm:p-6 pt-0 lg:p-8 lg:pt-0 bg-slate-50">
   
   <!-- Header -->
-  <div class="flex w-full items-center gap-3 self-stretch sm:self-center sm:w-auto pb-2">
-    <div class="relative w-full sm:w-auto">
-     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-       </svg>
+  <div class="space-y-3 pb-2">
+    <!-- Desktop: Single Row -->
+    <div class="hidden sm:flex w-full items-center gap-3 self-stretch sm:self-center sm:w-auto">
+      <div class="relative w-full sm:w-auto">
+       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+         </svg>
+       </div>
+       <input 
+         type="text" 
+         [ngModel]="searchTerm()"
+         (ngModelChange)="onSearchTermChange($event)"
+         placeholder="ค้นหาชื่อ, เบอร์โทร, หรือวันที่รับลูกค้า..." 
+         class="w-full sm:w-56 pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+       >
      </div>
-     <input 
-       type="text" 
-       [ngModel]="searchTerm()"
-       (ngModelChange)="onSearchTermChange($event)"
-       placeholder="ค้นหารายงาน..." 
-       class="w-full sm:w-56 pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-     >
-   </div>
-   <button class="hidden sm:flex items-center gap-2 px-4 py-2.5 border border-gray-200 bg-white rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm">
-     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-     <span>ตัวกรอง</span>
-   </button>
-   <button
-     (click)="exportMySalesReport()"
-     [disabled]="isExporting()"
-     class="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
-     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-     <span>{{ isExporting() ? 'กำลัง Export...' : 'Export' }}</span>
-   </button>
- </div>
+     <button class="hidden sm:flex items-center gap-2 px-4 py-2.5 border border-gray-200 bg-white rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm">
+       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+       <span>ตัวกรอง</span>
+     </button>
+     <button
+       (click)="exportMySalesReport()"
+       [disabled]="isExporting()"
+       class="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+       <span>{{ isExporting() ? 'กำลัง Export...' : 'Export' }}</span>
+     </button>
+    </div>
+    
+    <!-- Mobile: Compact Layout with Search Toggle -->
+    <div class="sm:hidden">
+      <!-- Search and Date Range (Hidden by Default, Show on Toggle) -->
+      @if (showMobileSearch()) {
+        <div class="space-y-3 mb-3">
+          <!-- Search Bar -->
+          <div class="relative w-full">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input 
+              type="text" 
+              [ngModel]="searchTerm()"
+              (ngModelChange)="onSearchTermChange($event)"
+              placeholder="ค้นหาชื่อ, เบอร์โทร, หรือวันที่รับลูกค้า..." 
+              class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            >
+          </div>
+          
+          <!-- Date Range Button -->
+          <button
+            type="button"
+            (click)="openDateRangeDialog()"
+            class="w-full flex items-center justify-between gap-3 bg-white px-4 py-2.5 border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-300 transition-colors text-left">
+            <div class="min-w-0 flex-1">
+              <p class="text-xs text-gray-500 mb-0.5">ช่วงเวลา</p>
+              <p class="text-sm text-gray-900 font-medium truncate">
+                {{ displayDateRangeLabel() || 'ทั้งหมด' }}
+              </p>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7l4-4 4 4m0 10l-4 4-4-4" />
+            </svg>
+          </button>
+        </div>
+      }
+    </div>
+  </div>
 
 
 
@@ -445,4 +505,14 @@
     (close)="closeOpenJobDialog()"
     (confirm)="confirmOpenJob($event)">
   </app-open-job-dialog>
+}
+
+@if (showDateRangeDialog()) {
+  <app-date-range-picker-dialog
+    [startYmd]="dialogStartYmd()"
+    [endYmd]="dialogEndYmd()"
+    (apply)="applyDateRange($event)"
+    (cancel)="closeDateRangeDialog()"
+    (close)="closeDateRangeDialog()">
+  </app-date-range-picker-dialog>
 }

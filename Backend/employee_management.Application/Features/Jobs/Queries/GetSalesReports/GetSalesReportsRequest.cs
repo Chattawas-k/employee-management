@@ -6,7 +6,9 @@ namespace employee_management.Application.Features.Jobs.Queries.GetSalesReports
         Guid EmployeeId, // EmployeeId of the assignee (not UserId)
         string? Status = null, // "success" | "failed" | "pending" | "rejected" | null (all)
         int? PageNumber = null,
-        int? PageSize = null
+        int? PageSize = null,
+        DateTime? DateFrom = null,
+        DateTime? DateTo = null
     ) : IRequest<GetSalesReportsResponse>;
 }
 

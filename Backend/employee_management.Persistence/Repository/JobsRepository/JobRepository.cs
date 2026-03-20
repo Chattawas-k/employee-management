@@ -32,7 +32,7 @@ namespace employee_management.Persistence.Repository.JobsRepository
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<Job>> GetSalesReportsAsync(Guid employeeId, string? status, int? pageNumber, int? pageSize, CancellationToken cancellationToken)
+        public async Task<List<Job>> GetSalesReportsAsync(Guid employeeId, string? status, int? pageNumber, int? pageSize, DateTime? dateFrom, DateTime? dateTo, CancellationToken cancellationToken)
         {
             // Filter by AssigneeId (EmployeeId) to show only jobs assigned to the current employee
             // Note: Report is a computed property (deserialized from ReportJson), so for report-based statuses
@@ -43,6 +43,17 @@ namespace employee_management.Persistence.Repository.JobsRepository
             IQueryable<Job> query = Context.Jobs
                 .Include(j => j.Employee)
                 .Where(j => !j.IsDeleted && j.AssigneeId == employeeId);
+
+            // Apply date range filter (filter by CreatedDate)
+            var (startUtc, endUtc) = ToUtcRangeFromBangkokDates(dateFrom, dateTo);
+            if (startUtc.HasValue)
+            {
+                query = query.Where(j => j.CreatedDate >= startUtc.Value);
+            }
+            if (endUtc.HasValue)
+            {
+                query = query.Where(j => j.CreatedDate < endUtc.Value);
+            }
 
             if (isRejected)
             {

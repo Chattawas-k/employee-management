@@ -204,6 +204,19 @@ export class SalesReportAdminComponent implements OnInit, AfterViewInit, OnDestr
     this.reloadAll();
   }
 
+  clearAllFilters(): void {
+    this.searchTerm.set('');
+    this.dateFrom.set('');
+    this.dateTo.set('');
+    this.assigneeId.set('');
+    this.currentPage.set(1);
+    this.reloadAll();
+  }
+
+  hasActiveFilters = computed(() => {
+    return !!(this.searchTerm() || this.dateFrom() || this.dateTo() || this.assigneeId());
+  });
+
   onDateFromChange(value: string): void {
     this.dateFrom.set(value || '');
     this.currentPage.set(1);

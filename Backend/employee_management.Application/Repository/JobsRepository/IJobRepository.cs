@@ -5,7 +5,7 @@ namespace employee_management.Application.Repository.JobsRepository
     public interface IJobRepository : IBaseRepository<Job>
     {
         Task<List<Job>> GetMyTasksAsync(Guid employeeId, CancellationToken cancellationToken);
-        Task<List<Job>> GetSalesReportsAsync(Guid employeeId, string? status, int? pageNumber, int? pageSize, CancellationToken cancellationToken);
+        Task<List<Job>> GetSalesReportsAsync(Guid employeeId, string? status, int? pageNumber, int? pageSize, DateTime? dateFrom, DateTime? dateTo, CancellationToken cancellationToken);
         Task<List<Job>> GetMyJobsForSalesReportExportAsync(Guid employeeId, CancellationToken cancellationToken);
         Task<List<Job>> GetSalesReportsForAdminAsync(DateTime? dateFrom, DateTime? dateTo, Guid? assigneeId, string? search, CancellationToken cancellationToken);
         Task<List<Job>> GetSalesReportsForAdminExportAsync(DateTime? dateFrom, DateTime? dateTo, Guid? assigneeId, string? search, CancellationToken cancellationToken);

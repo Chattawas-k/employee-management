@@ -12,6 +12,7 @@ import { SalesReport, ReportStatus } from '../../../models/sales-report.model';
 })
 export class SalesReportDetailDialogComponent {
   @Input() report!: SalesReport;
+  @Input() allowStatusUpdate: boolean = true; // Allow updating status (default true for staff, false for admin)
   @Output() close = new EventEmitter<void>();
   @Output() updateStatus = new EventEmitter<ReportStatus>();
 

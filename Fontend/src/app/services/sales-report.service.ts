@@ -73,8 +73,30 @@ export class SalesReportService {
     });
   }
 
-  exportMySalesReportsXlsx(): Observable<HttpResponse<Blob>> {
-    const url = `${this.apiUrl}/sales-reports/export`;
+  exportMySalesReportsXlsx(search?: string, dateFrom?: string, dateTo?: string, status?: string): Observable<HttpResponse<Blob>> {
+    let url = `${this.apiUrl}/sales-reports/export`;
+    const params: string[] = [];
+    
+    if (search) {
+      params.push(`search=${encodeURIComponent(search)}`);
+    }
+    
+    if (dateFrom) {
+      params.push(`dateFrom=${encodeURIComponent(dateFrom)}`);
+    }
+    
+    if (dateTo) {
+      params.push(`dateTo=${encodeURIComponent(dateTo)}`);
+    }
+    
+    if (status && status !== 'all') {
+      params.push(`status=${encodeURIComponent(status)}`);
+    }
+    
+    if (params.length > 0) {
+      url += `?${params.join('&')}`;
+    }
+    
     return this.http.get(url, {
       observe: 'response',
       responseType: 'blob'
