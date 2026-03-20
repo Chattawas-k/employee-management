@@ -35,7 +35,8 @@ namespace employee_management.Application.Features.Jobs.Queries.GetSalesReports
                 .ForMember(dest => dest.AssigneeId, opt => opt.MapFrom(src => src.AssigneeId))
                 .ForMember(dest => dest.AssigneeName, opt => opt.MapFrom(src => src.Employee != null ? src.Employee.Name : null))
                 .ForMember(dest => dest.AssigneeAvatar, opt => opt.MapFrom(src => src.Employee != null ? src.Employee.Avatar : null))
-                .ForMember(dest => dest.InvoiceId, opt => opt.Ignore()); // InvoiceId will be set manually if needed
+                .ForMember(dest => dest.InvoiceId, opt => opt.Ignore()) // InvoiceId will be set manually if needed
+                .ForMember(dest => dest.ClosedByAdminName, opt => opt.MapFrom(src => src.Report != null ? src.Report.ClosedByAdminName : null));
         }
 
         private static string ExtractCancelReason(List<StatusLog> logs)

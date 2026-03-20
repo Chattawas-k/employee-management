@@ -20,5 +20,6 @@ export interface SalesReport {
   nextFollowUp?: Date;
   notes?: string;
   competitor?: string;
+  closedByAdminName?: string;
 }
 

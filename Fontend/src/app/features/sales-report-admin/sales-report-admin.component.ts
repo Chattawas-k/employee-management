@@ -386,6 +386,12 @@ export class SalesReportAdminComponent implements OnInit, AfterViewInit, OnDestr
       const submittedAt = api.submittedAt ? new Date(api.submittedAt) : new Date();
       const saleDate = api.saleDate ? new Date(api.saleDate) : undefined;
 
+      // Extract sale value from description if status is Success
+      let saleValue: number | undefined = undefined;
+      if (status === 'Success' && api.description) {
+        saleValue = this.extractSalesAmount(api.description);
+      }
+
       valid.push({
         id: String(api.id ?? ''),
         jobNumber: api.jobNumber || '',
@@ -403,7 +409,9 @@ export class SalesReportAdminComponent implements OnInit, AfterViewInit, OnDestr
             ? String(api.assigneeAvatar)
             : `https://ui-avatars.com/api/?name=${encodeURIComponent(api.assigneeName || 'User')}&background=6366f1&color=fff&size=128`
         },
-        notes: api.description || ''
+        saleValue: saleValue,
+        notes: this.extractNotesFromDescription(api.description || '', status),
+        closedByAdminName: api.closedByAdminName || undefined
       });
     }
 
@@ -459,6 +467,91 @@ export class SalesReportAdminComponent implements OnInit, AfterViewInit, OnDestr
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
+  }
+
+  private extractSalesAmount(description: string): number | undefined {
+    if (!description || typeof description !== 'string') {
+      return undefined;
+    }
+
+    const desc = description.trim();
+    
+    // Try parsing the entire description first
+    const parsed = parseFloat(desc);
+    if (!isNaN(parsed) && parsed > 0) {
+      return parsed;
+    }
+
+    // Try extracting number from format like "5000 | info" or "5000, info"
+    const separators = ['|', ',', '\n', '\r', ';'];
+    for (const sep of separators) {
+      const parts = desc.split(sep);
+      if (parts.length > 0) {
+        const firstPart = parts[0].trim();
+        const num = parseFloat(firstPart);
+        if (!isNaN(num) && num > 0) {
+          return num;
+        }
+      }
+    }
+
+    // Try to extract number from text using regex (e.g., "ยอด 5000 บาท", "ราคา 5000", "5000 บาท")
+    const numberPattern = /\d{1,3}(?:[,\s]\d{3})*(?:\.\d{1,2})?/g;
+    const matches = desc.match(numberPattern);
+    
+    if (matches && matches.length > 0) {
+      // Find the largest number (most likely to be the sale amount)
+      let maxAmount = 0;
+      for (const match of matches) {
+        const numStr = match.replace(/[,\s]/g, '');
+        const num = parseFloat(numStr);
+        if (!isNaN(num) && num > maxAmount && num >= 1) {
+          maxAmount = num;
+        }
+      }
+      if (maxAmount > 0) {
+        return maxAmount;
+      }
+    }
+
+    return undefined;
+  }
+
+  private extractNotesFromDescription(description: string, status: ReportStatus): string {
+    if (!description || description.trim().length === 0) return '';
+    
+    // For Success status, description may be "34" or "34 | additional info"
+    // Extract only the notes part (after separator)
+    if (status === 'Success') {
+      const desc = description.trim();
+      const separators = ['|', ',', '\n', '\r', ';'];
+      
+      for (const sep of separators) {
+        const parts = desc.split(sep);
+        if (parts.length > 1) {
+          const firstPart = parts[0].trim();
+          const num = parseFloat(firstPart);
+          // If first part is a number, treat the rest as notes
+          if (!isNaN(num) && num > 0) {
+            const notesPart = parts.slice(1).join(sep).trim();
+            // Only return notes if there's actual content after the separator
+            if (notesPart.length > 0) {
+              return notesPart;
+            }
+          }
+        }
+      }
+      
+      // If no separator found, check if it's a pure number
+      const parsed = parseFloat(desc);
+      if (!isNaN(parsed)) {
+        // It's a pure number, return empty (notes should be empty, saleValue is extracted separately)
+        return '';
+      }
+    }
+    
+    // For other statuses or if description is not a number, use as-is
+    return description;
   }
 }
 

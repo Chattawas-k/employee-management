@@ -582,8 +582,43 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
       // Extract sale value from description if status is Success
       // Description may contain: "5000" or "5000 | additional info" or "ยอด 5000 บาท"
       let saleValue: number | undefined = undefined;
+      let notes: string = '';
       if (status === 'Success' && apiReport.description) {
-        saleValue = this.extractSalesAmount(apiReport.description);
+        const desc = apiReport.description.trim();
+        saleValue = this.extractSalesAmount(desc);
+        
+        // Extract notes from description: if format is "number | notes", show only notes part
+        const separators = ['|', ',', '\n', '\r', ';'];
+        let foundSeparator = false;
+        for (const sep of separators) {
+          const parts = desc.split(sep);
+          if (parts.length > 1) {
+            const firstPart = parts[0].trim();
+            const num = parseFloat(firstPart);
+            // If first part is a number, treat the rest as notes
+            if (!isNaN(num) && num > 0) {
+              const notesPart = parts.slice(1).join(sep).trim();
+              if (notesPart.length > 0) {
+                notes = notesPart;
+                foundSeparator = true;
+                break;
+              }
+            }
+          }
+        }
+        // If no separator found or first part is not a number, check if description is pure number
+        if (!foundSeparator) {
+          const parsed = parseFloat(desc);
+          // If it's a pure number, notes should be empty (saleValue already extracted)
+          // If it's not a number, use description as notes
+          if (isNaN(parsed)) {
+            notes = desc;
+          }
+          // If it's a pure number, notes remains empty (which is correct)
+        }
+      } else {
+        // For non-Success statuses, use description as notes
+        notes = apiReport.description || '';
       }
 
       const report: SalesReport = {
@@ -606,8 +641,9 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
         saleValue: saleValue,
         invoiceId: apiReport.invoiceId || undefined,
         nextFollowUp: undefined, // Not available in current API response
-        notes: apiReport.description || '',
-        competitor: undefined // Not available in current API response
+        notes: notes,
+        competitor: undefined, // Not available in current API response
+        closedByAdminName: apiReport.closedByAdminName || undefined
       };
       
       validReports.push(report);

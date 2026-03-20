@@ -30,7 +30,8 @@ namespace employee_management.Application.Features.Jobs.Queries.Get
         string SalesStatus,
         List<string> Reasons,
         string ProductCategory,
-        string Description
+        string Description,
+        string? ClosedByAdminName
     );
 }
 

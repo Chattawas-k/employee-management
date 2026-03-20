@@ -27,6 +27,7 @@ export interface MyTaskJobReportDto {
   reasons: string[];
   productCategory: string;
   description: string;
+  closedByAdminName?: string;
 }
 
 export interface JobDto {

@@ -21,6 +21,7 @@ namespace employee_management.Application.Features.Jobs.Queries.GetSalesReports
         public string? AssigneeName { get; set; }
         public string? AssigneeAvatar { get; set; }
         public string? InvoiceId { get; set; }
+        public string? ClosedByAdminName { get; set; }
     }
 }
 

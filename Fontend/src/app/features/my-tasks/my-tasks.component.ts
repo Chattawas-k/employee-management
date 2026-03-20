@@ -225,7 +225,8 @@ export class MyTasksComponent implements OnInit, OnDestroy {
         contactInfo: job.report.customerContact,
         reasons: job.report.reasons,
         productCategory: job.report.productCategory,
-        description: job.report.description
+        description: job.report.description,
+        closedByAdminName: job.report.closedByAdminName
       };
     }
 
@@ -292,7 +293,8 @@ export class MyTasksComponent implements OnInit, OnDestroy {
         contactInfo: job.report.customerContact,
         reasons: job.report.reasons,
         productCategory: job.report.productCategory,
-        description: job.report.description
+        description: job.report.description,
+        closedByAdminName: job.report.closedByAdminName
       };
     }
 

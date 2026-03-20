@@ -75,12 +75,13 @@ export class SalesReportDetailDialogComponent {
    * Get sale value from report, extracting from notes/description if saleValue is not available
    */
   getSaleValue(): number | undefined {
-    // If saleValue exists, use it
+    // If saleValue exists, use it (this should be set during mapping)
     if (this.report.saleValue !== undefined && this.report.saleValue !== null && this.report.saleValue > 0) {
       return this.report.saleValue;
     }
 
-    // Otherwise, try to extract from notes (which contains description from API)
+    // Fallback: try to extract from notes if saleValue is not set
+    // This handles cases where mapping didn't extract the value
     const text = this.report.notes || '';
     if (!text) return undefined;
 
