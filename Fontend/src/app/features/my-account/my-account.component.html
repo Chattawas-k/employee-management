@@ -148,7 +148,7 @@
 
       <!-- Statistics Cards -->
       @if (!isLoadingStats() && workStats(); as stats) {
-        <div class="grid grid-cols-1 xl:grid-cols-5 gap-2">
+        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
           <app-summary-card
             title="ทั้งหมด"
             [value]="stats.taskStats.total"
@@ -168,6 +168,17 @@
             valueClass="text-gray-900"
             iconBgClass="bg-green-100"
             iconClass="text-green-600"
+            containerClass="rounded-xl shadow-sm border border-gray-100"
+          />
+
+          <app-summary-card
+            title="ดำเนินการ"
+            [value]="stats.taskStats.inProgress"
+            unit="งาน"
+            icon="pulse"
+            valueClass="text-gray-900"
+            iconBgClass="bg-indigo-100"
+            iconClass="text-indigo-600"
             containerClass="rounded-xl shadow-sm border border-gray-100"
           />
 

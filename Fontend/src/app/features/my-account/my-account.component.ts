@@ -612,9 +612,11 @@ export class MyAccountComponent implements OnInit, OnDestroy {
         const startYmd = this.customStartDate();
         const endYmd = this.customEndDate();
         if (!startYmd || !endYmd) return null;
+        // Use local midnight (T00:00:00 without Z) so toISOString() converts
+        // Bangkok local time → UTC correctly (same as the 'today' period above).
         const startDisplay = new Date(`${startYmd}T00:00:00`);
         const endDisplay = new Date(`${endYmd}T00:00:00`);
-        const startIso = new Date(startYmd).toISOString();
+        const startIso = startDisplay.toISOString();
         const endIso = new Date(`${endYmd}T23:59:59`).toISOString();
         return { startIso, endIso, startDisplay, endDisplay };
       }

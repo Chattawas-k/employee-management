@@ -23,31 +23,44 @@ namespace employee_management.Application.Features.Employees.Queries.GetMyWorkSt
         {
             try
             {
-                // Determine date range
-                DateTime startDate;
-                DateTime endDate;
+                // Build UTC DateTimeOffset boundaries directly from the request.
+                // The frontend sends full ISO-8601 UTC strings (e.g. "2026-03-20T17:00:00Z"
+                // for Bangkok midnight on 2026-03-21), so we MUST NOT call .Date here because
+                // that would strip the time component and shift the window by up to ±UTC-offset hours.
+                DateTimeOffset startDateOffset;
+                DateTimeOffset endDateOffset;
 
                 if (request.StartDate.HasValue && request.EndDate.HasValue)
                 {
-                    startDate = request.StartDate.Value.Date;
-                    endDate = request.EndDate.Value.Date.AddDays(1).AddSeconds(-1);
+                    // Preserve the exact UTC instant sent by the frontend.
+                    startDateOffset = new DateTimeOffset(
+                        DateTime.SpecifyKind(request.StartDate.Value, DateTimeKind.Utc),
+                        TimeSpan.Zero);
+                    endDateOffset = new DateTimeOffset(
+                        DateTime.SpecifyKind(request.EndDate.Value, DateTimeKind.Utc),
+                        TimeSpan.Zero);
                 }
                 else
                 {
-                    // Default to today
-                    startDate = DateTime.Today;
-                    endDate = DateTime.Today.AddDays(1).AddSeconds(-1);
+                    // Default: Bangkok today (UTC+7)
+                    var bangkokOffset = TimeSpan.FromHours(7);
+                    var todayBkk = TimeZoneInfo
+                        .ConvertTimeFromUtc(DateTime.UtcNow,
+                            TimeZoneInfo.FindSystemTimeZoneById(
+                                OperatingSystem.IsWindows() ? "SE Asia Standard Time" : "Asia/Bangkok"))
+                        .Date;
+                    startDateOffset = new DateTimeOffset(todayBkk, bangkokOffset);
+                    endDateOffset   = new DateTimeOffset(todayBkk.AddDays(1), bangkokOffset);
                 }
+
+                // Track display dates (Bangkok) for response
+                var bangkokTz = TimeZoneInfo.FindSystemTimeZoneById(
+                    OperatingSystem.IsWindows() ? "SE Asia Standard Time" : "Asia/Bangkok");
+                var startDate = TimeZoneInfo.ConvertTime(startDateOffset, bangkokTz).Date;
+                var endDate   = TimeZoneInfo.ConvertTime(endDateOffset.AddTicks(-1), bangkokTz).Date;
 
                 // Get all jobs for the employee
                 var allJobs = await _jobRepository.GetMyTasksAsync(request.EmployeeId, cancellationToken);
-                
-                // Convert date range to UTC DateTimeOffset for proper comparison
-                // CreatedDate and ClosedDate are stored as DateTimeOffset (UTC)
-                var startDateUtc = DateTime.SpecifyKind(startDate.Date, DateTimeKind.Utc);
-                var endDateUtc = DateTime.SpecifyKind(endDate.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
-                var startDateOffset = new DateTimeOffset(startDateUtc, TimeSpan.Zero);
-                var endDateOffset = new DateTimeOffset(endDateUtc, TimeSpan.Zero);
                 
                 // For task statistics: filter by CreatedDate (when job was created)
                 var jobsByCreatedDate = allJobs.Where(j => j.CreatedDate >= startDateOffset && j.CreatedDate <= endDateOffset).ToList();
