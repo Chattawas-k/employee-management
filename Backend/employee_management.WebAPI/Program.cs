@@ -197,6 +197,9 @@ builder.Services.AddSignalR(options =>
 // Register NotificationService
 builder.Services.AddScoped<employee_management.Application.Common.Services.INotificationService, employee_management.WebAPI.Services.NotificationService>();
 
+// Register DailyResetService (used by the background service startup check)
+builder.Services.AddScoped<employee_management.Application.Common.Services.IDailyResetService, employee_management.Application.Common.Services.DailyResetService>();
+
 // Register Daily Reset Background Service
 builder.Services.AddHostedService<employee_management.WebAPI.Services.DailyResetBackgroundService>();
 

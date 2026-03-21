@@ -45,9 +45,9 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   totalCount = signal(0); // Total count from API for pagination
   private maxSeenCount = 0; // Track maximum count we've seen to improve estimation
   
-  // Date range filter
-  dateFrom = signal<string>(''); // YYYY-MM-DD
-  dateTo = signal<string>('');   // YYYY-MM-DD
+  // Date range filter — default to today so only today's reports are shown on first load
+  dateFrom = signal<string>(this.toYmd(new Date())); // YYYY-MM-DD
+  dateTo = signal<string>(this.toYmd(new Date()));   // YYYY-MM-DD
   showDateRangeDialog = signal(false);
   dialogStartYmd = computed(() => this.dateFrom() || this.toYmd(new Date()));
   dialogEndYmd = computed(() => this.dateTo() || this.toYmd(new Date()));
@@ -759,8 +759,10 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
   });
 
   private loadCounts(): void {
-    // Load all reports without pagination to get counts
-    this.salesReportService.getSalesReports(undefined).pipe(
+    const dateFrom = this.dateFrom() || undefined;
+    const dateTo = this.dateTo() || undefined;
+    const assigneeId = this.assigneeId() || undefined;
+    this.salesReportService.getSalesReports(undefined, 1, 9999, dateFrom, dateTo, assigneeId).pipe(
       catchError(error => {
         console.error('Error loading counts:', error);
         return of({ reports: [] });
@@ -1120,16 +1122,22 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
     this.dateFrom.set(range.startYmd);
     this.dateTo.set(range.endYmd);
     this.showDateRangeDialog.set(false);
-    // Reload reports with new date range
     this.currentPage.set(1);
+    this.maxSeenCount = 0;
+    this.totalCount.set(0);
     this.loadSalesReports(this.activeTab(), 1);
+    this.loadCounts();
   }
   
   clearDateRange(): void {
-    this.dateFrom.set('');
-    this.dateTo.set('');
+    const today = this.toYmd(new Date());
+    this.dateFrom.set(today);
+    this.dateTo.set(today);
     this.currentPage.set(1);
+    this.maxSeenCount = 0;
+    this.totalCount.set(0);
     this.loadSalesReports(this.activeTab(), 1);
+    this.loadCounts();
   }
 
   getStatusIcon(status: ReportStatus): { color: string, text: string } {
