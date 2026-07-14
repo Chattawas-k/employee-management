@@ -105,6 +105,9 @@ namespace employee_management.Domain.Entities
         public List<string> Reasons { get; set; } = new List<string>();
         public string ProductCategory { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        // First-class sale fields (previously derived: value packed in Description, date from close log)
+        public decimal? SaleValue { get; set; }
+        public DateTimeOffset? SaleDate { get; set; }
         // Set when an admin closes the job on behalf of the assigned employee
         public Guid? ClosedByAdminId { get; set; }
         public string? ClosedByAdminName { get; set; }

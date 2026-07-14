@@ -31,6 +31,7 @@ namespace employee_management.WebAPI.Extensions
                     {
                         BadRequestException => (int)HttpStatusCode.BadRequest,
                         UnauthorizedException => (int)HttpStatusCode.Unauthorized,
+                        ForbiddenException => (int)HttpStatusCode.Forbidden,
                         NoDataFoundException => (int)HttpStatusCode.NotFound,
                         UserAlreadyExistsException => (int)HttpStatusCode.Conflict,
                         SocketException => (int)HttpStatusCode.ServiceUnavailable,

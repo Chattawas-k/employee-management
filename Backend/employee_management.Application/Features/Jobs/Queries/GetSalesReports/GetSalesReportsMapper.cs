@@ -1,4 +1,5 @@
 using AutoMapper;
+using employee_management.Application.Common.Helpers;
 using employee_management.Domain.Entities;
 using employee_management.Domain.Enums;
 using System;
@@ -27,11 +28,17 @@ namespace employee_management.Application.Features.Jobs.Queries.GetSalesReports
                         ? src.Report.Description
                         : (src.Status == JobStatus.Cancelled ? ExtractCancelReason(src.StatusLogs) : string.Empty)))
                 .ForMember(dest => dest.SubmittedAt, opt => opt.MapFrom(src => src.CreatedDate))
-                .ForMember(dest => dest.SaleDate, opt => opt.MapFrom(src => 
-                    (src.Status == JobStatus.ClosedWon || src.Status == JobStatus.ClosedLost) && src.Report != null && src.StatusLogs != null && 
-                    (src.StatusLogs.Any(log => log.Status == "ClosedWon") || src.StatusLogs.Any(log => log.Status == "ClosedLost")) ? 
-                    src.StatusLogs.First(log => log.Status == "ClosedWon" || log.Status == "ClosedLost").Timestamp : 
-                    (DateTimeOffset?)null))
+                .ForMember(dest => dest.SaleDate, opt => opt.MapFrom(src =>
+                    src.Report != null && src.Report.SaleDate.HasValue
+                        ? src.Report.SaleDate
+                        : ((src.Status == JobStatus.ClosedWon || src.Status == JobStatus.ClosedLost) && src.Report != null && src.StatusLogs != null &&
+                           (src.StatusLogs.Any(log => log.Status == "ClosedWon") || src.StatusLogs.Any(log => log.Status == "ClosedLost"))
+                            ? src.StatusLogs.First(log => log.Status == "ClosedWon" || log.Status == "ClosedLost").Timestamp
+                            : (DateTimeOffset?)null)))
+                .ForMember(dest => dest.SaleValue, opt => opt.MapFrom(src =>
+                    src.Report != null
+                        ? (src.Report.SaleValue ?? SalesAmountHelper.ExtractSalesAmount(src.Report.Description))
+                        : (decimal?)null))
                 .ForMember(dest => dest.AssigneeId, opt => opt.MapFrom(src => src.AssigneeId))
                 .ForMember(dest => dest.AssigneeName, opt => opt.MapFrom(src => src.Employee != null ? src.Employee.Name : null))
                 .ForMember(dest => dest.AssigneeAvatar, opt => opt.MapFrom(src => src.Employee != null ? src.Employee.Avatar : null))

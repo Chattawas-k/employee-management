@@ -30,7 +30,7 @@ export class ChartCardComponent implements OnInit, AfterViewInit, OnDestroy, OnC
 
   ngAfterViewInit(): void {
     this.isViewInitialized = true;
-    if (this.data && !this.isLoading) {
+    if (this.data && !this.isLoading && !this.isEmpty()) {
       setTimeout(() => this.renderChart(), 100);
     }
   }
@@ -44,21 +44,54 @@ export class ChartCardComponent implements OnInit, AfterViewInit, OnDestroy, OnC
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!this.isViewInitialized) return;
-    
-    if (changes['data'] && !changes['data'].firstChange && this.data && !this.isLoading) {
+
+    // When loading starts, the *ngIf removes the <canvas> from the DOM. Drop the now-stale
+    // chart instance so it is re-created against the fresh canvas once loading finishes
+    // (otherwise the reference survives but points at a detached canvas → blank chart).
+    if (changes['isLoading'] && changes['isLoading'].currentValue) {
+      if (this.chart) {
+        this.chart.destroy();
+        this.chart = null;
+      }
+      return;
+    }
+
+    if (changes['data'] && !changes['data'].firstChange && this.data && !this.isLoading && !this.isEmpty()) {
       if (this.chart && this.chartCanvas) {
         setTimeout(() => this.updateChart(), 100);
       } else {
         setTimeout(() => this.renderChart(), 100);
       }
     }
-    
-    if (changes['isLoading'] && !changes['isLoading'].currentValue && this.data) {
-      setTimeout(() => {
-        if (!this.chart) {
-          this.renderChart();
-        }
-      }, 100);
+
+    if (changes['isLoading'] && !changes['isLoading'].currentValue && this.data && !this.isEmpty()) {
+      // Canvas was just re-added; render fresh (renderChart destroys any existing chart first).
+      setTimeout(() => this.renderChart(), 100);
+    }
+  }
+
+  /** True when there is no meaningful data to plot for the current chart type. */
+  isEmpty(): boolean {
+    if (!this.data) return true;
+    switch (this.chartType) {
+      case 'line': {
+        const points = this.data.points || [];
+        return points.length === 0 || points.every((p: any) => !(p.created || 0) && !(p.closed || 0));
+      }
+      case 'doughnut':
+      case 'pie': {
+        const items = this.data.items || [];
+        return items.length === 0 || items.every((i: any) => !(i.amount || 0));
+      }
+      case 'bar': {
+        const items = this.data.bySales || this.data.byConversion || [];
+        return items.length === 0 || items.every((i: any) => !((i.salesAmount || 0) || (i.conversionRate || 0)));
+      }
+      case 'funnel':
+        return !((this.data.waiting || 0) || (this.data.assigned || 0) || (this.data.inProgress || 0) ||
+                 (this.data.closedWon || 0) || (this.data.closedLost || 0));
+      default:
+        return false;
     }
   }
 
@@ -112,8 +145,9 @@ export class ChartCardComponent implements OnInit, AfterViewInit, OnDestroy, OnC
       type: 'line',
       data: {
         labels: points.map((p: any) => {
+          // Each point represents a whole day, so label with the date (not a time-of-day).
           const date = new Date(p.date);
-          return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+          return new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short' }).format(date);
         }),
         datasets: [
           {
@@ -144,7 +178,11 @@ export class ChartCardComponent implements OnInit, AfterViewInit, OnDestroy, OnC
         },
         scales: {
           y: {
-            beginAtZero: true
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1,
+              precision: 0
+            }
           }
         }
       }
@@ -318,7 +356,11 @@ export class ChartCardComponent implements OnInit, AfterViewInit, OnDestroy, OnC
         },
         scales: {
           y: {
-            beginAtZero: true
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1,
+              precision: 0
+            }
           }
         }
       }

@@ -11,6 +11,7 @@ export interface SalesReport {
   reasons: string[];
   submittedAt: Date;
   saleDate?: Date;
+  assigneeId?: string; // owner (the employee who recorded the report) — used to gate edit permission
   salesperson: {
     name: string;
     avatarUrl: string;

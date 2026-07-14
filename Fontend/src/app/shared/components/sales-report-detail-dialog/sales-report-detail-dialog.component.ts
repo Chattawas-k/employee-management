@@ -1,6 +1,12 @@
-import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter, computed, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SalesReport, ReportStatus } from '../../../models/sales-report.model';
+import { SalesReportService } from '../../../services/sales-report.service';
+import { ReportHistoryEntry } from '../../../models/report-history.model';
+import { AuthService } from '../../../services/auth.service';
+import { getEmployeeIdFromToken } from '../../../utils/jwt.util';
+
+type DetailTab = 'detail' | 'history';
 
 @Component({
   selector: 'app-sales-report-detail-dialog',
@@ -10,11 +16,119 @@ import { SalesReport, ReportStatus } from '../../../models/sales-report.model';
   styleUrls: ['./sales-report-detail-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SalesReportDetailDialogComponent {
+export class SalesReportDetailDialogComponent implements OnInit {
   @Input() report!: SalesReport;
   @Input() allowStatusUpdate: boolean = true; // Allow updating status (default true for staff, false for admin)
   @Output() close = new EventEmitter<void>();
   @Output() updateStatus = new EventEmitter<ReportStatus>();
+  @Output() edit = new EventEmitter<void>();
+
+  private salesReportService = inject(SalesReportService);
+  private authService = inject(AuthService);
+
+  activeTab = signal<DetailTab>('detail');
+
+  history = signal<ReportHistoryEntry[]>([]);
+  isLoadingHistory = signal(false);
+  historyError = signal(false);
+
+  // Version snapshot opened from the history timeline.
+  selectedVersion = signal<ReportHistoryEntry | null>(null);
+
+  // Only the employee who recorded the report may edit it — never anyone else (e.g. admins viewing).
+  canEdit = computed(() => {
+    const myId = getEmployeeIdFromToken(this.authService.getToken());
+    const owner = this.report?.assigneeId;
+    return !!myId && !!owner && myId.toLowerCase() === owner.toLowerCase();
+  });
+
+  ngOnInit(): void {
+    this.loadHistory();
+  }
+
+  setTab(tab: DetailTab): void {
+    this.activeTab.set(tab);
+  }
+
+  openVersion(entry: ReportHistoryEntry): void {
+    this.selectedVersion.set(entry);
+  }
+
+  closeVersion(): void {
+    this.selectedVersion.set(null);
+  }
+
+  private loadHistory(): void {
+    if (!this.report?.id) return;
+    this.isLoadingHistory.set(true);
+    this.historyError.set(false);
+    this.salesReportService.getReportHistory(this.report.id).subscribe({
+      next: (res) => {
+        // Newest first for display.
+        const versions = [...(res?.versions || [])].sort((a, b) => b.version - a.version);
+        this.history.set(versions);
+        this.isLoadingHistory.set(false);
+      },
+      error: (err) => {
+        console.error('Error loading report history:', err);
+        this.historyError.set(true);
+        this.isLoadingHistory.set(false);
+      }
+    });
+  }
+
+  private readonly fieldLabels: Record<string, string> = {
+    customerName: 'ชื่อลูกค้า',
+    customerContact: 'เบอร์โทร',
+    salesStatus: 'สถานะการขาย',
+    jobStatus: 'สถานะงาน',
+    reasons: 'เหตุผล',
+    productCategory: 'สินค้าที่สนใจ',
+    description: 'บันทึกเพิ่มเติม',
+    saleValue: 'มูลค่าการขาย',
+    saleDate: 'วันที่ขาย',
+  };
+
+  changedFieldLabels(entry: ReportHistoryEntry): string[] {
+    return (entry.changedFields || []).map(f => this.fieldLabels[f] || f);
+  }
+
+  formatHistoryDateTime(iso?: string): string {
+    if (!iso) return '-';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '-';
+    const date = new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+    const time = new Intl.DateTimeFormat('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
+    return `${date} ${time}`;
+  }
+
+  /** Whether a given field key changed in the selected version (for highlighting in the version dialog). */
+  isFieldChanged(key: string): boolean {
+    const entry = this.selectedVersion();
+    return !!entry && (entry.changedFields || []).includes(key);
+  }
+
+  versionStatusLabel(salesStatus?: string): string {
+    switch ((salesStatus || '').toLowerCase()) {
+      case 'success': return 'สำเร็จ';
+      case 'failed': return 'ไม่สำเร็จ';
+      case 'pending': return 'รอตัดสินใจ';
+      default: return salesStatus || '-';
+    }
+  }
+
+  /** Convert an ISO string snapshot date to a Date for the shared date formatter. */
+  toDate(iso?: string | null): Date | undefined {
+    if (!iso) return undefined;
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? undefined : d;
+  }
+
+  /** Split a comma-separated product-category string into a display array. */
+  splitProducts(productCategory?: string): string[] {
+    if (!productCategory) return [];
+    return productCategory.split(',').map(p => p.trim()).filter(p => p.length > 0);
+  }
 
   statusInfo = computed(() => {
     const status = this.report.status;

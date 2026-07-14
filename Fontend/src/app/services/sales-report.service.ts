@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { EditReportPayload, GetReportHistoryResponse } from '../models/report-history.model';
 
 export interface SalesReportDto {
   id: string;
@@ -16,6 +17,7 @@ export interface SalesReportDto {
   description: string;
   submittedAt: string;
   saleDate?: string;
+  saleValue?: number;
   assigneeId: string;
   assigneeName?: string;
   invoiceId?: string;
@@ -101,6 +103,16 @@ export class SalesReportService {
       observe: 'response',
       responseType: 'blob'
     });
+  }
+
+  /** Update a previously-saved sales report. Persists to backend and records an edit-history entry. */
+  editReport(id: string, payload: EditReportPayload): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}/report`, payload);
+  }
+
+  /** Fetch the full edit history (original + each edit) for a job's sales report. */
+  getReportHistory(id: string): Observable<GetReportHistoryResponse> {
+    return this.http.get<GetReportHistoryResponse>(`${this.apiUrl}/${id}/report-history`);
   }
 }
 

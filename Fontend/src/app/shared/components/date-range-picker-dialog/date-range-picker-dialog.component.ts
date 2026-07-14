@@ -21,6 +21,8 @@ export class DateRangePickerDialogComponent {
   @Input() startYmd!: string;
   @Input() endYmd!: string;
   @Input() isSubmitting: boolean = false;
+  /** Optional maximum number of days (inclusive) the selected range may span. Undefined = no limit. */
+  @Input() maxDays?: number;
 
   @Output() apply = new EventEmitter<DateRangeYmd>();
   @Output() cancel = new EventEmitter<void>();
@@ -33,6 +35,18 @@ export class DateRangePickerDialogComponent {
 
   // Month being displayed (first day of month)
   viewMonth = signal<Date>(new Date(this.today.getFullYear(), this.today.getMonth(), 1));
+
+  /** Number of days the current selection spans, inclusive of both endpoints. */
+  selectedRangeDays = computed(() => {
+    const s = this.selectedStartYmd();
+    const e = this.selectedEndYmd();
+    if (!s || !e) return 0;
+    const sd = new Date(`${s}T00:00:00`);
+    const ed = new Date(`${e}T00:00:00`);
+    return Math.round((ed.getTime() - sd.getTime()) / 86400000) + 1;
+  });
+
+  exceedsMax = computed(() => this.maxDays != null && this.selectedRangeDays() > this.maxDays);
 
   rangeLabel = computed(() => {
     const s = this.selectedStartYmd();
@@ -174,6 +188,7 @@ export class DateRangePickerDialogComponent {
     const start = this.selectedStartYmd();
     const end = this.selectedEndYmd();
     if (!start || !end) return;
+    if (this.exceedsMax()) return;
     // guarantee end >= start
     const safeStart = start <= end ? start : end;
     const safeEnd = start <= end ? end : start;

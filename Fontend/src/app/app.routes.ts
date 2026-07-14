@@ -40,6 +40,11 @@ export const routes: Routes = [
   { path: 'report', component: SalesReportComponent, canActivate: [basicOnlyGuard] },
   { path: 'sales-report-admin', component: SalesReportAdminComponent, canActivate: [adminGuard] },
   {
+    path: 'admin/dashboard',
+    loadComponent: () => import('./features/admin-dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent),
+    canActivate: [adminGuard]
+  },
+  {
     path: 'admin-active-jobs',
     loadComponent: () => import('./features/admin-active-jobs/admin-active-jobs.component').then(m => m.AdminActiveJobsComponent),
     canActivate: [adminGuard]

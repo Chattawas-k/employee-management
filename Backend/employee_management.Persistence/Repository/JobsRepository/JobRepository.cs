@@ -249,18 +249,16 @@ namespace employee_management.Persistence.Repository.JobsRepository
                 query = query.Where(j => j.Status == status.Value);
             }
 
-            if (dateFrom.HasValue)
+            // Interpret the date range as Bangkok business days (consistent with the daily queue
+            // reset and the admin sales-report filters) to avoid UTC-vs-Bangkok day mismatches.
+            var (startUtc, endUtc) = ToUtcRangeFromBangkokDates(dateFrom, dateTo);
+            if (startUtc.HasValue)
             {
-                var utcDateFrom = DateTime.SpecifyKind(dateFrom.Value.Date, DateTimeKind.Utc);
-                var dateFromOffset = new DateTimeOffset(utcDateFrom, TimeSpan.Zero);
-                query = query.Where(j => j.CreatedDate >= dateFromOffset);
+                query = query.Where(j => j.CreatedDate >= startUtc.Value);
             }
-
-            if (dateTo.HasValue)
+            if (endUtc.HasValue)
             {
-                var utcDateTo = DateTime.SpecifyKind(dateTo.Value.Date.AddDays(1), DateTimeKind.Utc);
-                var dateToOffset = new DateTimeOffset(utcDateTo, TimeSpan.Zero);
-                query = query.Where(j => j.CreatedDate < dateToOffset);
+                query = query.Where(j => j.CreatedDate < endUtc.Value);
             }
 
             return await query
@@ -314,15 +312,15 @@ namespace employee_management.Persistence.Repository.JobsRepository
 
         public async Task<Dictionary<string, decimal>> GetSalesByCategoryAsync(DateTime dateFrom, DateTime dateTo, CancellationToken cancellationToken)
         {
-            var utcDateFrom = DateTime.SpecifyKind(dateFrom.Date, DateTimeKind.Utc);
-            var utcDateTo = DateTime.SpecifyKind(dateTo.Date.AddDays(1), DateTimeKind.Utc);
-            var dateFromOffset = new DateTimeOffset(utcDateFrom, TimeSpan.Zero);
-            var dateToOffset = new DateTimeOffset(utcDateTo, TimeSpan.Zero);
+            // Bangkok business-day range (see GetJobsByStatusAsync).
+            var (startUtc, endUtc) = ToUtcRangeFromBangkokDates(dateFrom, dateTo);
+            var dateFromOffset = startUtc ?? DateTimeOffset.MinValue;
+            var dateToOffset = endUtc ?? DateTimeOffset.MaxValue;
 
             var jobs = await Context.Jobs
                 .Include(j => j.Employee)
                 .Include(j => j.ProductCategory)
-                .Where(j => !j.IsDeleted && 
+                .Where(j => !j.IsDeleted &&
                     j.Status == employee_management.Domain.Enums.JobStatus.ClosedWon &&
                     j.CreatedDate >= dateFromOffset &&
                     j.CreatedDate < dateToOffset &&
@@ -335,7 +333,7 @@ namespace employee_management.Persistence.Repository.JobsRepository
             
             foreach (var job in jobs.Where(j => j.Report != null && j.Report.SalesStatus.ToLower() == "success"))
             {
-                var amount = employee_management.Application.Common.Helpers.SalesAmountHelper.ExtractSalesAmount(job.Report?.Description);
+                var amount = employee_management.Application.Common.Helpers.SalesAmountHelper.ResolveSaleAmount(job.Report);
                 if (amount <= 0) continue;
                 
                 // Priority: Use JobReport.ProductCategory (from Sales Report dialog)
@@ -382,18 +380,15 @@ namespace employee_management.Persistence.Repository.JobsRepository
         {
             var query = Context.Jobs.Where(j => !j.IsDeleted);
 
-            if (dateFrom.HasValue)
+            // Bangkok business-day range (see GetJobsByStatusAsync).
+            var (startUtc, endUtc) = ToUtcRangeFromBangkokDates(dateFrom, dateTo);
+            if (startUtc.HasValue)
             {
-                var utcDateFrom = DateTime.SpecifyKind(dateFrom.Value.Date, DateTimeKind.Utc);
-                var dateFromOffset = new DateTimeOffset(utcDateFrom, TimeSpan.Zero);
-                query = query.Where(j => j.CreatedDate >= dateFromOffset);
+                query = query.Where(j => j.CreatedDate >= startUtc.Value);
             }
-
-            if (dateTo.HasValue)
+            if (endUtc.HasValue)
             {
-                var utcDateTo = DateTime.SpecifyKind(dateTo.Value.Date.AddDays(1), DateTimeKind.Utc);
-                var dateToOffset = new DateTimeOffset(utcDateTo, TimeSpan.Zero);
-                query = query.Where(j => j.CreatedDate < dateToOffset);
+                query = query.Where(j => j.CreatedDate < endUtc.Value);
             }
 
             var jobs = await query.ToListAsync(cancellationToken);

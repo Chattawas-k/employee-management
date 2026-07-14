@@ -13,114 +13,192 @@
       </button>
     </header>
 
-    <!-- Content -->
-    <main class="flex-1 p-6 space-y-8 overflow-y-auto bg-white">
-      
-      <!-- Status Specific Info -->
-      @switch (report.status) {
-        @case ('Success') {
-          <section class="bg-green-50 p-5 rounded-lg border-l-[6px] border-green-400">
-            <h3 class="text-xl font-bold  mb-4">ข้อมูลการขาย</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
-              <div>
-                <p class="text-base text-gray-500">มูลค่า</p>
-                <p class="font-bold text-2xl text-gray-900">{{ formatCurrency(getSaleValue()) }}</p>
-              </div>
-              <div>
-                <p class="text-base text-gray-500">วันที่ขาย</p>
-                <p class="font-medium text-xl text-gray-900">{{ formatThaiDateLong(report.saleDate) }}</p>
-              </div>
-            </div>
-            @if (report.closedByAdminName) {
-              <div class="mt-4 pt-4 border-t border-green-200">
-                <p class="text-base text-gray-500 mb-2">บันทึกปิดงานโดย</p>
-                <div class="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <p class="font-medium text-lg text-amber-700">{{ report.closedByAdminName }}</p>
-                  <span class="px-2 py-0.5 text-xs font-semibold text-amber-800 bg-amber-100 rounded-full">Admin</span>
-                </div>
-              </div>
-            }
-          </section>
+    <!-- Tabs -->
+    <nav class="px-6 pt-3 border-b border-gray-200 flex gap-6 flex-shrink-0">
+      <button type="button" (click)="setTab('detail')"
+        class="pb-3 text-base font-medium border-b-2 -mb-px transition-colors"
+        [class.border-indigo-600]="activeTab() === 'detail'"
+        [class.text-indigo-600]="activeTab() === 'detail'"
+        [class.border-transparent]="activeTab() !== 'detail'"
+        [class.text-gray-500]="activeTab() !== 'detail'">
+        รายละเอียด
+      </button>
+      <button type="button" (click)="setTab('history')"
+        class="pb-3 text-base font-medium border-b-2 -mb-px transition-colors flex items-center gap-2"
+        [class.border-indigo-600]="activeTab() === 'history'"
+        [class.text-indigo-600]="activeTab() === 'history'"
+        [class.border-transparent]="activeTab() !== 'history'"
+        [class.text-gray-500]="activeTab() !== 'history'">
+        ประวัติการแก้ไข
+        @if (history().length > 0) {
+          <span class="px-2 py-0.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-full">{{ history().length }}</span>
         }
-        @case ('Pending') {
-          <section class="bg-yellow-50 p-5 rounded-lg border-l-[6px] border-yellow-400">
-            <h3 class="text-xl font-bold  mb-4">ข้อมูลการติดตาม</h3>
-            <div class="space-y-5">
-              <div>
-                <p class="text-base text-gray-500">เหตุผลที่รอ</p>
-                <div class="flex flex-wrap gap-2 mt-2">
-                  @for (reason of report.reasons; track reason) {
-                    <span class="px-3 py-1 text-base text-gray-700 bg-gray-200 rounded-full">{{ reason }}</span>
-                  }
-                </div>
-              </div>
-            </div>
-          </section>
-        }
-        @case ('Failed') {
-          <section class="bg-red-50 p-5 rounded-lg border-l-[6px] border-red-400">
-            <h3 class="text-xl font-bold  mb-4">สรุปผล (ไม่สำเร็จ)</h3>
-            <div class="space-y-4">
-              @if (report.competitor) {
-                <div>
-                  <p class="text-base text-gray-500">คู่แข่ง</p>
-                  <p class="font-medium text-xl text-gray-900">{{ report.competitor }}</p>
-                </div>
-              }
-              <div>
-                <p class="text-base text-gray-500">เหตุผล</p>
-                <div class="flex flex-wrap gap-2 mt-2">
-                  @for (reason of report.reasons; track reason) {
-                    <span class="px-3 py-1 text-base text-gray-700 bg-gray-200 rounded-full">{{ reason }}</span>
-                  }
-                </div>
-              </div>
-            </div>
-          </section>
-        }
-      }
+      </button>
+    </nav>
 
-      <!-- Interested Products -->
-      <section>
-        <h3 class="text-xl font-bold  mb-3">สินค้าที่สนใจ</h3>
-        <div class="flex flex-wrap gap-3">
-          @for (product of report.interestedProducts; track product) {
-            <span class="px-4 py-1.5 text-base font-medium text-violet-800 bg-violet-100 rounded-full">{{ product }}</span>
-          } @empty {
-            <p class="text-base text-gray-500">ไม่มีข้อมูล</p>
+    <!-- Content -->
+    <main class="flex-1 p-6 overflow-y-auto bg-white">
+
+      @if (activeTab() === 'detail') {
+        <div class="space-y-8">
+          <!-- Status Specific Info -->
+          @switch (report.status) {
+            @case ('Success') {
+              <section class="bg-green-50 p-5 rounded-lg border-l-[6px] border-green-400">
+                <h3 class="text-xl font-bold  mb-4">ข้อมูลการขาย</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
+                  <div>
+                    <p class="text-base text-gray-500">มูลค่า</p>
+                    <p class="font-bold text-2xl text-gray-900">{{ formatCurrency(getSaleValue()) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-base text-gray-500">วันที่ขาย</p>
+                    <p class="font-medium text-xl text-gray-900">{{ formatThaiDateLong(report.saleDate) }}</p>
+                  </div>
+                </div>
+                @if (report.closedByAdminName) {
+                  <div class="mt-4 pt-4 border-t border-green-200">
+                    <p class="text-base text-gray-500 mb-2">บันทึกปิดงานโดย</p>
+                    <div class="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <p class="font-medium text-lg text-amber-700">{{ report.closedByAdminName }}</p>
+                      <span class="px-2 py-0.5 text-xs font-semibold text-amber-800 bg-amber-100 rounded-full">Admin</span>
+                    </div>
+                  </div>
+                }
+              </section>
+            }
+            @case ('Pending') {
+              <section class="bg-yellow-50 p-5 rounded-lg border-l-[6px] border-yellow-400">
+                <h3 class="text-xl font-bold  mb-4">ข้อมูลการติดตาม</h3>
+                <div class="space-y-5">
+                  <div>
+                    <p class="text-base text-gray-500">เหตุผลที่รอ</p>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                      @for (reason of report.reasons; track reason) {
+                        <span class="px-3 py-1 text-base text-gray-700 bg-gray-200 rounded-full">{{ reason }}</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </section>
+            }
+            @case ('Failed') {
+              <section class="bg-red-50 p-5 rounded-lg border-l-[6px] border-red-400">
+                <h3 class="text-xl font-bold  mb-4">สรุปผล (ไม่สำเร็จ)</h3>
+                <div class="space-y-4">
+                  @if (report.competitor) {
+                    <div>
+                      <p class="text-base text-gray-500">คู่แข่ง</p>
+                      <p class="font-medium text-xl text-gray-900">{{ report.competitor }}</p>
+                    </div>
+                  }
+                  <div>
+                    <p class="text-base text-gray-500">เหตุผล</p>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                      @for (reason of report.reasons; track reason) {
+                        <span class="px-3 py-1 text-base text-gray-700 bg-gray-200 rounded-full">{{ reason }}</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </section>
+            }
+          }
+
+          <!-- Interested Products -->
+          <section>
+            <h3 class="text-xl font-bold  mb-3">สินค้าที่สนใจ</h3>
+            <div class="flex flex-wrap gap-3">
+              @for (product of report.interestedProducts; track product) {
+                <span class="px-4 py-1.5 text-base font-medium text-violet-800 bg-violet-100 rounded-full">{{ product }}</span>
+              } @empty {
+                <p class="text-base text-gray-500">ไม่มีข้อมูล</p>
+              }
+            </div>
+          </section>
+
+          <!-- Notes -->
+          @if (report.notes && report.notes.trim().length > 0) {
+            <section>
+              <h3 class="text-xl font-bold  mb-2">บันทึกเพิ่มเติม</h3>
+              <p class="text-base  leading-relaxed whitespace-pre-wrap">{{ report.notes }}</p>
+            </section>
+          }
+
+          <!-- Closed By Admin Info (for non-Success statuses) -->
+          @if (report.closedByAdminName && report.status !== 'Success') {
+            <section class="bg-amber-50 p-4 rounded-lg border-l-[6px] border-amber-400">
+              <div class="flex items-center gap-2 mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <h3 class="text-lg font-semibold text-amber-800">บันทึกปิดงานโดย</h3>
+              </div>
+              <p class="text-base font-medium text-amber-900">{{ report.closedByAdminName }}</p>
+              <p class="text-sm text-amber-700 mt-1">งานนี้ถูกปิดโดย Admin แทนพนักงานที่รับผิดชอบ</p>
+            </section>
           }
         </div>
-      </section>
-
-       <!-- Notes -->
-      @if (report.notes && report.notes.trim().length > 0) {
-        <section>
-          <h3 class="text-xl font-bold  mb-2">บันทึกเพิ่มเติม</h3>
-          <p class="text-base  leading-relaxed whitespace-pre-wrap">{{ report.notes }}</p>
-        </section>
       }
 
-      <!-- Closed By Admin Info (for non-Success statuses) -->
-      @if (report.closedByAdminName && report.status !== 'Success') {
-        <section class="bg-amber-50 p-4 rounded-lg border-l-[6px] border-amber-400">
-          <div class="flex items-center gap-2 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <h3 class="text-lg font-semibold text-amber-800">บันทึกปิดงานโดย</h3>
-          </div>
-          <p class="text-base font-medium text-amber-900">{{ report.closedByAdminName }}</p>
-          <p class="text-sm text-amber-700 mt-1">งานนี้ถูกปิดโดย Admin แทนพนักงานที่รับผิดชอบ</p>
-        </section>
+      @if (activeTab() === 'history') {
+        @if (isLoadingHistory()) {
+          <p class="text-base text-gray-500">กำลังโหลด...</p>
+        } @else if (historyError()) {
+          <p class="text-base text-red-500">ไม่สามารถโหลดประวัติการแก้ไขได้</p>
+        } @else if (history().length === 0) {
+          <p class="text-base text-gray-500">ยังไม่มีการแก้ไข</p>
+        } @else {
+          <p class="text-sm text-gray-500 mb-4">คลิกที่รายการเพื่อดูรายละเอียดของเวอร์ชันนั้น</p>
+          <ol class="relative border-l-2 border-gray-200 ml-2 space-y-3">
+            @for (entry of history(); track entry.id) {
+              <li class="ml-4">
+                <span class="absolute -left-[9px] mt-2 h-4 w-4 rounded-full border-2 border-white"
+                  [class.bg-indigo-500]="!entry.isOriginal"
+                  [class.bg-gray-400]="entry.isOriginal"></span>
+                <button type="button" (click)="openVersion(entry)"
+                  class="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-medium text-gray-900">เวอร์ชัน {{ entry.version }}</span>
+                    @if (entry.isOriginal) {
+                      <span class="px-2 py-0.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-full">ต้นฉบับ</span>
+                    } @else {
+                      <span class="px-2 py-0.5 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-full">แก้ไข</span>
+                    }
+                    <svg class="h-4 w-4 text-gray-400 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                  <p class="text-sm text-gray-500 mt-0.5">
+                    {{ entry.editedByName || 'ไม่ระบุ' }} · {{ formatHistoryDateTime(entry.editedDate) }}
+                  </p>
+                  @if (!entry.isOriginal && changedFieldLabels(entry).length > 0) {
+                    <div class="flex flex-wrap gap-2 mt-2">
+                      <span class="text-sm text-gray-500">แก้ไข:</span>
+                      @for (label of changedFieldLabels(entry); track label) {
+                        <span class="px-2.5 py-0.5 text-sm font-medium text-amber-800 bg-amber-100 rounded-full">{{ label }}</span>
+                      }
+                    </div>
+                  }
+                </button>
+              </li>
+            }
+          </ol>
+        }
       }
 
     </main>
 
     <!-- Footer -->
     <footer class="p-4 border-t border-gray-200 flex justify-end items-center gap-3 flex-shrink-0">
+      @if (canEdit()) {
+        <button type="button" (click)="edit.emit()" class="mr-auto px-5 py-2 border border-indigo-300 rounded-lg text-base font-medium text-indigo-700 bg-white hover:bg-indigo-50 transition-colors">
+          แก้ไขรายงาน
+        </button>
+      }
       @if (report.status === 'Pending' && allowStatusUpdate) {
         <button type="button" (click)="updateStatus.emit('Failed')" class="px-5 py-2 border border-gray-300 rounded-lg text-base font-medium text-red-600 bg-white hover:bg-red-50 transition-colors">
           ไม่สำเร็จ
@@ -137,3 +215,98 @@
   </div>
 </div>
 
+<!-- Version snapshot detail dialog -->
+@if (selectedVersion(); as v) {
+  <div class="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" (click)="closeVersion()">
+    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col relative max-h-[90vh]" (click)="$event.stopPropagation()">
+      <header class="p-5 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 class="text-lg font-semibold text-gray-900">เวอร์ชัน {{ v.version }}</h2>
+            @if (v.isOriginal) {
+              <span class="px-2 py-0.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-full">ต้นฉบับ</span>
+            } @else {
+              <span class="px-2 py-0.5 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-full">แก้ไข</span>
+            }
+          </div>
+          <p class="text-sm text-gray-500 mt-0.5">{{ v.editedByName || 'ไม่ระบุ' }} · {{ formatHistoryDateTime(v.editedDate) }}</p>
+        </div>
+        <button (click)="closeVersion()" class="text-gray-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </header>
+
+      <main class="flex-1 p-5 overflow-y-auto space-y-4">
+        @if (!v.isOriginal && changedFieldLabels(v).length > 0) {
+          <div class="flex flex-wrap gap-2 items-center">
+            <span class="text-sm text-gray-500">ฟิลด์ที่แก้ไข:</span>
+            @for (label of changedFieldLabels(v); track label) {
+              <span class="px-2.5 py-0.5 text-sm font-medium text-amber-800 bg-amber-100 rounded-full">{{ label }}</span>
+            }
+          </div>
+        }
+        @if (v.editNote) {
+          <p class="text-sm text-gray-600 italic border-l-2 border-gray-200 pl-3">{{ v.editNote }}</p>
+        }
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="p-3 rounded-lg" [class.bg-amber-50]="isFieldChanged('customerName')" [class.ring-1]="isFieldChanged('customerName')" [class.ring-amber-300]="isFieldChanged('customerName')">
+            <p class="text-sm text-gray-500">ชื่อลูกค้า</p>
+            <p class="font-medium text-gray-900">{{ v.snapshot.customerName || '-' }}</p>
+          </div>
+          <div class="p-3 rounded-lg" [class.bg-amber-50]="isFieldChanged('customerContact')" [class.ring-1]="isFieldChanged('customerContact')" [class.ring-amber-300]="isFieldChanged('customerContact')">
+            <p class="text-sm text-gray-500">เบอร์โทร</p>
+            <p class="font-medium text-gray-900">{{ v.snapshot.customerContact || '-' }}</p>
+          </div>
+          <div class="p-3 rounded-lg" [class.bg-amber-50]="isFieldChanged('salesStatus')" [class.ring-1]="isFieldChanged('salesStatus')" [class.ring-amber-300]="isFieldChanged('salesStatus')">
+            <p class="text-sm text-gray-500">สถานะการขาย</p>
+            <p class="font-medium text-gray-900">{{ versionStatusLabel(v.snapshot.salesStatus) }}</p>
+          </div>
+          <div class="p-3 rounded-lg" [class.bg-amber-50]="isFieldChanged('saleValue')" [class.ring-1]="isFieldChanged('saleValue')" [class.ring-amber-300]="isFieldChanged('saleValue')">
+            <p class="text-sm text-gray-500">มูลค่าการขาย</p>
+            <p class="font-medium text-gray-900">{{ v.snapshot.saleValue != null ? formatCurrency(v.snapshot.saleValue) : '-' }}</p>
+          </div>
+          <div class="p-3 rounded-lg" [class.bg-amber-50]="isFieldChanged('saleDate')" [class.ring-1]="isFieldChanged('saleDate')" [class.ring-amber-300]="isFieldChanged('saleDate')">
+            <p class="text-sm text-gray-500">วันที่ขาย</p>
+            <p class="font-medium text-gray-900">{{ v.snapshot.saleDate ? formatThaiDateLong(toDate(v.snapshot.saleDate)) : '-' }}</p>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-lg" [class.bg-amber-50]="isFieldChanged('productCategory')" [class.ring-1]="isFieldChanged('productCategory')" [class.ring-amber-300]="isFieldChanged('productCategory')">
+          <p class="text-sm text-gray-500 mb-2">สินค้าที่สนใจ</p>
+          <div class="flex flex-wrap gap-2">
+            @for (product of splitProducts(v.snapshot.productCategory); track product) {
+              <span class="px-3 py-1 text-sm font-medium text-violet-800 bg-violet-100 rounded-full">{{ product }}</span>
+            } @empty {
+              <span class="text-sm text-gray-400">-</span>
+            }
+          </div>
+        </div>
+
+        @if (v.snapshot.reasons && v.snapshot.reasons.length > 0) {
+          <div class="p-3 rounded-lg" [class.bg-amber-50]="isFieldChanged('reasons')" [class.ring-1]="isFieldChanged('reasons')" [class.ring-amber-300]="isFieldChanged('reasons')">
+            <p class="text-sm text-gray-500 mb-2">เหตุผล</p>
+            <div class="flex flex-wrap gap-2">
+              @for (reason of v.snapshot.reasons; track reason) {
+                <span class="px-3 py-1 text-sm text-gray-700 bg-gray-200 rounded-full">{{ reason }}</span>
+              }
+            </div>
+          </div>
+        }
+
+        <div class="p-3 rounded-lg" [class.bg-amber-50]="isFieldChanged('description')" [class.ring-1]="isFieldChanged('description')" [class.ring-amber-300]="isFieldChanged('description')">
+          <p class="text-sm text-gray-500">บันทึกเพิ่มเติม</p>
+          <p class="text-gray-900 whitespace-pre-wrap">{{ v.snapshot.description || '-' }}</p>
+        </div>
+      </main>
+
+      <footer class="p-4 border-t border-gray-200 flex justify-end flex-shrink-0">
+        <button type="button" (click)="closeVersion()" class="px-5 py-2 border border-gray-300 rounded-lg text-base font-medium text-gray-700 bg-white hover:bg-gray-100 transition-colors">
+          ปิด
+        </button>
+      </footer>
+    </div>
+  </div>
+}

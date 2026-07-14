@@ -17,6 +17,7 @@ namespace employee_management.Application.Features.Jobs.Queries.GetSalesReports
         public string Description { get; set; } = string.Empty;
         public DateTimeOffset SubmittedAt { get; set; }
         public DateTimeOffset? SaleDate { get; set; }
+        public decimal? SaleValue { get; set; }
         public Guid AssigneeId { get; set; }
         public string? AssigneeName { get; set; }
         public string? AssigneeAvatar { get; set; }

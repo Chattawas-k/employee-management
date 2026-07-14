@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, signal, computed, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, computed, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CalloutCardComponent } from '../../shared/components/callout-card/callout-card.component';
@@ -19,6 +20,7 @@ import { MyStatusStore } from '../../services/my-status.store';
 import { ReceiveCustomerService } from '../../services/receive-customer.service';
 import { StaffService } from '../../services/staff.service';
 import { StaffListItem } from '../../models/staff.model';
+import { EditReportPayload } from '../../models/report-history.model';
 
 // Re-export for backward compatibility
 export type { ReportStatus } from '../../models/sales-report.model';
@@ -70,6 +72,8 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
     return d.toISOString().split('T')[0];
   }
   
+  private destroyRef = inject(DestroyRef);
+
   // Centralized status (same across pages)
   private myStatusStore = inject(MyStatusStore);
   private receiveCustomerService = inject(ReceiveCustomerService);
@@ -581,12 +585,18 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
 
       // Extract sale value from description if status is Success
       // Description may contain: "5000" or "5000 | additional info" or "ยอด 5000 บาท"
-      let saleValue: number | undefined = undefined;
+      // Prefer the first-class saleValue from the backend; fall back to regex extraction for legacy records.
+      let saleValue: number | undefined =
+        (apiReport.saleValue !== undefined && apiReport.saleValue !== null)
+          ? Number(apiReport.saleValue)
+          : undefined;
       let notes: string = '';
       if (status === 'Success' && apiReport.description) {
         const desc = apiReport.description.trim();
-        saleValue = this.extractSalesAmount(desc);
-        
+        if (saleValue === undefined) {
+          saleValue = this.extractSalesAmount(desc);
+        }
+
         // Extract notes from description: if format is "number | notes", show only notes part
         const separators = ['|', ',', '\n', '\r', ';'];
         let foundSeparator = false;
@@ -632,6 +642,7 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
         reasons: apiReport.reasons || [],
         submittedAt: submittedAt,
         saleDate: saleDate,
+        assigneeId: apiReport.assigneeId ? String(apiReport.assigneeId) : undefined,
         salesperson: {
           name: apiReport.assigneeName || 'ไม่ระบุ',
           avatarUrl: (apiReport.assigneeAvatar && String(apiReport.assigneeAvatar).trim().length > 0)
@@ -966,40 +977,74 @@ export class SalesReportComponent implements OnInit, AfterViewInit, OnDestroy {
     const reportToUpdate = this.reportToEdit();
     if (!reportToUpdate) return;
 
-    // formData.interestedProducts is now an array of category names (from sales-report-dialog)
-    const interestedProducts = Array.isArray(formData.interestedProducts) 
-      ? formData.interestedProducts 
+    // formData.interestedProducts is an array of category names (from sales-report-dialog)
+    const interestedProducts: string[] = Array.isArray(formData.interestedProducts)
+      ? formData.interestedProducts
       : [];
-    
-    const reasons = Array.isArray(formData.reasons) ? formData.reasons : [];
+    const reasonIds: string[] = Array.isArray(formData.reasonIds) ? formData.reasonIds : [];
 
-    const updatedReport: SalesReport = {
-      ...reportToUpdate,
-      customerName: formData.customerName,
-      contactInfo: formData.contactInfo,
-      status: formData.status,
-      interestedProducts,
-      reasons,
-      notes: formData.additionalInfo,
-      submittedAt: new Date(),
-      saleValue: formData.status === 'Success' ? formData.saleValue : undefined,
-      invoiceId: formData.status === 'Success' ? formData.invoiceId : undefined,
-      saleDate: formData.status === 'Success' ? new Date() : undefined,
-      nextFollowUp: undefined,
-      competitor: undefined
+    const status = formData.status as ReportStatus;
+    const isSuccess = status === 'Success';
+
+    let saleDateIso: string | null = null;
+    if (isSuccess && formData.saleDate) {
+      const d = new Date(formData.saleDate);
+      if (!isNaN(d.getTime())) {
+        saleDateIso = d.toISOString();
+      }
+    }
+
+    const payload: EditReportPayload = {
+      id: reportToUpdate.id,
+      report: {
+        customerName: formData.customerName || '',
+        customerContact: formData.contactInfo || '',
+        salesStatus: this.mapStatusToSalesStatus(status),
+        reasonIds,
+        productCategory: interestedProducts.join(', '),
+        description: formData.additionalInfo || '',
+        saleValue: isSuccess ? (formData.saleValue ?? null) : null,
+        saleDate: saleDateIso
+      },
+      editNote: null,
+      isAdminOverride: false
     };
 
-    this.allReports.update(reports => {
-      const index = reports.findIndex(r => r.id === updatedReport.id);
-      if (index > -1) {
-        const newReports = [...reports];
-        newReports[index] = updatedReport;
-        return newReports;
+    this.isLoading.set(true);
+    this.salesReportService.editReport(reportToUpdate.id, payload).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.isLoading.set(false))
+    ).subscribe({
+      next: () => {
+        this.toastService.success('บันทึกการแก้ไขรายงานเรียบร้อยแล้ว');
+        this.closeEditReportDialog();
+        this.loadSalesReports(this.activeTab(), this.currentPage());
+      },
+      error: (err) => {
+        console.error('Error saving report edit:', err);
+        const message = err?.error?.message || err?.error || 'ไม่สามารถบันทึกการแก้ไขได้ กรุณาลองใหม่อีกครั้ง';
+        this.toastService.error(typeof message === 'string' ? message : 'ไม่สามารถบันทึกการแก้ไขได้');
       }
-      return reports;
     });
+  }
 
-    this.closeEditReportDialog();
+  private mapStatusToSalesStatus(status: ReportStatus): string {
+    switch (status) {
+      case 'Success': return 'success';
+      case 'Failed': return 'failed';
+      case 'Pending': return 'pending';
+      default: return 'pending';
+    }
+  }
+
+  /** Open the edit dialog from the detail dialog for any status. */
+  handleEditReport() {
+    const current = this.selectedReport();
+    if (!current) return;
+    this.reportToEdit.set(current);
+    this.statusToEdit.set(current.status);
+    this.closeDetailDialog();
+    this.showEditReportDialog.set(true);
   }
   
   closeEditReportDialog() {

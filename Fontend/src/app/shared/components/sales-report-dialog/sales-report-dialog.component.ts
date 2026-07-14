@@ -54,6 +54,7 @@ export class SalesReportDialogComponent implements OnInit {
       interestedProducts: this.fb.group({}, { validators: this.requireAtLeastOne() }),
       additionalInfo: [''],
       saleValue: [0],
+      saleDate: [''],
       invoiceId: ['']
     });
 
@@ -84,6 +85,7 @@ export class SalesReportDialogComponent implements OnInit {
         status: reportData.status,
         additionalInfo: reportData.notes || '',
         saleValue: reportData.saleValue || 0,
+        saleDate: this.toDateInputValue(reportData.saleDate),
         invoiceId: reportData.invoiceId || ''
       });
 
@@ -317,6 +319,17 @@ export class SalesReportDialogComponent implements OnInit {
     return ids
       .map(id => all.find(r => r.id === id)?.label)
       .filter((x): x is string => !!x);
+  }
+
+  /** Format a Date to the yyyy-MM-dd value expected by <input type="date">. */
+  private toDateInputValue(date?: Date | string | null): string {
+    if (!date) return '';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
   }
 
   private requireAtLeastOne(): ValidatorFn {

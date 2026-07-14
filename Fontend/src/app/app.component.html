@@ -30,6 +30,13 @@
         </a>
       }
       @if (hasAdminAccess()) {
+        <a routerLink="/admin/dashboard" routerLinkActive="bg-indigo-600 text-white"
+          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
+          <app-icon name="layout-dashboard" className="w-5 h-5"></app-icon>
+          แดชบอร์ด
+        </a>
+      }
+      @if (hasAdminAccess()) {
         <a routerLink="/assign" routerLinkActive="bg-indigo-600 text-white"
           class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 transition-colors">
           <app-icon name="briefcase" className="w-5 h-5"></app-icon>
@@ -185,6 +192,11 @@
       </div>
       <nav class="space-y-1 flex-1">
         @if (hasAdminAccess()) {
+          <a routerLink="/admin/dashboard" routerLinkActive="bg-indigo-600 text-white" (click)="isMobileMenuOpen.set(false)"
+            class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700">
+            <app-icon name="layout-dashboard" className="w-5 h-5"></app-icon>
+            แดชบอร์ด
+          </a>
           <a routerLink="/assign" routerLinkActive="bg-indigo-600 text-white" (click)="isMobileMenuOpen.set(false)"
             class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700">
             <app-icon name="briefcase" className="w-5 h-5"></app-icon>

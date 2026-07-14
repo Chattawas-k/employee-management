@@ -524,7 +524,8 @@
   <app-sales-report-detail-dialog
     [report]="selectedReport()!"
     (close)="closeDetailDialog()"
-    (updateStatus)="handleUpdateStatus($event)">
+    (updateStatus)="handleUpdateStatus($event)"
+    (edit)="handleEditReport()">
   </app-sales-report-detail-dialog>
 }
 

@@ -386,9 +386,10 @@ export class SalesReportAdminComponent implements OnInit, AfterViewInit, OnDestr
       const submittedAt = api.submittedAt ? new Date(api.submittedAt) : new Date();
       const saleDate = api.saleDate ? new Date(api.saleDate) : undefined;
 
-      // Extract sale value from description if status is Success
-      let saleValue: number | undefined = undefined;
-      if (status === 'Success' && api.description) {
+      // Prefer the first-class saleValue from the backend; fall back to regex extraction for legacy records.
+      let saleValue: number | undefined =
+        (api.saleValue !== undefined && api.saleValue !== null) ? Number(api.saleValue) : undefined;
+      if (saleValue === undefined && status === 'Success' && api.description) {
         saleValue = this.extractSalesAmount(api.description);
       }
 
@@ -403,6 +404,7 @@ export class SalesReportAdminComponent implements OnInit, AfterViewInit, OnDestr
         reasons: api.reasons || [],
         submittedAt,
         saleDate,
+        assigneeId: api.assigneeId ? String(api.assigneeId) : undefined,
         salesperson: {
           name: api.assigneeName || 'ไม่ระบุ',
           avatarUrl: (api.assigneeAvatar && String(api.assigneeAvatar).trim().length > 0)

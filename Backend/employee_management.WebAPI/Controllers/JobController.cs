@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using employee_management.Application.Features.Jobs.Commands.Create;
 using employee_management.Application.Features.Jobs.Commands.UpdateStatus;
+using employee_management.Application.Features.Jobs.Commands.EditReport;
 using employee_management.Application.Features.Jobs.Queries.Get;
+using employee_management.Application.Features.Jobs.Queries.GetReportHistory;
 using employee_management.Application.Features.Jobs.Queries.GetMyTasks;
 using employee_management.Application.Features.Jobs.Queries.GetMyStatusHistory;
 using employee_management.Application.Features.Jobs.Queries.GetSalesReports;
@@ -110,6 +112,33 @@ namespace employee_management.WebAPI.Controllers
                 return BadRequest("ID in URL does not match ID in body.");
             }
             var response = await _mediator.Send(request, cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpPut("{id}/report")]
+        public async Task<ActionResult<EditReportResponse>> EditReport(Guid id, [FromBody] EditReportRequest request, CancellationToken cancellationToken)
+        {
+            if (id == Guid.Empty)
+            {
+                return BadRequest("Job ID cannot be empty.");
+            }
+
+            if (id != request.Id)
+            {
+                return BadRequest("ID in URL does not match ID in body.");
+            }
+            var response = await _mediator.Send(request, cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpGet("{id}/report-history")]
+        public async Task<ActionResult<GetReportHistoryResponse>> GetReportHistory(Guid id, CancellationToken cancellationToken)
+        {
+            if (id == Guid.Empty)
+            {
+                return BadRequest("Job ID cannot be empty.");
+            }
+            var response = await _mediator.Send(new GetReportHistoryRequest(id), cancellationToken);
             return Ok(response);
         }
 

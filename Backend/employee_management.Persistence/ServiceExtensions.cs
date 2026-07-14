@@ -8,6 +8,7 @@ using employee_management.Application.Repository.TestTakersRepository;
 using employee_management.Application.Repository.ProductCategoriesRepository;
 using employee_management.Application.Repository.SalesReasonsRepository;
 using employee_management.Application.Repository.JobStatusHistoriesRepository;
+using employee_management.Application.Repository.JobReportHistoriesRepository;
 using employee_management.Domain.Entities;
 using employee_management.Persistence.Context;
 using employee_management.Persistence.Repository;
@@ -15,6 +16,7 @@ using employee_management.Persistence.Repository.TestTakersRepository;
 using employee_management.Persistence.Repository.ProductCategoriesRepository;
 using employee_management.Persistence.Repository.SalesReasonsRepository;
 using employee_management.Persistence.Repository.JobStatusHistoriesRepository;
+using employee_management.Persistence.Repository.JobReportHistoriesRepository;
 using employee_management.Persistence.Services;
 
 namespace employee_management.Persistence
@@ -66,6 +68,7 @@ namespace employee_management.Persistence
             services.AddScoped<IProductCategoryRepository, ProductCategoryRepository>();
             services.AddScoped<ISalesReasonRepository, SalesReasonRepository>();
             services.AddScoped<IJobStatusHistoryRepository, JobStatusHistoryRepository>();
+            services.AddScoped<IJobReportHistoryRepository, JobReportHistoryRepository>();
             //Services
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();

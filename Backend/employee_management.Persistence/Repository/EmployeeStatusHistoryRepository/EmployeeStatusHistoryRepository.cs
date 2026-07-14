@@ -95,6 +95,24 @@ namespace employee_management.Persistence.Repository.EmployeeStatusHistoryReposi
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
+        public async Task<Dictionary<Guid, EmployeeStatusHistory>> GetLatestPerEmployeeAsync(IEnumerable<Guid> employeeIds, CancellationToken cancellationToken = default)
+        {
+            var ids = employeeIds.Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                return new Dictionary<Guid, EmployeeStatusHistory>();
+            }
+
+            // Single query for all requested employees, then pick the latest per employee in memory.
+            var rows = await Context.EmployeeStatusHistories
+                .Where(e => !e.IsDeleted && ids.Contains(e.EmployeeId))
+                .ToListAsync(cancellationToken);
+
+            return rows
+                .GroupBy(e => e.EmployeeId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(e => e.ChangedDate).First());
+        }
+
         public async Task<EmployeeStatusHistory?> GetLatestBeforeAsync(Guid employeeId, DateTimeOffset before, CancellationToken cancellationToken = default)
         {
             return await Context.EmployeeStatusHistories

@@ -1,4 +1,5 @@
 using MediatR;
+using employee_management.Application.Common.Helpers;
 using employee_management.Application.Repository.JobsRepository;
 using employee_management.Application.Repository.EmployeesRepository;
 using employee_management.Domain.Enums;
@@ -58,11 +59,13 @@ namespace employee_management.Application.Features.Manager.Queries.Dashboard.Get
             // Calculate total sales for percentage calculation
             var totalSales = salesByCategory.Values.Sum();
             
-            // Get won jobs with ProductCategory included for accurate counting
+            // Won jobs that actually contributed a positive amount — matches the set summed in
+            // GetSalesByCategoryAsync so a category's count never exceeds the jobs behind its amount.
             var wonJobsForCategoryMix = allJobs
-                .Where(j => j.Status == JobStatus.ClosedWon && 
-                    j.Report != null && 
-                    j.Report.SalesStatus.ToLower() == "success")
+                .Where(j => j.Status == JobStatus.ClosedWon &&
+                    j.Report != null &&
+                    j.Report.SalesStatus.ToLower() == "success" &&
+                    SalesAmountHelper.ResolveSaleAmount(j.Report) > 0)
                 .ToList();
             
             // Create category mix items with count and percentage
@@ -118,7 +121,7 @@ namespace employee_management.Application.Features.Manager.Queries.Dashboard.Get
                 
                 var salesAmount = wonJobs
                     .Where(j => j.Report != null && j.Report.SalesStatus.ToLower() == "success")
-                    .Sum(j => j.Report?.Description != null && decimal.TryParse(j.Report.Description, out var amount) ? amount : 0m);
+                    .Sum(j => SalesAmountHelper.ResolveSaleAmount(j.Report));
                 
                 var conversionRate = handledJobs.Count > 0 ? (double)wonJobs.Count / handledJobs.Count * 100 : 0;
 

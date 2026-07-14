@@ -1,4 +1,5 @@
 using MediatR;
+using employee_management.Application.Common.Helpers;
 using employee_management.Application.Repository.JobsRepository;
 using employee_management.Application.Repository.EmployeesRepository;
 using employee_management.Domain.Enums;
@@ -48,7 +49,7 @@ namespace employee_management.Application.Features.Manager.Queries.Dashboard.Get
             var closedWonJobs = await _jobRepository.GetJobsByStatusAsync(JobStatus.ClosedWon, dateFrom, dateTo, cancellationToken);
             var salesToday = closedWonJobs
                 .Where(j => j.Report != null && j.Report.SalesStatus.ToLower() == "success")
-                .Sum(j => j.Report?.Description != null && decimal.TryParse(j.Report.Description, out var amount) ? amount : 0m);
+                .Sum(j => SalesAmountHelper.ResolveSaleAmount(j.Report));
 
             // 6. Conversion Today (CLOSED_WON / (CLOSED_WON + CLOSED_LOST))
             var closedLostJobs = await _jobRepository.GetJobsByStatusAsync(JobStatus.ClosedLost, dateFrom, dateTo, cancellationToken);

@@ -59,7 +59,7 @@ namespace employee_management.Application.Features.Jobs.Queries.ExportMySalesRep
                     });
                 }
 
-                var saleDate = DeriveSaleDate(job, statusLogsList);
+                var saleDate = report?.SaleDate ?? DeriveSaleDate(job, statusLogsList);
 
                 rows.Add(new ExportSalesReportRowDto
                 {
@@ -94,7 +94,7 @@ namespace employee_management.Application.Features.Jobs.Queries.ExportMySalesRep
 
                     ClosedByAdminName = report?.ClosedByAdminName,
                     SaleValueDerived = salesStatus == "success"
-                        ? ExtractSaleValue(report?.Description)
+                        ? (report?.SaleValue ?? ExtractSaleValue(report?.Description))
                         : null,
 
                     StatusLogsSummary = SummarizeStatusLogs(statusLogsList),

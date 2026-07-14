@@ -30,6 +30,7 @@ namespace employee_management.Persistence.Context
         public DbSet<WaitingJob> WaitingJobs { get; set; }
         public DbSet<EmployeeStatusHistory> EmployeeStatusHistories { get; set; }
         public DbSet<JobStatusHistory> JobStatusHistories { get; set; }
+        public DbSet<JobReportHistory> JobReportHistories { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<QueueRule> QueueRules { get; set; }
         public DbSet<ProductCategory> ProductCategories { get; set; }
@@ -165,6 +166,33 @@ namespace employee_management.Persistence.Context
 
                 entity.HasIndex(e => e.PreviousAssigneeId);
                 entity.HasIndex(e => e.NewAssigneeId);
+            });
+
+            // Configure JobReportHistory entity
+            modelBuilder.Entity<JobReportHistory>(entity =>
+            {
+                entity.ToTable("JobReportHistories");
+
+                entity.Property(e => e.SnapshotJson)
+                    .HasColumnType("jsonb");
+
+                entity.Property(e => e.ChangedFieldsJson)
+                    .HasColumnType("jsonb");
+
+                entity.HasOne(e => e.Job)
+                    .WithMany()
+                    .HasForeignKey(e => e.JobId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.EditedByEmployee)
+                    .WithMany()
+                    .HasForeignKey(e => e.EditedByEmployeeId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(e => e.JobId);
+                entity.HasIndex(e => e.EditedDate);
+                entity.HasIndex(e => e.EditedByEmployeeId);
+                entity.HasIndex(e => e.IsDeleted);
             });
 
             // Configure AuditLog entity

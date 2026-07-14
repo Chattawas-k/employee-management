@@ -31,6 +31,8 @@ namespace employee_management.Application.Features.Jobs.Queries.Get
         List<string> Reasons,
         string ProductCategory,
         string Description,
+        decimal? SaleValue,
+        DateTimeOffset? SaleDate,
         string? ClosedByAdminName
     );
 }

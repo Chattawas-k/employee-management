@@ -67,21 +67,32 @@
       </div>
     </div>
 
-    <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
-      <button
-        type="button"
-        class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium"
-        (click)="onCancel()"
-        [disabled]="isSubmitting">
-        Cancel
-      </button>
-      <button
-        type="button"
-        class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium disabled:opacity-60 disabled:cursor-not-allowed"
-        (click)="onApply()"
-        [disabled]="isSubmitting || !selectedStartYmd() || !selectedEndYmd()">
-        Apply
-      </button>
+    <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-between gap-3">
+      <p class="text-sm min-h-[1.25rem]"
+        [class.text-red-600]="exceedsMax()"
+        [class.text-slate-500]="!exceedsMax()">
+        @if (exceedsMax()) {
+          เลือกได้ไม่เกิน {{ maxDays }} วัน (เลือก {{ selectedRangeDays() }} วัน)
+        } @else if (maxDays != null && selectedRangeDays() > 0) {
+          {{ selectedRangeDays() }} วัน
+        }
+      </p>
+      <div class="flex gap-3">
+        <button
+          type="button"
+          class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium"
+          (click)="onCancel()"
+          [disabled]="isSubmitting">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+          (click)="onApply()"
+          [disabled]="isSubmitting || !selectedStartYmd() || !selectedEndYmd() || exceedsMax()">
+          Apply
+        </button>
+      </div>
     </div>
   </div>
 </div>

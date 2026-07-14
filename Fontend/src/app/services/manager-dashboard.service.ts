@@ -20,9 +20,21 @@ export class ManagerDashboardService {
 
   getKpis(dateFrom?: Date, dateTo?: Date): Observable<ManagerDashboardKpis> {
     let params = new HttpParams();
-    if (dateFrom) params = params.set('dateFrom', dateFrom.toISOString());
-    if (dateTo) params = params.set('dateTo', dateTo.toISOString());
+    if (dateFrom) params = params.set('dateFrom', this.toLocalYmd(dateFrom));
+    if (dateTo) params = params.set('dateTo', this.toLocalYmd(dateTo));
     return this.http.get<ManagerDashboardKpis>(`${this.apiUrl}/kpis`, { params });
+  }
+
+  /**
+   * Format a Date as a local YYYY-MM-DD business date. The backend interprets these
+   * as Bangkok days, so we must NOT use toISOString() (which converts to UTC and can
+   * shift the date by a day for a UTC+7 browser).
+   */
+  private toLocalYmd(d: Date): string {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
   }
 
   getQueueSnapshot(topCount: number = 10): Observable<{ tickets: QueueSnapshotTicket[] }> {
@@ -36,8 +48,8 @@ export class ManagerDashboardService {
 
   getCharts(dateFrom?: Date, dateTo?: Date): Observable<ChartData> {
     let params = new HttpParams();
-    if (dateFrom) params = params.set('dateFrom', dateFrom.toISOString());
-    if (dateTo) params = params.set('dateTo', dateTo.toISOString());
+    if (dateFrom) params = params.set('dateFrom', this.toLocalYmd(dateFrom));
+    if (dateTo) params = params.set('dateTo', this.toLocalYmd(dateTo));
     return this.http.get<ChartData>(`${this.apiUrl}/charts`, { params });
   }
 

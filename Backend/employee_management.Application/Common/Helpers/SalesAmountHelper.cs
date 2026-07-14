@@ -1,9 +1,23 @@
 using System.Text.RegularExpressions;
+using employee_management.Domain.Entities;
 
 namespace employee_management.Application.Common.Helpers
 {
     public static class SalesAmountHelper
     {
+        /// <summary>
+        /// Resolves the sale amount for a report, preferring the first-class <see cref="JobReport.SaleValue"/>
+        /// field and falling back to parsing the legacy Description text for older records.
+        /// </summary>
+        public static decimal ResolveSaleAmount(JobReport? report)
+        {
+            if (report == null)
+                return 0m;
+            if (report.SaleValue.HasValue)
+                return report.SaleValue.Value;
+            return ExtractSalesAmount(report.Description);
+        }
+
         /// <summary>
         /// Extracts sales amount from Description field.
         /// Description may contain: "5000" or "5000 | additional info" or "5000, info" or "ยอด 5000 บาท" etc.

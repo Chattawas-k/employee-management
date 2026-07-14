@@ -1,0 +1,107 @@
+<div class="p-4 sm:p-6 max-w-[1600px] mx-auto space-y-6">
+
+  <!-- Header -->
+  <header class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+        <app-icon name="layout-dashboard" className="w-7 h-7 text-indigo-600"></app-icon>
+        แดชบอร์ดผู้ดูแลระบบ
+      </h1>
+      <p class="text-sm text-slate-500 mt-1">
+        ภาพรวมคิว งานขาย และผลงานพนักงาน
+        @if (lastUpdated()) {
+          <span class="text-slate-400">· อัปเดตล่าสุด {{ formatLastUpdated() }}</span>
+        }
+      </p>
+    </div>
+    <div class="flex items-center gap-3 flex-wrap">
+      <div class="inline-flex bg-slate-100 rounded-lg p-1">
+        @for (opt of dateFilters; track opt.key) {
+          <button type="button" (click)="onDateFilterChange(opt.key)"
+            class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
+            [class.bg-white]="selectedDateFilter() === opt.key"
+            [class.text-indigo-600]="selectedDateFilter() === opt.key"
+            [class.shadow-sm]="selectedDateFilter() === opt.key"
+            [class.text-slate-600]="selectedDateFilter() !== opt.key">
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+      <button type="button" (click)="openDateRangeDialog()"
+        class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors"
+        [class.border-indigo-600]="selectedDateFilter() === 'custom'"
+        [class.text-indigo-600]="selectedDateFilter() === 'custom'"
+        [class.bg-indigo-50]="selectedDateFilter() === 'custom'"
+        [class.border-slate-200]="selectedDateFilter() !== 'custom'"
+        [class.text-slate-700]="selectedDateFilter() !== 'custom'"
+        [class.bg-white]="selectedDateFilter() !== 'custom'"
+        [class.hover:bg-slate-50]="selectedDateFilter() !== 'custom'">
+        <app-icon name="calendar" className="w-4 h-4"></app-icon>
+        {{ selectedDateFilter() === 'custom' ? customRangeLabel() : 'เลือกช่วง' }}
+      </button>
+      <button type="button" (click)="refreshDashboard()"
+        class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+        <app-icon name="refresh-cw" className="w-4 h-4"></app-icon>
+        รีเฟรช
+      </button>
+    </div>
+  </header>
+
+  <!-- Alerts -->
+  @if (hasAlerts()) {
+    <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+      @for (alert of alerts(); track alert.id) {
+        <app-alert-badge [alert]="alert" (alertClick)="onAlertClick($event)" (dismiss)="onAlertDismiss($event)"></app-alert-badge>
+      }
+    </section>
+  }
+
+  <!-- KPI grid -->
+  <section class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+    <app-kpi-card title="ลูกค้ารอในคิว" [value]="kpis()?.customersWaitingNow ?? 0" icon="users" iconColor="blue" [isLoading]="isLoading()"></app-kpi-card>
+    <app-kpi-card title="พนักงานพร้อม" [value]="kpis()?.readyStaffCount ?? 0" icon="user-check" iconColor="green" [isLoading]="isLoading()"></app-kpi-card>
+    <app-kpi-card title="งานที่กำลังทำ" [value]="kpis()?.activeConversations ?? 0" icon="message" iconColor="indigo" [isLoading]="isLoading()"></app-kpi-card>
+    <app-kpi-card title="SLA เกินกำหนด" [value]="kpis()?.slaBreachCount ?? 0" icon="alert" iconColor="red"
+      [badge]="(kpis()?.slaBreachCount ?? 0) > 0 ? 'ต้องดูแล' : undefined" badgeColor="red" [isLoading]="isLoading()"></app-kpi-card>
+    <app-kpi-card title="ยอดขาย" [value]="kpis()?.salesToday ?? 0" unit="฿" icon="currency" iconColor="green" [isLoading]="isLoading()"></app-kpi-card>
+    <app-kpi-card title="อัตราปิดการขาย" [value]="formatConversion(kpis()?.conversionToday)" unit="%" icon="trending-up" iconColor="purple" [isLoading]="isLoading()"></app-kpi-card>
+  </section>
+
+  <!-- Sales report status breakdown -->
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold text-slate-900">สถานะรายงานการขาย</h2>
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <app-summary-card title="ทั้งหมด" [value]="counts()?.all ?? 0" icon="clipboard" iconBgClass="bg-slate-100" iconClass="text-slate-600"></app-summary-card>
+      <app-summary-card title="สำเร็จ" [value]="counts()?.success ?? 0" icon="check-circle" valueClass="text-green-600" iconBgClass="bg-green-100" iconClass="text-green-600"></app-summary-card>
+      <app-summary-card title="รอตัดสินใจ" [value]="counts()?.pending ?? 0" icon="clock" valueClass="text-yellow-600" iconBgClass="bg-yellow-100" iconClass="text-yellow-600"></app-summary-card>
+      <app-summary-card title="ไม่สำเร็จ" [value]="counts()?.failed ?? 0" icon="x-circle" valueClass="text-red-600" iconBgClass="bg-red-100" iconClass="text-red-600"></app-summary-card>
+      <app-summary-card title="ปฏิเสธ" [value]="counts()?.rejected ?? 0" icon="x-circle" valueClass="text-gray-500" iconBgClass="bg-gray-100" iconClass="text-gray-500"></app-summary-card>
+    </div>
+  </section>
+
+  <!-- Charts -->
+  <section class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+    <app-chart-card title="แนวโน้มคิว (สร้าง / ปิด)" chartType="line" [data]="charts()?.queueTrend" [isLoading]="isLoading()"></app-chart-card>
+    <app-chart-card title="ช่องทางการปิดการขาย (Funnel)" chartType="funnel" [data]="charts()?.conversionFunnel" [isLoading]="isLoading()"></app-chart-card>
+    <app-chart-card title="ยอดขายตามหมวดสินค้า" chartType="doughnut" [data]="charts()?.categoryMix" [isLoading]="isLoading()"></app-chart-card>
+    <app-chart-card title="อันดับพนักงาน (ยอดขาย)" chartType="bar" [data]="charts()?.staffLeaderboard" [isLoading]="isLoading()"></app-chart-card>
+  </section>
+
+  <!-- Live queue & staff -->
+  <section class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+    <app-queue-snapshot-panel [tickets]="queueSnapshot()" [isLoading]="isLoading()" (ticketClick)="onTicketClick($event)"></app-queue-snapshot-panel>
+    <app-staff-snapshot-panel [staff]="staffSnapshot()" [isLoading]="isLoading()" (staffClick)="onStaffClick($event)"></app-staff-snapshot-panel>
+  </section>
+
+</div>
+
+@if (showDateRangeDialog()) {
+  <app-date-range-picker-dialog
+    [startYmd]="dialogStartYmd()"
+    [endYmd]="dialogEndYmd()"
+    [maxDays]="maxRangeDays"
+    (apply)="applyDateRange($event)"
+    (cancel)="closeDateRangeDialog()"
+    (close)="closeDateRangeDialog()">
+  </app-date-range-picker-dialog>
+}
